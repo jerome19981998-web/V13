@@ -497,7 +497,11 @@ function dayPicker(){
     }).join('')}
   </div>`;
 }
-function isPast(h){const[hh,mm]=h.replace('h',':').split(':').map(Number),n=new Date();return n.getHours()>hh||(n.getHours()===hh&&n.getMinutes()>mm);}
+function isPast(h){
+  if(st.date !== todayStr()) return false; // jour futur → aucune séance barrée
+  const[hh,mm]=h.replace('h',':').split(':').map(Number),n=new Date();
+  return n.getHours()>hh||(n.getHours()===hh&&n.getMinutes()>mm);
+}
 
 // ACTIONS
 function go(sc){
