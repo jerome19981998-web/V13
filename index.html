@@ -497,8 +497,54 @@ let st={
   tab:'vote', voted:'19h30',
   msgs:[],
   date: todayStr(),
+  lbdPseudo: _saved.lbdPseudo || '',
+  lbdInput: '',
 };
-function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo}))}catch(e){}}
+function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo}))}catch(e){}}
+
+// ═══════════ LETTERBOXD RSS ═══════════
+const lbdSeen     = new Set(); // titres vus (lowercase)
+const lbdWatchlist= new Set(); // titres watchlist (lowercase)
+let   lbdLoaded   = false;
+
+function normTitle(t){
+  return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+}
+function filmInLbd(filmId, list){
+  const f = FILMS[filmId];
+  if(!f) return false;
+  const n = normTitle(f.t);
+  for(const t of list){ if(t.includes(n)||n.includes(t)) return true; }
+  return false;
+}
+function isVu(id)       { return lbdLoaded && filmInLbd(id, lbdSeen); }
+function isWatchlist(id){ return lbdLoaded && filmInLbd(id, lbdWatchlist); }
+
+async function loadLbd(pseudo){
+  if(!pseudo) return;
+  // Proxy CORS via allorigins
+  const rssUrl = `https://letterboxd.com/${pseudo}/rss/`;
+  const proxy  = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+  try {
+    const r = await fetch(proxy);
+    const d = await r.json();
+    const xml = new DOMParser().parseFromString(d.contents, 'text/xml');
+    const items = [...xml.querySelectorAll('item')];
+    lbdSeen.clear(); lbdWatchlist.clear();
+    for(const item of items){
+      const title = item.querySelector('title')?.textContent || '';
+      const cats  = [...item.querySelectorAll('category')].map(c=>c.textContent.toLowerCase());
+      const nt    = normTitle(title.replace(/,\s*\d{4}$/, '').replace(/^.*?: /, ''));
+      if(cats.includes('watchlist')) lbdWatchlist.add(nt);
+      else lbdSeen.add(nt);
+    }
+    lbdLoaded = true;
+    render();
+  } catch(e){ console.warn('LBD RSS error', e); }
+}
+
+// Charger au démarrage si pseudo déjà enregistré
+if(st.lbdPseudo) loadLbd(st.lbdPseudo);
 
 
 function setDate(d){
@@ -686,7 +732,7 @@ function sHome(){
               : `<span style="font-size:58px;position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);">${f.e}</span>`}
             <div style="position:absolute;bottom:0;left:0;right:0;padding:7px 8px;background:linear-gradient(to top,rgba(0,0,0,0.82),transparent);display:flex;justify-content:space-between;align-items:center;">
               <span style="background:rgba(255,63,91,0.88);border-radius:9px;padding:2px 6px;font-size:9px;font-weight:600;">👥 3+</span>
-              ${f.lbd?`<span style="background:rgba(0,192,48,0.88);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#000;">✓</span>`:''}
+              ${isVu(id)?`<span style="background:rgba(0,192,48,0.88);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#000;" title="Vu sur Letterboxd">✓</span>`:isWatchlist(id)?`<span style="background:rgba(240,192,96,0.9);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;" title="Dans votre watchlist">🔖</span>`:''}
             </div>
           </div>
           <div class="serif" style="font-size:12px;line-height:1.3;margin-bottom:2px;">${f.t}</div>
@@ -792,11 +838,11 @@ function sFilm(){
     <div style="position:absolute;bottom:14px;left:18px;right:18px;">
       <div style="font-size:9px;color:${AC};letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;font-weight:600;">${f.g}</div>
       <div class="serif" style="font-size:26px;margin-bottom:7px;">${f.t}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">${chip('⏱ '+f.d,TX,'rgba(255,255,255,0.06)',BD,9)}${chip('🎭 '+f.dir,TX,'rgba(255,255,255,0.06)',BD,9)}${f.lbd?chip('🎬 LBD',LB,'rgba(0,192,48,0.15)','rgba(0,192,48,0.3)',9):''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">${chip('⏱ '+f.d,TX,'rgba(255,255,255,0.06)',BD,9)}${chip('🎭 '+f.dir,TX,'rgba(255,255,255,0.06)',BD,9)}${isVu(st.film)?chip('✓ Vu sur LBD',LB,'rgba(0,192,48,0.15)','rgba(0,192,48,0.3)',9):isWatchlist(st.film)?chip('🔖 Watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',9):''}</div>
     </div>
   </div>
   <div style="flex:1;overflow-y:auto;">
-    ${f.lbd?`<div style="margin:12px 18px 0;background:rgba(0,192,48,0.07);border:1px solid rgba(0,192,48,0.2);border-radius:11px;padding:10px 12px;font-size:11px;color:${LB};display:flex;gap:7px;align-items:center;"><span>🎬</span>Dans votre watchlist Letterboxd</div>`:''}
+    ${isVu(st.film)?`<div style="margin:12px 18px 0;background:rgba(0,192,48,0.07);border:1px solid rgba(0,192,48,0.2);border-radius:11px;padding:10px 12px;font-size:11px;color:${LB};display:flex;gap:7px;align-items:center;"><span>✓</span>Vous avez déjà vu ce film sur Letterboxd</div>`:isWatchlist(st.film)?`<div style="margin:12px 18px 0;background:rgba(240,192,96,0.07);border:1px solid rgba(240,192,96,0.2);border-radius:11px;padding:10px 12px;font-size:11px;color:${GD};display:flex;gap:7px;align-items:center;"><span>🔖</span>Ce film est dans votre watchlist Letterboxd !</div>`:''}
     <div style="padding:11px 18px 4px;font-size:12px;color:#8a8aaa;line-height:1.8;">${f.s}</div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;padding:10px 18px 9px;">
       <span class="serif" style="font-size:16px;">Groupes disponibles</span>
@@ -912,38 +958,99 @@ function sGroup(){
   ${st.tab!=='chat'?nav('group'):''}`;
 }
 
+function connectLbd(){
+  const p = st.lbdInput.trim();
+  if(!p) return;
+  st.lbdPseudo = p;
+  st.lbdInput  = '';
+  save();
+  lbdLoaded = false;
+  lbdSeen.clear(); lbdWatchlist.clear();
+  render();
+  loadLbd(p);
+}
+function disconnectLbd(){
+  st.lbdPseudo = '';
+  lbdLoaded = false;
+  lbdSeen.clear(); lbdWatchlist.clear();
+  save();
+  render();
+}
+
 function sProfile(){
+  const vuCount        = Object.keys(FILMS).filter(id=>isVu(id)).length;
+  const watchlistCount = Object.keys(FILMS).filter(id=>isWatchlist(id)).length;
+
+  const lbdBlock = st.lbdPseudo ? `
+    <div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:20px;">🎬</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:${LB};">Letterboxd connecté</div>
+            <div style="font-size:10px;color:${MU};">@${st.lbdPseudo}</div>
+          </div>
+        </div>
+        <span onclick="disconnectLbd()" style="font-size:9px;color:${MU};cursor:pointer;border:1px solid ${BD};border-radius:7px;padding:3px 8px;">Déconnecter</span>
+      </div>
+      ${lbdLoaded
+        ? `<div style="display:flex;gap:8px;">
+            <div style="flex:1;background:rgba(0,192,48,0.08);border-radius:10px;padding:8px;text-align:center;">
+              <div style="font-size:20px;font-weight:700;color:${LB};">${vuCount}</div>
+              <div style="font-size:9px;color:${MU};">film${vuCount!==1?'s':''} vu${vuCount!==1?'s':''}<br>au programme</div>
+            </div>
+            <div style="flex:1;background:rgba(240,192,96,0.08);border-radius:10px;padding:8px;text-align:center;">
+              <div style="font-size:20px;font-weight:700;color:${GD};">${watchlistCount}</div>
+              <div style="font-size:9px;color:${MU};">dans votre<br>watchlist</div>
+            </div>
+          </div>`
+        : `<div style="font-size:11px;color:${MU};text-align:center;padding:8px 0;">Chargement de votre profil… ⏳</div>`
+      }
+    </div>` : `
+    <div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:20px;">🎬</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;">Connecter Letterboxd</div>
+          <div style="font-size:10px;color:${MU};">Voyez vos films vus et watchlist</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" placeholder="Votre pseudo Letterboxd"
+          value="${st.lbdInput}"
+          oninput="st.lbdInput=this.value"
+          onkeydown="if(event.key==='Enter')connectLbd()"
+          style="flex:1;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:12px;color:${TX};outline:none;">
+        <button onclick="connectLbd()" style="background:${LB};border:none;color:#000;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;">OK</button>
+      </div>
+      <div style="font-size:9px;color:${MU};margin-top:7px;">Votre profil Letterboxd doit être public · Lecture seule</div>
+    </div>`;
+
   return `
   <div style="background:linear-gradient(to bottom,${S1},${BG});padding:50px 18px 18px;flex-shrink:0;">
     <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:16px;">
-      <div style="width:62px;height:62px;border-radius:17px;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;position:relative;flex-shrink:0;">${pseudoInitial(st.pseudo)}<div style="position:absolute;bottom:-3px;right:-3px;background:${LB};border:2px solid ${BG};border-radius:6px;padding:1px 4px;font-size:7px;font-weight:900;color:#000;">LBD</div></div>
+      <div style="width:62px;height:62px;border-radius:17px;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(st.pseudo)}</div>
       <div>
         <div class="serif" style="font-size:19px;margin-bottom:2px;">${st.pseudo}</div>
-        <div style="font-size:11px;color:${LB};margin-bottom:4px;">@${st.pseudo.toLowerCase().replace(/\s+/g,'')} · Letterboxd connecté</div>
         <div style="font-size:10px;color:${MU};">Cinéphile 🎬 · Paris</div>
         <div style="margin-top:7px;"><span onclick="st.pseudo='';st.screen='pseudo';save();render();" style="font-size:10px;color:${MU};cursor:pointer;text-decoration:underline;border:1px solid ${BD};border-radius:8px;padding:3px 8px;">✏️ Changer de pseudo</span></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px;">
-      ${[['12','Séances'],['156','Films vus'],['8','Groupes']].map(([v,l])=>`<div style="background:${S2};border:1px solid ${BD};border-radius:11px;padding:10px;text-align:center;"><div class="serif" style="font-size:20px;">${v}</div><div style="font-size:8px;color:${MU};text-transform:uppercase;letter-spacing:1px;margin-top:2px;">${l}</div></div>`).join('')}
-    </div>
   </div>
-  <div style="flex:1;overflow-y:auto;">
-    <div style="margin:12px 18px;background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.2);border-radius:15px;padding:15px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;"><div class="serif" style="font-size:16px;">Mon Letterboxd</div><span style="font-size:9px;color:${LB};cursor:pointer;">↻ Sync</span></div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:11px;">
-        ${[['156','Films'],['42','Watchlist'],['★3.4','Moy.']].map(([v,l])=>`<div style="text-align:center;"><div class="serif" style="font-size:17px;color:${LB};">${v}</div><div style="font-size:8px;color:${MU};">${l}</div></div>`).join('')}
-      </div>
-      <div style="display:flex;gap:5px;">${[['💀','#4a3010'],['🌿','#1e7a40'],['🏓','#8a1020'],['⚡','#3a1060'],['🧵','#4a1060']].map(([e,c])=>`<div style="width:38px;height:54px;border-radius:6px;background:linear-gradient(135deg,#0d0d0d,${c});display:flex;align-items:center;justify-content:center;font-size:20px;">${e}</div>`).join('')}</div>
-    </div>
-    <div style="padding:4px 18px 8px;">
-      <div class="serif" style="font-size:16px;margin-bottom:11px;">Mes genres</div>
-      ${[['🎭 Drame',38],['🚀 Sci-Fi',24],['🕵️ Thriller',18],['😱 Horreur',12],['🎬 Arthouse',8]].map(([g,p])=>`<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:11px;">${g}</span><span style="font-size:10px;color:${MU};">${p}%</span></div><div style="height:5px;background:${S2};border-radius:3px;overflow:hidden;"><div style="width:${p}%;height:100%;background:linear-gradient(to right,${AC},#ff8c42);border-radius:3px;"></div></div></div>`).join('')}
-    </div>
-    <div style="padding:4px 18px 22px;">
-      <div class="serif" style="font-size:16px;margin-bottom:11px;">Historique</div>
-      ${[['💀','Hamnet','15 Fév · Groupe de 4','★★★★'],['🏓','Marty Supreme','1 Mars · Groupe de 5','★★★★½'],['🔪','Scream 7','22 Jan · Groupe de 3','★★★']].map(([e,t,m,r])=>`<div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid ${BD};"><div style="width:38px;height:38px;background:${S2};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">${e}</div><div style="flex:1;"><div style="font-size:12px;font-weight:500;margin-bottom:1px;">${t}</div><div style="font-size:9px;color:${MU};">${m}</div></div><div style="font-size:13px;">${r}</div></div>`).join('')}
-    </div>
+  <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
+    ${lbdBlock}
+    <div class="serif" style="font-size:16px;margin-bottom:10px;">Mes groupes récents</div>
+    ${mesGroupes.length===0
+      ? `<div style="text-align:center;padding:30px 0;color:${MU};font-size:11px;">Aucun groupe rejoint pour l'instant</div>`
+      : mesGroupes.map(g=>{
+          const gf=FILMS[g.film_id];
+          return `<div onclick="openGroup('${g.film_id}','${g.id}')" class="tap" style="margin-bottom:8px;background:${S1};border:1px solid ${BD};border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <span style="font-size:22px;">${gf?gf.e:'🎬'}</span>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:500;">${g.nom}</div><div style="font-size:10px;color:${MU};">${gf?gf.t:g.film_id}</div></div>
+            <span style="color:${MU};">›</span>
+          </div>`;
+        }).join('')
+    }
   </div>
   ${nav('profile')}`;
 }
