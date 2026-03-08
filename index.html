@@ -730,20 +730,21 @@ function renderVotesDOM(){
   const cinemasActifs=st.cinema?tousCinemas.filter(c=>c.id===st.cinema):tousCinemas;
   // Collecter toutes les séances (dédupliquées par heure)
   const heuresVues=new Set();
-  const filtered=[];
+  const allSeances=[];
   cinemasActifs.forEach(c=>{
-    ((SEANCES[c.id]||{})[st.film]||[]).filter(h=>!isPast(h)).forEach(h=>{
-      if(!heuresVues.has(h)){heuresVues.add(h);filtered.push(h);}
+    ((SEANCES[c.id]||{})[st.film]||[]).forEach(h=>{
+      if(!heuresVues.has(h)){heuresVues.add(h);allSeances.push(h);}
     });
   });
-  filtered.sort();
-  if(!filtered.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:12px;">Aucune séance disponible ce jour</div>`;return;}
-  el.innerHTML=filtered.map(h=>{
+  allSeances.sort();
+  if(!allSeances.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:12px;">Aucune séance ce jour</div>`;return;}
+  el.innerHTML=allSeances.map(h=>{
+    const past=isPast(h);
     const voters=votesData[h]||[];
     const voted=voters.some(v=>v.pseudo===st.pseudo);
-    return `<div onclick="voter('${h}')" class="tap" style="background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;">
+    return `<div onclick="${past?'':"voter('"+ h +"')"}" class="${past?'':'tap'}" style="opacity:${past?'0.4':'1'};background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:${past?'default':'pointer'};display:flex;align-items:center;gap:10px;">
       <div style="flex:1;">
-        <div style="font-size:18px;font-weight:600;color:${voted?AC:TX};">${h}</div>
+        <div style="font-size:18px;font-weight:600;color:${voted?AC:past?MU:TX};">${h}${past?' <span style="font-size:9px;">passée</span>':''}</div>
         <div style="font-size:10px;color:${MU};margin-top:2px;">${voters.length} vote${voters.length!==1?'s':''}</div>
       </div>
       <div style="display:flex;">${voters.slice(0,5).map(v=>`<div style="width:22px;height:22px;border-radius:50%;background:${pseudoColor(v.pseudo)};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:-4px;">${v.pseudo===st.pseudo?st.avatar:pseudoInitial(v.pseudo)}</div>`).join('')}</div>
