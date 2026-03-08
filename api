@@ -91,10 +91,9 @@ async function fetchJSON(url, timeoutMs = 8000) {
   }
 }
 
-// Récupère les séances d'un cinéma via AlloCiné
-async function fetchSeances(theaterId) {
-  const today = new Date().toISOString().split('T')[0];
-  const url = `${ALLOCINE_BASE}/showtimelist?partner=${ALLOCINE_PARTNER}&theaters=${theaterId}&date=${today}&format=json`;
+// Récupère les séances d'un cinéma via AlloCiné pour une date donnée
+async function fetchSeances(theaterId, dateStr) {
+  const url = `${ALLOCINE_BASE}/showtimelist?partner=${ALLOCINE_PARTNER}&theaters=${theaterId}&date=${dateStr}&format=json`;
   try {
     const data = await fetchJSON(url);
     return data?.feed?.theaterShowtimes || [];
@@ -104,9 +103,9 @@ async function fetchSeances(theaterId) {
   }
 }
 
-// Cache in-memory (reset à chaque redémarrage cold-start)
-let cache = null;
-let cacheTime = 0;
+// Cache in-memory par date (reset à chaque cold-start)
+let cache = {};
+let cacheTime = {};
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 heures
 
 export default async function handler(req, res) {
@@ -115,9 +114,17 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate');
 
-  // Renvoyer le cache si encore valide
-  if (cache && Date.now() - cacheTime < CACHE_TTL) {
-    return res.status(200).json(cache);
+  // Lire la date demandée (défaut = aujourd'hui)
+  const requestedDate = req.query?.date || new Date().toISOString().split('T')[0];
+  // Valider le format YYYY-MM-DD
+  const dateStr = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
+    ? requestedDate
+    : new Date().toISOString().split('T')[0];
+
+  // Cache par date
+  const cacheKey = dateStr;
+  if (cache?.[cacheKey] && Date.now() - (cacheTime?.[cacheKey] || 0) < CACHE_TTL) {
+    return res.status(200).json(cache[cacheKey]);
   }
 
   try {
@@ -130,10 +137,10 @@ export default async function handler(req, res) {
     const allSeances = [];
     for (let i = 0; i < THEATERS.length; i += batchSize) {
       const batch = THEATERS.slice(i, i + batchSize);
-      const results = await Promise.all(batch.map(t => fetchSeances(t.id)));
+      const results = await Promise.all(batch.map(t => fetchSeances(t.id, dateStr)));
       allSeances.push(...results);
       if (i + batchSize < THEATERS.length) {
-        await new Promise(r => setTimeout(r, 300)); // pause anti-rate-limit
+        await new Promise(r => setTimeout(r, 300));
       }
     }
 
@@ -211,9 +218,9 @@ export default async function handler(req, res) {
       }
     }
 
-    const result = { films, cinemas, updatedAt: new Date().toISOString() };
-    cache = result;
-    cacheTime = Date.now();
+    const result = { films, cinemas, date: dateStr, updatedAt: new Date().toISOString() };
+    cache[cacheKey] = result;
+    cacheTime[cacheKey] = Date.now();
 
     return res.status(200).json(result);
   } catch (err) {
