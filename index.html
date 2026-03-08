@@ -346,8 +346,10 @@ async function loadLbd(pseudo){
     lbdSeen=new Set();lbdWatchlist=new Set();
     (d.items||[]).forEach(item=>{
       const n=normTitle(item.title);
-      if(item.cats&&item.cats.includes('watched'))lbdSeen.add(n);
-      else lbdWatchlist.add(n);
+      // Dans le RSS Letterboxd, les items du diary = films vus
+      // Les items avec cat 'wishlist' = watchlist, sinon = vu
+      if(item.cats&&item.cats.includes('wishlist'))lbdWatchlist.add(n);
+      else lbdSeen.add(n);
     });
     return true;
   }catch(e){return false;}
@@ -364,8 +366,8 @@ async function loadMemberLbd(pseudo){
     const seen=new Set(),wl=new Set();
     (d.items||[]).forEach(item=>{
       const n=normTitle(item.title);
-      if(item.cats&&item.cats.includes('watched'))seen.add(n);
-      else wl.add(n);
+      if(item.cats&&item.cats.includes('wishlist'))wl.add(n);
+      else seen.add(n);
     });
     membresLbd[pseudo]={seen,wl};
     return membresLbd[pseudo];
