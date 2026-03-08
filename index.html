@@ -434,6 +434,15 @@ async function loadVotes(){
   renderVotesDOM();
 }
 
+async function voterCinema(cinemaId){
+  st.cinema=cinemaId;render();setTimeout(renderVotes,50);
+  const g=st.groupe||'general';
+  await supa.from('groupe_membres')
+    .update({cinema_pref:cinemaId})
+    .eq('groupe',g).eq('pseudo',st.pseudo);
+  await loadMembres();
+  renderVotes();
+}
 async function voter(heure){
   const g=st.groupe||'general';
   if(st.voted===heure){
@@ -1054,10 +1063,18 @@ function sGroup(){
           ${cinemasFilm.map(c=>{
             const active=st.cinema===c.id;
             const col=CC_[c.chain];
-            return `<div onclick="st.cinema='${c.id}';render();setTimeout(renderVotes,50);" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;cursor:pointer;background:${active?'rgba(255,255,255,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${active?col:BD};">
-              <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;"></div>
-              <div style="flex:1;font-size:12px;font-weight:${active?'600':'400'};color:${active?TX:MU};">${c.name}</div>
-              ${active?`<div style="font-size:10px;color:${col};">✓</div>`:''}
+            const votes_c=membresData.filter(m=>m.cinema_pref===c.id).length;
+            const pct=membresData.length>0?Math.round(votes_c/membresData.length*100):0;
+            return `<div onclick="voterCinema('${c.id}')" style="padding:9px 12px;border-radius:12px;cursor:pointer;background:${active?'rgba(255,255,255,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${active?col:BD};">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:${votes_c>0?'7px':'0'};">
+                <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;"></div>
+                <div style="flex:1;font-size:12px;font-weight:${active?'600':'400'};color:${active?TX:MU};">${c.name}</div>
+                ${votes_c>0?`<div style="font-size:10px;color:${col};font-weight:600;">${votes_c} vote${votes_c>1?'s':''}</div>`:''}
+                ${active?`<div style="font-size:10px;color:${col};">✓</div>`:''}
+              </div>
+              ${votes_c>0?`<div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width 0.3s;"></div>
+              </div>`:''}
             </div>`;
           }).join('')}
         </div>
