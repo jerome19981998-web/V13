@@ -431,6 +431,8 @@ async function loadVotes(){
     const k=(v.date||'')+' '+v.heure;
     if(!votesData[k])votesData[k]=[];
     votesData[k].push(v);
+    // Restaurer st.voted depuis la base
+    if(v.pseudo===st.pseudo)st.voted=k;
   });
   renderVotesDOM();
 }
