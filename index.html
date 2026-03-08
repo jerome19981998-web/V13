@@ -435,13 +435,13 @@ async function loadVotes(){
 }
 
 async function voterCinema(cinemaId){
-  st.cinema=cinemaId;render();setTimeout(renderVotes,50);
+  st.cinema=cinemaId;render();setTimeout(renderVotesDOM,50);
   const g=st.groupe||'general';
   await supa.from('groupe_membres')
     .update({cinema_pref:cinemaId})
     .eq('groupe',g).eq('pseudo',st.pseudo);
   await loadMembres();
-  renderVotes();
+  renderVotesDOM();
 }
 async function voter(heure){
   const g=st.groupe||'general';
