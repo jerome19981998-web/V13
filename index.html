@@ -77,7 +77,7 @@ async function loadPosters() {
                    || dv.results?.find(v=>v.site==='YouTube');
       if(trailer) trailers[id] = trailer.key;
       const s = st.screen;
-      if(s==='home'||s==='cinemas'||s==='cinema-detail'||s==='film') render();
+      if(s==='home'||s==='cinemas'||s==='cinema-detail'||s==='film'||s==='group') render();
     } catch(e) { /* silencieux */ }
   }));
 }
@@ -908,7 +908,9 @@ function sHome(){
   </div>
   <div style="flex:1;overflow-y:auto;">
     <div onclick="openFilm('hamnet','home')" class="tap" style="margin:0 18px 14px;background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.2);border-radius:14px;padding:13px;display:flex;align-items:center;gap:11px;cursor:pointer;">
-      <span style="font-size:30px;">💀</span>
+      ${posters['hamnet']
+        ? `<img src="${posters['hamnet']}" style="width:46px;height:62px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
+        : `<span style="font-size:30px;">💀</span>`}
       <div style="flex:1;">
         <div style="font-size:9px;color:${LB};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:3px;">Recommandé via Letterboxd</div>
         <div class="serif" style="font-size:16px;margin-bottom:2px;">Hamnet</div>
