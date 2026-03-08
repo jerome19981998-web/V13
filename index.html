@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CinéMatch</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;}
@@ -68,37 +69,116 @@ const CINEMAS=[
   {id:'pathe-fauvettes',chain:'gaumont',icon:'🌿',name:'Pathé Les Fauvettes',addr:'58 Av. des Gobelins · 75013',metro:'M° Les Gobelins',salles:5,tech:['Art & Essai'],films:[{id:'marty',h:H.sm,v:['VF','VOST'],g:[]},{id:'hamnet',h:H.std,v:['VF','VOST'],g:[]},{id:'orwell',h:H.sm,v:['VF','VOST'],g:[]},{id:'maison',h:H.mid,v:['VF'],g:[]}]},
 ];
 
-// STATE
+// ═══════════ SUPABASE ═══════════
+const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsd2ZibWluaGR3aW54Y296amxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODA1NTYsImV4cCI6MjA4ODU1NjU1Nn0.OTr8lyDpRQsmXUCPKsm1wvNPYfCA32UBQShRibI_bDg';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// Couleurs auto pour les pseudos
+const PSEUDO_COLORS=['#e74c3c','#3498db','#2ecc71','#9b59b6','#ff8c42','#00c030','#f0c060','#e91e8c'];
+function pseudoColor(name){
+  let h=0; for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))%PSEUDO_COLORS.length;
+  return PSEUDO_COLORS[Math.abs(h)];
+}
+function pseudoInitial(name){return name.trim().charAt(0).toUpperCase()||'?';}
+
+// Charger les 50 derniers messages
+async function loadMessages(){
+  const {data,error}=await supa.from('messages').select('*').order('created_at',{ascending:true}).limit(50);
+  if(error){console.error(error);return;}
+  st.msgs=data.map(m=>({
+    id:m.id, av:pseudoInitial(m.pseudo), bg:pseudoColor(m.pseudo),
+    n:m.pseudo, t:new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    m:m.texte, me:m.pseudo===st.pseudo
+  }));
+  if(st.screen==='group'&&st.tab==='chat'){
+    render();
+    setTimeout(()=>{const c=document.getElementById('ca');if(c)c.scrollTop=c.scrollHeight;},50);
+  }
+}
+
+// Écouter les nouveaux messages en temps réel
+function subscribeChat(){
+  supa.channel('messages').on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},payload=>{
+    const m=payload.new;
+    st.msgs.push({
+      id:m.id, av:pseudoInitial(m.pseudo), bg:pseudoColor(m.pseudo),
+      n:m.pseudo, t:new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+      m:m.texte, me:m.pseudo===st.pseudo
+    });
+    if(st.screen==='group'&&st.tab==='chat'){
+      render();
+      setTimeout(()=>{const c=document.getElementById('ca');if(c)c.scrollTop=c.scrollHeight;},50);
+    }
+  }).subscribe();
+}
+
+// Envoyer un message
+async function sendMsg(){
+  const inp=document.getElementById('ci');
+  if(!inp||!inp.value.trim())return;
+  const texte=inp.value.trim();
+  inp.value='';
+  const{error}=await supa.from('messages').insert({pseudo:st.pseudo,texte});
+  if(error)console.error('Erreur envoi:',error);
+}
+
+// ═══════════ STATE ═══════════
 const _saved=(()=>{try{return JSON.parse(localStorage.getItem('cm2')||'{}')}catch(e){return{}}})();
 let st={
-  screen:'home',cinema:null,film:null,filmSrc:'home',
+  screen: _saved.pseudo ? 'home' : 'pseudo',
+  pseudo: _saved.pseudo || '',
+  pseudoInput: '',
+  cinema:null,film:null,filmSrc:'home',
   genre:'tous',cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',
   tab:'vote',voted:'19h30',
-  msgs:_saved.msgs||[
-    {av:'L',bg:'#e74c3c',n:'Lucas',t:'16h42',m:'Salut ! Hâte de voir ça en IMAX 🎬',me:false},
-    {av:'S',bg:'#2ecc71',n:'Sophie',t:'17h05',m:'On se retrouve au bar après ? 🍺',me:false},
-    {av:'T',bg:'#3498db',n:'Théa',t:'17h12',m:"J'ai réservé les places ✅",me:false},
-    {av:'M',bg:GD,n:'Moi',t:'17h18',m:'Super ! Hâte de vous rencontrer 🎉',me:true},
-  ]
+  msgs:[]
 };
-function save(){try{localStorage.setItem('cm2',JSON.stringify({msgs:st.msgs}))}catch(e){}}
+function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo}))}catch(e){}}
 function isPast(h){const[hh,mm]=h.replace('h',':').split(':').map(Number),n=new Date();return n.getHours()>hh||(n.getHours()===hh&&n.getMinutes()>mm);}
 
 // ACTIONS
-function go(sc){st.screen=sc;render();}
+function go(sc){
+  st.screen=sc;
+  if(sc==='group')setTab('chat');
+  else render();
+}
 function openCinema(id){st.cinema=id;st.screen='cinema-detail';render();}
 function openFilm(id,src){st.film=id;if(src)st.filmSrc=src;st.screen='film';render();}
 function setGenre(g){st.genre=g;render();}
 function setCinFilter(f){st.cinFilter=f;render();}
-function setTab(t){st.tab=t;render();setTimeout(()=>{const c=document.getElementById('ca');if(c)c.scrollTop=c.scrollHeight;},50);}
+function setTab(t){
+  st.tab=t;
+  if(t==='chat')loadMessages();
+  render();
+  setTimeout(()=>{const c=document.getElementById('ca');if(c)c.scrollTop=c.scrollHeight;},80);
+}
 function setVote(h){st.voted=h;render();}
 function doSync(){if(st.syncing)return;st.syncing=true;render();setTimeout(()=>{st.syncing=false;st.syncLabel='à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});st.secs=3600;render();},1500);}
-function sendMsg(){
-  const inp=document.getElementById('ci');
-  if(!inp||!inp.value.trim())return;
-  st.msgs.push({av:'M',bg:GD,n:'Moi',t:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),m:inp.value.trim(),me:true});
-  save();render();
-  setTimeout(()=>{const c=document.getElementById('ca');if(c)c.scrollTop=c.scrollHeight;},50);
+
+function confirmPseudo(){
+  const inp=document.getElementById('pseudoInput');
+  const val=(inp?inp.value:st.pseudoInput).trim();
+  if(!val||val.length<2)return;
+  st.pseudo=val; save(); st.screen='home'; render();
+}
+
+// ÉCRAN PSEUDO
+function sPseudo(){
+  return `
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
+    <div style="font-size:64px;margin-bottom:24px;">🎬</div>
+    <div class="serif" style="font-size:30px;margin-bottom:8px;">CinéMatch</div>
+    <div style="font-size:12px;color:${MU};margin-bottom:40px;line-height:1.7;">Le chat en direct avec tous les cinéphiles<br>qui ont le lien. Entrez un pseudo pour commencer.</div>
+    <div style="width:100%;margin-bottom:14px;">
+      <input id="pseudoInput" type="text" placeholder="Votre pseudo…" maxlength="20"
+        style="width:100%;background:${S2};border:1px solid ${BD};border-radius:14px;padding:14px 18px;font-size:14px;color:${TX};outline:none;text-align:center;"
+        onkeydown="if(event.key==='Enter')confirmPseudo()"
+        oninput="st.pseudoInput=this.value">
+    </div>
+    <button onclick="confirmPseudo()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;">Entrer dans CinéMatch →</button>
+    <div style="margin-top:20px;font-size:10px;color:${MU};">Votre pseudo est visible dans le chat par tous</div>
+  </div>`;
 }
 
 // HELPERS
@@ -347,11 +427,19 @@ function sGroup(){
     </div>`;
   } else {
     tc=`
-    <div id="ca" style="flex:1;overflow-y:auto;padding:13px 18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 4px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:7px;height:7px;background:${LB};border-radius:50%;" class="pulse"></div>
+        <span style="font-size:10px;color:${MU};">Chat en direct · vous êtes <strong style="color:${TX};">${st.pseudo}</strong></span>
+      </div>
+      <span onclick="st.pseudo='';st.screen='pseudo';save();render();" style="font-size:9px;color:${MU};cursor:pointer;text-decoration:underline;">changer</span>
+    </div>
+    <div id="ca" style="flex:1;overflow-y:auto;padding:8px 18px;">
+      ${st.msgs.length===0?`<div style="text-align:center;padding:40px 0;color:${MU};font-size:12px;">Aucun message encore…<br>Soyez le premier ! 🎬</div>`:''}
       ${st.msgs.map(m=>`<div style="display:flex;gap:8px;margin-bottom:13px;align-items:flex-end;flex-direction:${m.me?'row-reverse':'row'};"><div style="width:26px;height:26px;border-radius:50%;background:${m.bg};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;">${m.av}</div><div><div style="font-size:8px;color:${MU};margin-bottom:3px;text-align:${m.me?'right':'left'};">${m.n} · ${m.t}</div><div style="padding:8px 12px;border-radius:14px;font-size:12px;line-height:1.55;max-width:195px;background:${m.me?AC:S2};border-bottom-left-radius:${m.me?'14px':'3px'};border-bottom-right-radius:${m.me?'3px':'14px'};">${m.m}</div></div></div>`).join('')}
     </div>
     <div style="display:flex;gap:8px;padding:9px 18px 14px;background:${BG};border-top:1px solid ${BD};flex-shrink:0;">
-      <input id="ci" type="text" placeholder="Écrire au groupe…" style="flex:1;background:${S2};border:1px solid ${BD};border-radius:18px;padding:9px 14px;font-size:11px;color:${TX};outline:none;" onkeydown="if(event.key==='Enter')sendMsg()">
+      <input id="ci" type="text" placeholder="Écrire à tous…" style="flex:1;background:${S2};border:1px solid ${BD};border-radius:18px;padding:9px 14px;font-size:11px;color:${TX};outline:none;" onkeydown="if(event.key==='Enter')sendMsg()">
       <button onclick="sendMsg()" style="width:36px;height:36px;background:${AC};border:none;border-radius:50%;font-size:14px;">↑</button>
     </div>`;
   }
@@ -412,12 +500,13 @@ function render(){
   const inner=document.createElement('div');
   inner.style.cssText='display:flex;flex-direction:column;height:100%;';
   try{
-    if(st.screen==='home') inner.innerHTML=sHome();
-    else if(st.screen==='cinemas') inner.innerHTML=sCinemas();
+    if(st.screen==='pseudo')        inner.innerHTML=sPseudo();
+    else if(st.screen==='home')     inner.innerHTML=sHome();
+    else if(st.screen==='cinemas')  inner.innerHTML=sCinemas();
     else if(st.screen==='cinema-detail') inner.innerHTML=sCinemaDetail();
-    else if(st.screen==='film') inner.innerHTML=sFilm();
-    else if(st.screen==='group') inner.innerHTML=sGroup();
-    else if(st.screen==='profile') inner.innerHTML=sProfile();
+    else if(st.screen==='film')     inner.innerHTML=sFilm();
+    else if(st.screen==='group')    inner.innerHTML=sGroup();
+    else if(st.screen==='profile')  inner.innerHTML=sProfile();
   }catch(e){inner.innerHTML=`<div style="padding:80px 20px;color:#ff3f5b;font-size:12px;">Erreur: ${e.message}</div>`;}
   phone.appendChild(inner);
   app.innerHTML='';
@@ -436,7 +525,10 @@ setInterval(()=>{
   }
 },1000);
 
+// INIT
 render();
+subscribeChat();
+if(st.pseudo) loadMessages();
 </script>
 </body>
 </html>
