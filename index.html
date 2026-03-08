@@ -620,7 +620,8 @@ function nav(active){
 function sHome(){
   const gmap={marty:'drame',scream7:'horreur',bride:'thriller',hurlevent:'romance',zootopie:'anim',maison:'drame',alter:'comedie',coutures:'thriller',lol2:'comedie',jumpers:'anim',marsupilami:'comedie',maigret:'polar'};
   const genres=[['tous','Tous'],['drame','Drame'],['horreur','Horreur'],['romance','Romance'],['thriller','Thriller'],['comedie','Comédie'],['anim','Anim'],['polar','Polar']];
-  const filmGenre = id => { const f=FILMS[id]; return f?f.g?.toLowerCase():''; };
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const filmGenre = id => { const f=FILMS[id]; return f?norm(f.g):''; };
   const cards = Object.entries(FILMS).filter(([id])=>st.genre==='tous'||filmGenre(id).includes(st.genre));
   return `
   <div style="padding:50px 18px 12px;flex-shrink:0;">
@@ -970,14 +971,14 @@ function render(){
   if(st.tab==='chat'){setTimeout(()=>{const c=document.getElementById('ca');if(c)c.scrollTop=c.scrollHeight;},50);}
 }
 
-// TIMER
+// TIMER — met à jour le compteur sans render() ; refresh complet toutes les heures
 setInterval(()=>{
-  if(st.secs>0)st.secs--;else st.secs=3600;
-  if(st.screen==='cinemas'){
+  if(st.secs>0) st.secs--;
+  else { st.secs=3600; if(st.screen==='cinemas') render(); }
+  const el=document.querySelector('[data-refresh]');
+  if(el){
     const mm=String(Math.floor(st.secs/60)).padStart(2,'0'),ss=String(st.secs%60).padStart(2,'0');
-    const el=document.querySelector('[data-refresh]');
-    if(el)el.textContent=mm+':'+ss;
-    else render();
+    el.textContent=mm+':'+ss;
   }
 },1000);
 
