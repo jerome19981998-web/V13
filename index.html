@@ -428,8 +428,9 @@ async function loadVotes(){
   const{data}=await supa.from('votes').select('*').eq('groupe',g);
   votesData={};
   (data||[]).forEach(v=>{
-    if(!votesData[v.heure])votesData[v.heure]=[];
-    votesData[v.heure].push(v);
+    const k=(v.date||'')+' '+v.heure;
+    if(!votesData[k])votesData[k]=[];
+    votesData[k].push(v);
   });
   renderVotesDOM();
 }
@@ -445,12 +446,13 @@ async function voterCinema(cinemaId){
 }
 async function voter(heure){
   const g=st.groupe||'general';
-  if(st.voted===heure){
-    await supa.from('votes').delete().eq('groupe',g).eq('pseudo',st.pseudo);
+  const k=st.date+' '+heure;
+  if(st.voted===k){
+    await supa.from('votes').delete().eq('groupe',g).eq('pseudo',st.pseudo).eq('date',st.date);
     st.voted=null;
   }else{
-    await supa.from('votes').upsert({groupe:g,pseudo:st.pseudo,heure},{onConflict:'groupe,pseudo'});
-    st.voted=heure;
+    await supa.from('votes').upsert({groupe:g,pseudo:st.pseudo,heure,date:st.date},{onConflict:'groupe,pseudo'});
+    st.voted=k;
   }
   loadVotes();
 }
@@ -749,7 +751,8 @@ function renderVotesDOM(){
   if(!allSeances.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:12px;">Aucune séance ce jour</div>`;return;}
   el.innerHTML=allSeances.map(h=>{
     const past=isPast(h);
-    const voters=votesData[h]||[];
+    const k=st.date+' '+h;
+    const voters=votesData[k]||[];
     const voted=voters.some(v=>v.pseudo===st.pseudo);
     return `<div onclick="${past?'':"voter('"+ h +"')"}" class="${past?'':'tap'}" style="opacity:${past?'0.4':'1'};background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:${past?'default':'pointer'};display:flex;align-items:center;gap:10px;">
       <div style="flex:1;">
