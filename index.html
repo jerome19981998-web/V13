@@ -379,7 +379,11 @@ let mesGroupes=[],membresData=[],votesData={},realtimeChannel=null,votesChannel=
 let reactionsData={};
 
 async function loadMesGroupes(){
-  const{data}=await supa.from('groupes').select('*').order('created_at',{ascending:false});
+  if(!st.pseudo)return;
+  const{data:membres}=await supa.from('groupe_membres').select('groupe').eq('pseudo',st.pseudo);
+  if(!membres||membres.length===0){mesGroupes=[];if(st.screen==='group'&&!st.groupe)render();return;}
+  const ids=membres.map(m=>m.groupe);
+  const{data}=await supa.from('groupes').select('*').in('id',ids);
   mesGroupes=data||[];
   if(st.screen==='group'&&!st.groupe)render();
 }
