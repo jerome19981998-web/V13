@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CinéMatch - Chat local</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { background:#0a0a0f; color:#f0f0f5; font-family:'Inter',sans-serif; margin:0; }
+    .font-serif { font-family:'Playfair Display',serif; }
+    .phone { 
+      width:100%; max-width:390px; margin:20px auto; height:844px; 
+      background:#07070f; border-radius:48px; overflow:hidden; 
+      border:12px solid #000; box-shadow:0 40px 100px rgba(0,0,0,0.8); 
+      position:relative; 
+    }
+    .notch { 
+      position:absolute; top:14px; left:50%; transform:translateX(-50%);
+      width:130px; height:32px; background:#000; border-radius:32px; z-index:50; 
+    }
+    .screen { animation:fadeIn 0.35s ease-out forwards; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .card-tap:active { transform:scale(0.97); transition:transform 0.12s; }
+    #chatArea::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+<div id="app"></div>
+
+<script>
+// STATE avec persistance localStorage
+let state = JSON.parse(localStorage.getItem('cinematchChat')) || {
+  messages: [
+    { user: "Test", text: "Salut la team !", time: "16:42" },
+    { user: "Toi", text: "Ça marche enfin ?", time: "16:45" }
+  ],
+  username: localStorage.getItem('username') || "Anonyme"
+};
+
+function saveState() {
+  localStorage.setItem('cinematchChat', JSON.stringify(state));
+}
+
+// RENDER
+function render() {
+  const root = document.getElementById('app');
+  root.innerHTML = '';
+
+  const phone = document.createElement('div');
+  phone.className = 'phone relative flex flex-col text-white overflow-hidden screen';
+
+  phone.innerHTML += `<div class="notch"></div>`;
+
+  phone.innerHTML += `
+    <div class="flex flex-col h-full">
+      <div class="pt-16 px-6 pb-4 bg-gradient-to-b from-[#111119] to-transparent">
+        <div class="text-xl font-serif text-center">Chat local CinéMatch</div>
+        <div class="text-sm opacity-70 text-center mt-1">Connecté comme : ${state.username}</div>
+      </div>
+
+      <div id="chatArea" class="flex-1 overflow-y-auto p-6 space-y-4">
+        ${state.messages.map(m => `
+          <div class="flex ${m.user === state.username ? 'justify-end' : 'justify-start'} mb-4">
+            <div class="max-w-[78%] px-4 py-3 rounded-3xl ${m.user === state.username ? 'bg-pink-600 text-white' : 'bg-[#1a1a24]'}">
+              <div class="text-xs opacity-70 mb-1">${m.user}</div>
+              ${m.text}
+              <div class="text-xs opacity-70 mt-1 text-right">${m.time}</div>
+            </div>
+          </div>
+        `).join('') || '<div class="text-center opacity-70 py-10">Aucun message...</div>'}
+      </div>
+
+      <div class="p-4 border-t border-white/10 bg-black/60 backdrop-blur-xl flex gap-3">
+        <input id="chatInput" type="text" placeholder="Écris un message…" class="flex-1 bg-[#1a1a24] rounded-full px-5 py-3 outline-none">
+        <button onclick="sendMessage()" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-xl active:scale-95">↑</button>
+      </div>
+    </div>
+  `;
+
+  root.appendChild(phone);
+  scrollToBottom();
+}
+
+function scrollToBottom() {
+  setTimeout(() => {
+    const chat = document.getElementById('chatArea');
+    if (chat) chat.scrollTop = chat.scrollHeight;
+  }, 100);
+}
+
+// ENVOYER MESSAGE
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  if (!input || !input.value.trim()) return;
+
+  const message = input.value.trim();
+
+  state.messages.push({
+    user: state.username,
+    text: message,
+    time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})
+  });
+
+  saveState();
+  input.value = '';
+  render();
+}
+
+// DÉMARRAGE
+render();
+</script>
+</body>
+</html>
