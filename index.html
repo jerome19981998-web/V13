@@ -451,7 +451,7 @@ async function voter(heure){
     await supa.from('votes').delete().eq('groupe',g).eq('pseudo',st.pseudo).eq('date',st.date);
     st.voted=null;
   }else{
-    await supa.from('votes').upsert({groupe:g,pseudo:st.pseudo,heure,date:st.date},{onConflict:'groupe,pseudo'});
+    await supa.from('votes').delete().eq('groupe',g).eq('pseudo',st.pseudo).eq('date',st.date); await supa.from('votes').insert({groupe:g,pseudo:st.pseudo,heure,date:st.date});
     st.voted=k;
   }
   loadVotes();
