@@ -822,10 +822,16 @@ function avatarEl(pseudo, size=38, radius='50%'){
 function pickAvatar(el){
   const e = el.dataset.emoji;
   if(!e) return;
+  // Sauvegarder le pseudo saisi avant le render
+  const inp = document.getElementById('pseudoInput');
+  if(inp) st.pseudoInput = inp.value;
   st.avatar = e;
   st.showAvatarPicker = false;
   save();
   render();
+  // Restaurer le curseur en fin d'input
+  const inp2 = document.getElementById('pseudoInput');
+  if(inp2){ inp2.value = st.pseudoInput; inp2.focus(); }
 }
 function avatarPicker(title='Choisir votre avatar'){
   return `<div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;margin-bottom:14px;">
