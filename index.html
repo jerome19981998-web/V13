@@ -646,24 +646,34 @@ function sPseudo(){
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
     <div style="font-size:64px;margin-bottom:24px;">🎬</div>
     <div class="serif" style="font-size:30px;margin-bottom:8px;">CinéMatch</div>
-    <div style="font-size:12px;color:${MU};margin-bottom:40px;line-height:1.7;">Le chat en direct avec tous les cinéphiles<br>qui ont le lien. Entrez un pseudo pour commencer.</div>
-    <div style="width:100%;margin-bottom:14px;">
+    <div style="font-size:12px;color:${MU};margin-bottom:24px;line-height:1.7;">Le chat en direct avec tous les cinéphiles<br>qui ont le lien. Entrez un pseudo pour commencer.</div>
+    <div style="width:100%;margin-bottom:12px;">
       <input id="pseudoInput" type="text" placeholder="Votre pseudo…" maxlength="20"
         style="width:100%;background:${S2};border:1px solid ${BD};border-radius:14px;padding:14px 18px;font-size:14px;color:${TX};outline:none;text-align:center;"
         onkeydown="if(event.key==='Enter')confirmPseudo()"
         oninput="st.pseudoInput=this.value">
     </div>
-    \${st.showAvatarPicker ? avatarPicker() : `
-    <div onclick="st.showAvatarPicker=true;render();" style="display:flex;align-items:center;gap:10px;background:\${S1};border:1px solid \${BD};border-radius:14px;padding:12px 16px;margin-bottom:14px;cursor:pointer;">
-      <div style="width:44px;height:44px;border-radius:50%;background:\${pseudoColor(st.pseudoInput||'?')};display:flex;align-items:center;justify-content:center;font-size:26px;">\${st.avatar}</div>
-      <div style="flex:1;">
-        <div style="font-size:12px;font-weight:500;">Votre avatar</div>
-        <div style="font-size:10px;color:\${MU};">Appuyez pour choisir un animal</div>
-      </div>
-      <span style="color:\${MU};">›</span>
-    </div>`}
-    <button onclick="confirmPseudo()" style="width:100%;background:\${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;">Entrer dans CinéMatch →</button>
-    <div style="margin-top:20px;font-size:10px;color:\${MU};">Votre pseudo est visible dans le chat par tous</div>
+    ${st.showAvatarPicker
+      ? `<div style="width:100%;background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;color:${MU};font-weight:600;letter-spacing:1px;text-transform:uppercase;">Choisir votre animal</span>
+            <span onclick="st.showAvatarPicker=false;render();" style="font-size:10px;color:${AC};cursor:pointer;">✕ Fermer</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:160px;overflow-y:auto;">
+            ${ANIMAL_EMOJIS.map(e=>`<div onclick="st.avatar='${e}';st.showAvatarPicker=false;save();render();" style="width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;background:${st.avatar===e?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.03)'};border:1px solid ${st.avatar===e?AC:BD};">${e}</div>`).join('')}
+          </div>
+        </div>`
+      : `<div onclick="st.showAvatarPicker=true;render();" style="width:100%;display:flex;align-items:center;gap:10px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px 16px;margin-bottom:12px;cursor:pointer;">
+          <div style="width:44px;height:44px;border-radius:50%;background:${pseudoColor(st.pseudoInput||'A')};display:flex;align-items:center;justify-content:center;font-size:26px;">${st.avatar}</div>
+          <div style="flex:1;text-align:left;">
+            <div style="font-size:12px;font-weight:500;">Votre avatar</div>
+            <div style="font-size:10px;color:${MU};">Appuyez pour choisir un animal</div>
+          </div>
+          <span style="color:${MU};">›</span>
+        </div>`
+    }
+    <button onclick="confirmPseudo()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;">Entrer dans CinéMatch →</button>
+    <div style="margin-top:20px;font-size:10px;color:${MU};">Votre pseudo est visible dans le chat par tous</div>
   </div>`;
 }
 
@@ -676,11 +686,22 @@ function avatarEl(pseudo, size=38, radius='50%'){
   return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(pseudo)}</div>`;
 }
 
-function avatarPicker(){
+function pickAvatar(el){
+  const e = el.dataset.emoji;
+  if(!e) return;
+  st.avatar = e;
+  st.showAvatarPicker = false;
+  save();
+  render();
+}
+function avatarPicker(title='Choisir votre avatar'){
   return `<div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;margin-bottom:14px;">
-    <div style="font-size:11px;color:${MU};margin-bottom:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Choisir votre avatar</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:180px;overflow-y:auto;">
-      ${ANIMAL_EMOJIS.map(e=>`<div onclick="st.avatar=event.target.textContent;st.showAvatarPicker=false;save();render();" style="width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;background:${st.avatar===e?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.03)'};border:1px solid ${st.avatar===e?AC:BD};">${e}</div>`).join('')}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:11px;color:${MU};font-weight:600;letter-spacing:1px;text-transform:uppercase;">${title}</span>
+      <span onclick="st.showAvatarPicker=false;render();" style="font-size:11px;color:${AC};cursor:pointer;padding:2px 8px;border:1px solid rgba(255,63,91,0.3);border-radius:8px;">✕</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:180px;overflow-y:auto;">
+      ${ANIMAL_EMOJIS.map(e=>`<div data-emoji="${e}" onclick="pickAvatar(this)" style="width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;background:${st.avatar===e?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.03)'};border:1px solid ${st.avatar===e?AC:BD};">${e}</div>`).join('')}
     </div>
   </div>`;
 }
