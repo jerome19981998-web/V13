@@ -638,7 +638,7 @@ async function quitterGroupe(){
   if(!confirm('Quitter ce groupe ?\nVos votes et messages resteront visibles.'))return;
   const {error}=await supa.from('groupe_membres')
     .delete()
-    .eq('groupe_id',st.groupe)
+    .eq('groupe',st.groupe)
     .eq('pseudo',st.pseudo);
   if(error){alert('Erreur : '+error.message);return;}
   if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
