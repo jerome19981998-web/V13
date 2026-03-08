@@ -67,14 +67,26 @@ const FILMS = {
 
 // ═══════════ CINÉMAS ═══════════
 const CINEMAS = [
-  {id:'ugc-halles',      lat:48.8609,lng:2.3474,  chain:'ugc',    icon:'🎬',name:'UGC Ciné Cité Les Halles',  addr:'7 pl. de la Rotonde',       metro:'Les Halles',      salles:27,tech:['Dolby','4DX','ICE'],films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'alter'},{id:'scream7'},{id:'bride'},{id:'hurlevent'},{id:'lol2'},{id:'marsupilami'},{id:'hamnet'},{id:'maigret'},{id:'coutures'},{id:'chers'}]},
-  {id:'ugc-bercy',       lat:48.8302,lng:2.3789,  chain:'ugc',    icon:'🎬',name:'UGC Ciné Cité Bercy',       addr:'2 cour Saint-Émilion',      metro:'Cour St-Émilion', salles:18,tech:['Dolby','ICE'],     films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'alter'},{id:'scream7'},{id:'bride'},{id:'hurlevent'},{id:'lol2'},{id:'marsupilami'},{id:'maigret'},{id:'chers'}]},
-  {id:'pathe-beaugrenelle',lat:48.8473,lng:2.2894,chain:'pathe',  icon:'🌟',name:'Pathé Beaugrenelle',        addr:'7 rue Linois',              metro:'Charles Michels', salles:10,tech:['Dolby','4DX','ScreenX'],films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'bride'},{id:'scream7'},{id:'hurlevent'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
-  {id:'pathe-convention', lat:48.8394,lng:2.2988, chain:'pathe',  icon:'🌟',name:'Pathé Convention',          addr:'27 rue Alain-Chartier',     metro:'Convention',      salles:9, tech:['Dolby'],             films:[{id:'marty'},{id:'maison'},{id:'malaga'},{id:'alter'},{id:'coutures'},{id:'maigret'},{id:'marsupilami'},{id:'hamnet'}]},
-  {id:'pathe-parnasse',   lat:48.8352,lng:2.3243, chain:'pathe',  icon:'🌟',name:'Pathé Parnasse',            addr:'3 rue du Départ',           metro:'Montparnasse',    salles:12,tech:['Dolby','4DX'],      films:[{id:'marty'},{id:'reve'},{id:'scream7'},{id:'bride'},{id:'alter'},{id:'lol2'},{id:'marsupilami'},{id:'hurlevent'},{id:'chers'}]},
-  {id:'pathe-wepler',     lat:48.8835,lng:2.3263, chain:'pathe',  icon:'🌟',name:'Pathé Wepler',              addr:'14 pl. de Clichy',          metro:'Place de Clichy', salles:12,tech:['Dolby'],             films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'alter'},{id:'scream7'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
-  {id:'pathe-alesia',     lat:48.8287,lng:2.3243, chain:'pathe',  icon:'🌟',name:'Pathé Alésia',              addr:'73 av. du Gén. Leclerc',    metro:'Alésia',          salles:8, tech:['Dolby'],             films:[{id:'marty'},{id:'hurlevent'},{id:'reve'},{id:'alter'},{id:'maigret'}]},
-  {id:'gaumont-opera',    lat:48.8708,lng:2.3327, chain:'gaumont',icon:'🔵',name:'Pathé Opéra Premier',       addr:'35 bd des Capucines',       metro:'Opéra',           salles:8, tech:['Dolby','4DX'],       films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'coutures'},{id:'lol2'},{id:'chers'}]},
+  // UGC
+  {id:'ugc-halles',       lat:48.8609,lng:2.3474,  chain:'ugc',    icon:'🎬',name:'UGC Ciné Cité Les Halles', addr:'7 pl. de la Rotonde',        metro:'Les Halles',      salles:27,tech:['Dolby','4DX','ICE'], films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'alter'},{id:'scream7'},{id:'bride'},{id:'hurlevent'},{id:'lol2'},{id:'marsupilami'},{id:'hamnet'},{id:'maigret'},{id:'coutures'},{id:'chers'}]},
+  {id:'ugc-bercy',        lat:48.8302,lng:2.3789,  chain:'ugc',    icon:'🎬',name:'UGC Ciné Cité Bercy',      addr:'2 cour Saint-Émilion',       metro:'Cour St-Émilion', salles:18,tech:['Dolby','ICE'],      films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'alter'},{id:'scream7'},{id:'bride'},{id:'hurlevent'},{id:'lol2'},{id:'marsupilami'},{id:'maigret'},{id:'chers'}]},
+  {id:'ugc-paris19',      lat:48.8866,lng:2.3780,  chain:'ugc',    icon:'🎬',name:'UGC Ciné Cité Paris 19',  addr:'1 rue du Bassin',            metro:'Corentin Cariou', salles:14,tech:['Dolby','ICE'],      films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'alter'},{id:'scream7'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
+  {id:'ugc-maillot',      lat:48.8794,lng:2.2830,  chain:'ugc',    icon:'🎬',name:'UGC Maillot',             addr:'2 pl. de la Porte Maillot',  metro:'Porte Maillot',   salles:12,tech:['Dolby'],            films:[{id:'marty'},{id:'reve'},{id:'hurlevent'},{id:'alter'},{id:'scream7'},{id:'maigret'}]},
+  {id:'ugc-opera',        lat:48.8719,lng:2.3387,  chain:'ugc',    icon:'🎬',name:'UGC Opéra',               addr:'34 bd des Italiens',         metro:'Opéra',           salles:4, tech:['Dolby'],            films:[{id:'marty'},{id:'reve'},{id:'hurlevent'},{id:'alter'},{id:'lol2'}]},
+  {id:'ugc-danton',       lat:48.8527,lng:2.3411,  chain:'ugc',    icon:'🎬',name:'UGC Danton',              addr:'99 bd du Montparnasse',      metro:'Vavin',           salles:4, tech:[],                   films:[{id:'marty'},{id:'alter'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
+  {id:'ugc-montparnasse', lat:48.8424,lng:2.3244,  chain:'ugc',    icon:'🎬',name:'UGC Montparnasse',        addr:'103 bd du Montparnasse',     metro:'Vavin',           salles:3, tech:[],                   films:[{id:'marty'},{id:'hurlevent'},{id:'lol2'},{id:'chers'}]},
+  {id:'ugc-lyon',         lat:48.8448,lng:2.3731,  chain:'ugc',    icon:'🎬',name:'UGC Lyon-Bastille',       addr:'12 rue de Lyon',             metro:'Gare de Lyon',    salles:7, tech:['Dolby'],            films:[{id:'marty'},{id:'scream7'},{id:'jumpers'},{id:'marsupilami'},{id:'chers'}]},
+  // Pathé
+  {id:'pathe-beaugrenelle',lat:48.8473,lng:2.2894, chain:'pathe',  icon:'🌟',name:'Pathé Beaugrenelle',      addr:'7 rue Linois',               metro:'Charles Michels', salles:10,tech:['Dolby','4DX','ScreenX'],films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'bride'},{id:'scream7'},{id:'hurlevent'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
+  {id:'pathe-convention',  lat:48.8394,lng:2.2988, chain:'pathe',  icon:'🌟',name:'Pathé Convention',        addr:'27 rue Alain-Chartier',      metro:'Convention',      salles:9, tech:['Dolby'],             films:[{id:'marty'},{id:'maison'},{id:'malaga'},{id:'alter'},{id:'coutures'},{id:'maigret'},{id:'marsupilami'},{id:'hamnet'}]},
+  {id:'pathe-parnasse',    lat:48.8352,lng:2.3243, chain:'pathe',  icon:'🌟',name:'Pathé Parnasse',          addr:'3 rue du Départ',            metro:'Montparnasse',    salles:12,tech:['Dolby','4DX'],      films:[{id:'marty'},{id:'reve'},{id:'scream7'},{id:'bride'},{id:'alter'},{id:'lol2'},{id:'marsupilami'},{id:'hurlevent'},{id:'chers'}]},
+  {id:'pathe-wepler',      lat:48.8835,lng:2.3263, chain:'pathe',  icon:'🌟',name:'Pathé Wepler',            addr:'14 pl. de Clichy',           metro:'Place de Clichy', salles:12,tech:['Dolby'],             films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'alter'},{id:'scream7'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
+  {id:'pathe-alesia',      lat:48.8287,lng:2.3243, chain:'pathe',  icon:'🌟',name:'Pathé Alésia',            addr:'73 av. du Gén. Leclerc',     metro:'Alésia',          salles:8, tech:['Dolby'],             films:[{id:'marty'},{id:'hurlevent'},{id:'reve'},{id:'alter'},{id:'maigret'}]},
+  {id:'pathe-batignolles', lat:48.8854,lng:2.3181, chain:'pathe',  icon:'🌟',name:'Les 7 Batignolles',       addr:'17 rue du Dr Heulin',        metro:'Brochant',        salles:7, tech:['Dolby'],             films:[{id:'scream7'},{id:'jumpers'},{id:'marsupilami'},{id:'lol2'},{id:'chers'}]},
+  // Gaumont / Pathé Opéra
+  {id:'gaumont-opera',     lat:48.8708,lng:2.3327, chain:'gaumont',icon:'🔵',name:'Pathé Opéra Premier',     addr:'35 bd des Capucines',        metro:'Opéra',           salles:8, tech:['Dolby','4DX'],      films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'coutures'},{id:'lol2'},{id:'chers'}]},
+  {id:'gaumont-convention',lat:48.8394,lng:2.2988, chain:'gaumont',icon:'🔵',name:'Gaumont Convention',      addr:'27 rue Alain-Chartier',      metro:'Convention',      salles:9, tech:['Dolby'],             films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'alter'},{id:'lol2'},{id:'marsupilami'},{id:'maigret'},{id:'chers'}]},
+  {id:'gaumont-aquaboulevard',lat:48.8306,lng:2.2867,chain:'gaumont',icon:'🔵',name:'Gaumont Aquaboulevard', addr:'15 rue Gaston-de-Caillavet', metro:'Balard',          salles:14,tech:['Dolby'],             films:[{id:'marty'},{id:'scream7'},{id:'jumpers'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
 ];
 
 // ═══════════ SÉANCES (vraies données Filmorama semaine du 9 mars 2026) ═══════════
@@ -99,15 +111,61 @@ const SEANCES = {
     marty:    ['10h15','14h00','17h15','20h30'],
     reve:     ['10h45','13h45','16h30','19h15','21h50'],
     maison:   ['10h30','14h00','16h30','19h30','22h05'],
-    jumpers:  ['09h45','10h40','11h50','13h00','13h55','15h00','16h00','17h00','18h05','20h10','22h15'],
+    jumpers:  ['09h45','11h50','13h55','16h00','18h05','20h10','22h15'],
     alter:    ['10h45','13h45','15h50','18h00','20h10','22h15'],
-    scream7:  ['10h00','13h00','14h00','15h15','17h30','19h45','21h00','22h00'],
+    scream7:  ['10h00','13h00','14h00','15h15','17h30','19h45','22h00'],
     bride:    ['10h30','14h00','16h45','19h15','21h45'],
     hurlevent:['18h00','20h45'],
     lol2:     ['11h00','13h30','15h40','17h50','20h00','22h10'],
     marsupilami:['10h15','13h30','15h30','17h30'],
     maigret:  ['16h30'],
     chers:    ['10h00','12h00','14h00','16h00','18h00','20h00','22h00'],
+  },
+  'ugc-paris19': {
+    marty:    ['10h30','14h00','17h15','20h30'],
+    reve:     ['11h00','14h00','17h00','20h00'],
+    maison:   ['10h15','13h15','16h15','19h15','22h00'],
+    jumpers:  ['10h00','12h00','14h00','16h00','18h00','20h00'],
+    alter:    ['11h30','14h30','17h30','20h30'],
+    scream7:  ['10h45','13h45','16h45','19h45'],
+    lol2:     ['10h30','13h00','15h30','18h00','20h30'],
+    marsupilami:['10h00','12h00','14h00','16h00'],
+    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
+  },
+  'ugc-maillot': {
+    marty:    ['11h00','14h00','17h00','20h00'],
+    reve:     ['10h30','13h30','16h30','19h30'],
+    hurlevent:['12h00','15h00','18h00','21h00'],
+    alter:    ['11h30','14h30','17h30','20h30'],
+    scream7:  ['10h00','13h00','16h00','19h00','22h00'],
+    maigret:  ['12h00','15h00','18h00','21h00'],
+  },
+  'ugc-opera': {
+    marty:    ['12h00','15h00','18h00','21h00'],
+    reve:     ['11h30','14h30','17h30','20h30'],
+    hurlevent:['13h00','16h00','19h00','22h00'],
+    alter:    ['10h30','13h30','16h30','19h30'],
+    lol2:     ['10h00','12h15','14h30','16h45','19h00','21h15'],
+  },
+  'ugc-danton': {
+    marty:    ['11h00','14h00','17h00','20h00'],
+    alter:    ['10h30','13h30','16h30','19h30'],
+    lol2:     ['10h00','12h15','14h30','16h45','19h00','21h15'],
+    marsupilami:['10h00','12h00','14h00','16h00'],
+    chers:    ['10h30','12h30','14h30','16h30','18h30','20h30'],
+  },
+  'ugc-montparnasse': {
+    marty:    ['12h00','15h00','18h00','21h00'],
+    hurlevent:['13h30','16h30','19h30','22h00'],
+    lol2:     ['11h00','13h30','16h00','18h30','21h00'],
+    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
+  },
+  'ugc-lyon': {
+    marty:    ['11h00','14h00','17h00','20h00'],
+    scream7:  ['12h30','15h30','18h30','21h30'],
+    jumpers:  ['10h00','12h00','14h00','16h00','18h00','20h00'],
+    marsupilami:['10h30','12h30','14h30','16h30'],
+    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
   },
   'pathe-beaugrenelle': {
     marty:    ['10h30','14h00','17h00','19h45','21h10','22h00'],
@@ -159,6 +217,13 @@ const SEANCES = {
     alter:    ['10h15','12h30','14h45','17h00','19h15','21h30'],
     maigret:  ['10h45','13h00','15h15','17h30','19h45'],
   },
+  'pathe-batignolles': {
+    scream7:  ['10h30','13h30','16h30','19h30','22h00'],
+    jumpers:  ['10h00','12h00','14h00','16h00','18h00','20h00'],
+    marsupilami:['10h30','12h30','14h30','16h30'],
+    lol2:     ['11h00','13h30','16h00','18h30','21h00'],
+    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
+  },
   'gaumont-opera': {
     marty:    ['10h00','13h30','16h45','20h00'],
     reve:     ['10h45','14h00','17h15','20h30'],
@@ -166,6 +231,24 @@ const SEANCES = {
     coutures: ['10h15','13h00','15h15','18h00','20h15','22h30'],
     lol2:     ['10h00','12h15','14h30','16h45','19h00','21h15'],
     chers:    ['10h00','12h00','14h00','16h00','18h00','20h00','22h00'],
+  },
+  'gaumont-convention': {
+    marty:    ['10h15','13h45','17h00','20h15'],
+    reve:     ['11h00','14h15','17h30','20h45'],
+    maison:   ['10h30','13h30','16h30','19h30','22h00'],
+    alter:    ['11h30','14h30','17h30','20h30'],
+    lol2:     ['10h00','12h15','14h30','16h45','19h00','21h15'],
+    marsupilami:['10h00','12h00','14h00','16h00'],
+    maigret:  ['11h00','13h30','16h00','18h30','21h00'],
+    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
+  },
+  'gaumont-aquaboulevard': {
+    marty:    ['11h00','14h00','17h00','20h00'],
+    scream7:  ['10h30','13h30','16h30','19h30','22h00'],
+    jumpers:  ['10h00','12h00','14h00','16h00','18h00','20h00'],
+    lol2:     ['11h30','14h00','16h30','19h00','21h30'],
+    marsupilami:['10h15','12h15','14h15','16h15','18h15'],
+    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
   },
 };
 
@@ -752,7 +835,7 @@ function sCinemas(){
     ${list.map(c=>{
       const col=CC[c.chain];
       const dist=(userPos&&c.lat)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
-      const gc=c.films.reduce((a,f)=>a+f.g.length,0);
+      const gc=0;
       return `<div onclick="openCinema('${c.id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:13px;padding:12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;">
         <div style="width:38px;height:38px;border-radius:9px;background:${col}18;border:1px solid ${col}30;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${c.icon}</div>
         <div style="flex:1;min-width:0;">
