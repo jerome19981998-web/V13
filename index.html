@@ -6,13 +6,10 @@
   <title>CinéMatch - Chat partagé</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Supabase UMD stable -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-  <!-- Supabase ESM via esm.sh (bundle stable pour Vercel/mobile) -->
-  <script type="module">
-    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-    window.supabase = createClient;
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 
   <style>
     body { background:#0a0a0f; color:#f0f0f5; font-family:'Inter',sans-serif; margin:0; }
@@ -38,7 +35,7 @@
 <div id="app"></div>
 <div id="errorMsg"></div>
 
-<script type="module">
+<script>
 // CONFIG SUPABASE (tes vraies valeurs)
 const SUPABASE_URL = 'https://alwfbminhdwinxcozjlj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsd2ZibWluaGR3aW54Y296amxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODA1NTYsImV4cCI6MjA4ODU1NjU1Nn0.OTr8lyDpRQsmXUCPKsm1wvNPYfCA32UBQShRibI_bDg';
@@ -46,8 +43,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Initialise Supabase
 let supabase;
 try {
-  supabase = window.supabase(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.log("Supabase chargé");
+  supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log("Supabase chargé OK");
 } catch (e) {
   document.getElementById('errorMsg').innerHTML = 'Erreur Supabase : ' + e.message;
 }
@@ -62,7 +59,11 @@ localStorage.setItem('chatUsername', state.username);
 // Charger messages
 async function loadMessages() {
   if (!supabase) return;
-  const { data } = await supabase.from('messages').select('*').order('created_at');
+  const { data, error } = await supabase.from('messages').select('*').order('created_at');
+  if (error) {
+    document.getElementById('errorMsg').innerHTML += '<br>Erreur chargement : ' + error.message;
+    return;
+  }
   state.messages = data || [];
   render();
   scrollToBottom();
@@ -91,7 +92,7 @@ function render() {
     <div class="flex flex-col h-full">
       <div class="pt-16 px-6 pb-4 bg-gradient-to-b from-[#111119] to-transparent">
         <div class="text-xl font-serif text-center">Chat partagé</div>
-        <div class="text-sm opacity-70 text-center mt-1">${state.username}</div>
+        <div class="text-sm opacity-70 text-center mt-1">Connecté comme : ${state.username}</div>
       </div>
 
       <div id="chatArea" class="flex-1 overflow-y-auto p-6 space-y-4">
@@ -110,13 +111,33 @@ function render() {
 
       <div class="p-4 border-t border-white/10 bg-black/60 flex gap-3">
         <input id="chatInput" type="text" placeholder="Message..." class="flex-1 bg-[#1a1a24] rounded-full px-5 py-3 outline:none">
-        <button onclick="sendMessage()" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-xl">↑</button>
+        <button id="sendBtn" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-xl active:scale-95">↑</button>
       </div>
     </div>
   `;
 
   root.appendChild(phone);
   scrollToBottom();
+
+  // Re-attach events après chaque render
+  const input = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  if (input) {
+    input.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        console.log("Entrée pressée");
+        sendMessage();
+      }
+    });
+  }
+
+  if (sendBtn) {
+    sendBtn.addEventListener('click', () => {
+      console.log("Bouton ↑ cliqué");
+      sendMessage();
+    });
+  }
 }
 
 function scrollToBottom() {
@@ -133,12 +154,20 @@ async function sendMessage() {
 
   const message = input.value.trim();
 
-  if (!supabase) return alert("Supabase non chargé");
+  if (!supabase) {
+    alert("Supabase non chargé");
+    return;
+  }
 
-  await supabase.from('messages').insert({
+  const { error } = await supabase.from('messages').insert({
     message,
     user_name: state.username
   });
+
+  if (error) {
+    alert("Erreur envoi : " + error.message);
+    return;
+  }
 
   input.value = '';
 }
