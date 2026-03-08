@@ -6,7 +6,6 @@
   <title>CinéMatch - Chat partagé</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Supabase UMD stable -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -92,7 +91,7 @@ function render() {
     <div class="flex flex-col h-full">
       <div class="pt-16 px-6 pb-4 bg-gradient-to-b from-[#111119] to-transparent">
         <div class="text-xl font-serif text-center">Chat partagé</div>
-        <div class="text-sm opacity-70 text-center mt-1">Connecté comme : ${state.username}</div>
+        <div class="text-sm opacity-70 text-center mt-1">${state.username}</div>
       </div>
 
       <div id="chatArea" class="flex-1 overflow-y-auto p-6 space-y-4">
@@ -111,33 +110,13 @@ function render() {
 
       <div class="p-4 border-t border-white/10 bg-black/60 flex gap-3">
         <input id="chatInput" type="text" placeholder="Message..." class="flex-1 bg-[#1a1a24] rounded-full px-5 py-3 outline:none">
-        <button id="sendBtn" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-xl active:scale-95">↑</button>
+        <button onclick="sendMessage()" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-xl active:scale-95">↑</button>
       </div>
     </div>
   `;
 
   root.appendChild(phone);
   scrollToBottom();
-
-  // Re-attach events après chaque render
-  const input = document.getElementById('chatInput');
-  const sendBtn = document.getElementById('sendBtn');
-
-  if (input) {
-    input.addEventListener('keypress', e => {
-      if (e.key === 'Enter') {
-        console.log("Entrée pressée");
-        sendMessage();
-      }
-    });
-  }
-
-  if (sendBtn) {
-    sendBtn.addEventListener('click', () => {
-      console.log("Bouton ↑ cliqué");
-      sendMessage();
-    });
-  }
 }
 
 function scrollToBottom() {
@@ -154,10 +133,7 @@ async function sendMessage() {
 
   const message = input.value.trim();
 
-  if (!supabase) {
-    alert("Supabase non chargé");
-    return;
-  }
+  if (!supabase) return alert("Supabase non chargé");
 
   const { error } = await supabase.from('messages').insert({
     message,
