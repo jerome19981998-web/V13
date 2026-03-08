@@ -673,13 +673,15 @@ async function openGroup(filmId,groupeId){
   if(groupeId){
     st.groupe=groupeId;
   }else{
-    // Créer ou trouver un groupe pour ce film
-    const{data:existing}=await supa.from('groupes').select('*').eq('film_id',filmId).limit(1);
+    // Chercher un groupe existant pour ce film
+    const{data:existing}=await supa.from('groupes').select('id').eq('film_id',filmId).limit(1);
     if(existing&&existing.length>0){
       st.groupe=existing[0].id;
     }else{
-      const{data:created}=await supa.from('groupes').insert({film_id:filmId,nom:FILMS[filmId]?.t||filmId}).select().single();
-      if(created)st.groupe=created.id;
+      // Créer le groupe puis le récupérer
+      await supa.from('groupes').insert({film_id:filmId,nom:FILMS[filmId]?.t||filmId});
+      const{data:fresh}=await supa.from('groupes').select('id').eq('film_id',filmId).limit(1);
+      if(fresh&&fresh.length>0)st.groupe=fresh[0].id;
     }
   }
   st.screen='group';st.tab='vote';st.voted=null;
