@@ -636,13 +636,13 @@ function confirmChangePseudo(){
 async function quitterGroupe(){
   if(!st.groupe||!st.pseudo)return;
   if(!confirm('Quitter ce groupe ?\nVos votes et messages resteront visibles.'))return;
-  const {error}=await SB.from('groupe_membres')
+  const {error}=await supa.from('groupe_membres')
     .delete()
     .eq('groupe_id',st.groupe)
     .eq('pseudo',st.pseudo);
   if(error){alert('Erreur : '+error.message);return;}
-  if(realtimeChannel){SB.removeChannel(realtimeChannel);realtimeChannel=null;}
-  if(votesChannel){SB.removeChannel(votesChannel);votesChannel=null;}
+  if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
+  if(votesChannel){supa.removeChannel(votesChannel);votesChannel=null;}
   st.groupe=null;st.film=null;st.tab='vote';
   membresData=[];votesData={};
   await loadMesGroupes();
@@ -937,10 +937,6 @@ function sFilm(){
   const f=FILMS[st.film];if(!f)return'<div>Film introuvable</div>';
   const back=st.filmSrc==='cinema-detail'?()=>go('cinema-detail'):()=>go('home');
   const cinemaFilm=CINEMAS.filter(c=>c.films.some(fi=>fi.id===st.film));
-  const seancesAuj=cinemaFilm.map(c=>{
-    const s=(SEANCES[c.id]||{})[st.film]||[];
-    return{cinema:c,seances:s.filter(h=>!isPast(h))};
-  }).filter(x=>x.seances.length);
   return `<div style="flex:1;overflow-y:auto;">
     <div style="height:220px;position:relative;overflow:hidden;background:${f.bg};">
       ${posters[st.film]?'<img src="'+posters[st.film]+'" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.6);">':''}
@@ -958,18 +954,28 @@ function sFilm(){
         ${trailers[st.film]?`<div style="margin-top:8px;"><a href="https://www.youtube.com/watch?v=${trailers[st.film]}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,0,0,0.15);border:1px solid rgba(255,0,0,0.3);border-radius:9px;padding:5px 12px;font-size:10px;font-weight:600;color:#ff4444;text-decoration:none;">▶ Voir la bande-annonce</a></div>`:''}
       </div>
     </div>
-    <div style="padding:16px 18px;">
-      <p style="font-size:12px;line-height:1.7;color:${MU};margin-bottom:18px;">${f.s}</p>
-      ${seancesAuj.length?`<div style="margin-bottom:18px;">
-        <div style="font-size:11px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances aujourd'hui</div>
-        ${seancesAuj.map(({cinema:c,seances})=>`
-        <div style="margin-bottom:10px;">
-          <div style="font-size:11px;font-weight:500;margin-bottom:6px;">${c.name}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            ${seances.map(h=>`<div onclick="st.cinema='${c.id}';openGroup('${st.film}')" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;">${h}</div>`).join('')}
-          </div>
-        </div>`).join('')}
-      </div>`:``}
+    <div style="padding:16px 18px 0;">
+      <p style="font-size:12px;line-height:1.7;color:${MU};margin-bottom:16px;">${f.s}</p>
+    </div>
+    ${dayPicker()}
+    <div style="padding:0 18px 20px;">
+      ${(()=>{
+        const seancesJour=cinemaFilm.map(c=>{
+          const s=(SEANCES[c.id]||{})[st.film]||[];
+          return{cinema:c,seances:s.filter(h=>!isPast(h))};
+        }).filter(x=>x.seances.length);
+        if(!seancesJour.length) return `<div style="text-align:center;padding:20px 0;color:${MU};font-size:12px;">Aucune séance disponible ce jour</div>`;
+        return `<div style="margin-bottom:18px;">
+          <div style="font-size:10px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances</div>
+          ${seancesJour.map(({cinema:c,seances})=>`
+          <div style="margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:500;margin-bottom:6px;">${c.name}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${seances.map(h=>`<div onclick="st.cinema='${c.id}';openGroup('${st.film}')" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;">${h}</div>`).join('')}
+            </div>
+          </div>`).join('')}
+        </div>`;
+      })()}
       <button onclick="openGroup('${st.film}')" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;">Rejoindre le groupe →</button>
     </div>
   </div>`;
