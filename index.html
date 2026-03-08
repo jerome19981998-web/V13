@@ -42,7 +42,7 @@ const FILMS={
   alter:      {e:'🪞',c:'#1a2a1a',bg:'linear-gradient(135deg,#0a100a,#1a2a1a)',         g:'COMÉDIE',  t:'Alter Ego',             d:'1h50',dir:'Marc Fitoussi',    s:"Alex a un problème : son nouveau voisin est son sosie parfait. Avec Laurent Lafitte et Blanche Gardin.",lbd:false},
   coutures:   {e:'🧵',c:'#4a1060',bg:'linear-gradient(135deg,#1a0a1a,#4a1060)',         g:'THRILLER', t:'Coutures',              d:'1h55',dir:'Alice Winocour',   s:"Paris, Fashion Week. Trois femmes aux horizons opposés tissent une solidarité insoupçonnée. Avec Sophie Marceau.",lbd:false},
   lol2:       {e:'😂',c:'#0a3060',bg:'linear-gradient(135deg,#0a1020,#0a3060)',         g:'COMÉDIE',  t:'LOL 2.0',               d:'1h45',dir:'Lisa Azuelos',     s:"Personne n'aurait parié sur Jérémy ou Bouna. Sans contacts, ils vont devenir des agents NBA. Inspiré d'une histoire vraie.",lbd:false},
-  jumpers:    {e:'🦘',c:'#1e7a40',bg:'linear-gradient(135deg,#0a1a0a,#1e7a40)',         g:'ANIMATION',t:'Jumpers',               d:'1h30',dir:'David Chong',      s:"Mabel transfère son esprit dans un robot castor pour étudier la faune. Aventure animée écolo pour toute la famille.",lbd:false},
+  jumpers:    {e:'🦘',c:'#1e7a40',bg:'linear-gradient(135deg,#0a1a0a,#1e7a40)',         g:'ANIMATION',t:'Jumpers',               d:'1h30',dir:'David Chong',      s:"Mabel transfère son esprit dans un robot castor pour étudier la faune. Aventure animée écolo pour toute la famille.",lbd:false,alt:['Hoppers','Hopper']},
   marsupilami:{e:'🐆',c:'#c8a000',bg:'linear-gradient(135deg,#1a1000,#c8a000)',         g:'COMÉDIE',  t:'Marsupilami',           d:'1h50',dir:'Philippe Lacheau', s:"Un adorable bébé Marsupilami sème le chaos sur une croisière. Avec Philippe Lacheau et Jamel Debbouze.",lbd:false},
   maigret:    {e:'🕵️',c:'#2a2a3a',bg:'linear-gradient(135deg,#1a1a2a,#2a2a3a)',        g:'POLAR',    t:'Maigret',               d:'1h50',dir:'Patrice Leconte',  s:"Le commissaire Maigret enquête sur le meurtre d'un diplomate qui entretenait une correspondance secrète depuis 50 ans.",lbd:false},
 };
@@ -645,8 +645,12 @@ function normTitle(t){
 function filmInLbd(filmId, list){
   const f = FILMS[filmId];
   if(!f) return false;
-  const n = normTitle(f.t);
-  for(const t of list){ if(t.includes(n)||n.includes(t)) return true; }
+  const titles = [f.t, ...(f.alt||[])].map(normTitle);
+  for(const t of list){
+    for(const n of titles){
+      if(t.includes(n)||n.includes(t)) return true;
+    }
+  }
   return false;
 }
 function isVu(id)       { return lbdLoaded && filmInLbd(id, lbdSeen); }
