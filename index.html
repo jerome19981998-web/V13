@@ -6,6 +6,7 @@
   <title>CinéMatch - Chat partagé</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase UMD stable -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -46,6 +47,7 @@ try {
   console.log("Supabase chargé OK");
 } catch (e) {
   document.getElementById('errorMsg').innerHTML = 'Erreur Supabase : ' + e.message;
+  console.error("Supabase init error:", e);
 }
 
 // STATE
@@ -61,6 +63,7 @@ async function loadMessages() {
   const { data, error } = await supabase.from('messages').select('*').order('created_at');
   if (error) {
     document.getElementById('errorMsg').innerHTML += '<br>Erreur chargement : ' + error.message;
+    console.error("Load messages error:", error);
     return;
   }
   state.messages = data || [];
@@ -80,6 +83,11 @@ if (supabase) {
 // RENDER
 function render() {
   const root = document.getElementById('app');
+  if (!root) {
+    console.error("#app introuvable");
+    return;
+  }
+
   root.innerHTML = '';
 
   const phone = document.createElement('div');
@@ -110,13 +118,27 @@ function render() {
 
       <div class="p-4 border-t border-white/10 bg-black/60 flex gap-3">
         <input id="chatInput" type="text" placeholder="Message..." class="flex-1 bg-[#1a1a24] rounded-full px-5 py-3 outline:none">
-        <button onclick="sendMessage()" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-xl active:scale-95">↑</button>
+        <button id="sendBtn" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-xl active:scale-95">↑</button>
       </div>
     </div>
   `;
 
   root.appendChild(phone);
   scrollToBottom();
+
+  // Re-attach events après render
+  const input = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  if (input) {
+    input.addEventListener('keypress', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  }
+
+  if (sendBtn) {
+    sendBtn.addEventListener('click', sendMessage);
+  }
 }
 
 function scrollToBottom() {
@@ -127,25 +149,25 @@ function scrollToBottom() {
 }
 
 // ENVOYER
-async function sendMessage() {
+function sendMessage() {
   const input = document.getElementById('chatInput');
   if (!input || !input.value.trim()) return;
 
   const message = input.value.trim();
 
-  if (!supabase) return alert("Supabase non chargé");
-
-  const { error } = await supabase.from('messages').insert({
-    message,
-    user_name: state.username
-  });
-
-  if (error) {
-    alert("Erreur envoi : " + error.message);
+  if (!supabase) {
+    alert("Supabase non chargé");
     return;
   }
 
-  input.value = '';
+  supabase.from('messages').insert({
+    message,
+    user_name: state.username
+  }).then(() => {
+    input.value = '';
+  }).catch(err => {
+    alert("Erreur envoi : " + err.message);
+  });
 }
 
 // DÉMARRAGE
