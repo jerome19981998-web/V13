@@ -33,19 +33,67 @@ const CC={ugc:'#ff3f5b',pathe:'#f0c060',gaumont:'#4a9eff'};
 // ═══════════ DONNÉES — semaine du 8 mars 2026 ═══════════
 // Mettre à jour chaque mercredi : FILMS + CINEMAS
 const FILMS={
-  marty:      {e:'🏓',c:'#8a1020',bg:'linear-gradient(135deg,#0d0810,#1a0a30,#8a1020)',g:'DRAME',    t:'Marty Supreme',         d:'2h18',dir:'Josh Safdie',      s:"New York, 1952. Marty Mauser rêve de devenir champion du monde de ping-pong. Avec Timothée Chalamet, Gwyneth Paltrow, Tyler The Creator.",lbd:true},
-  scream7:    {e:'🔪',c:'#8b0000',bg:'linear-gradient(135deg,#1a0000,#8b0000)',         g:'HORREUR',  t:'Scream 7',              d:'2h00',dir:'Kevin Williamson', s:"Ghostface est de retour. Avec Neve Campbell et Courteney Cox. Le chapitre final.",lbd:false},
-  bride:      {e:'⚡',c:'#3a1060',bg:'linear-gradient(135deg,#0d0d1a,#3a1060)',         g:'THRILLER', t:'The Bride!',            d:'2h12',dir:'Maggie Gyllenhaal',s:"Frankenstein ressuscite une femme assassinée dans le Chicago des années 30. Avec Sydney Sweeney et Christian Bale.",lbd:true},
-  hurlevent:  {e:'🌧️',c:'#2a2030',bg:'linear-gradient(135deg,#1a1520,#2a2030)',        g:'ROMANCE',  t:'"Hurlevent"',           d:'2h15',dir:'Emerald Fennell',  s:"Vision moderne et passionnée de la romance légendaire unissant Heathcliff et Catherine. Avec Margot Robbie et Jacob Elordi.",lbd:true},
-  zootopie:   {e:'🦊',c:'#1e6899',bg:'linear-gradient(135deg,#0a1a2a,#1e6899)',         g:'ANIMATION',t:'Zootopie 2',            d:'1h45',dir:'Byron Howard',     s:"Judy Hopps et Nick Wilde reprennent du service dans une nouvelle aventure plus sombre. Disney.",lbd:false},
-  maison:     {e:'🏠',c:'#6a1030',bg:'linear-gradient(135deg,#1a0a10,#6a1030)',         g:'DRAME',    t:'La Maison des femmes',  d:'1h44',dir:'Hafsia Herzi',     s:"À la Maison des femmes, une équipe accueille et soigne les femmes victimes de violences. Avec Zita Hanrot.",lbd:false},
-  alter:      {e:'🪞',c:'#1a2a1a',bg:'linear-gradient(135deg,#0a100a,#1a2a1a)',         g:'COMÉDIE',  t:'Alter Ego',             d:'1h50',dir:'Marc Fitoussi',    s:"Alex a un problème : son nouveau voisin est son sosie parfait. Avec Laurent Lafitte et Blanche Gardin.",lbd:false},
-  coutures:   {e:'🧵',c:'#4a1060',bg:'linear-gradient(135deg,#1a0a1a,#4a1060)',         g:'THRILLER', t:'Coutures',              d:'1h55',dir:'Alice Winocour',   s:"Paris, Fashion Week. Trois femmes aux horizons opposés tissent une solidarité insoupçonnée. Avec Sophie Marceau.",lbd:false},
-  lol2:       {e:'😂',c:'#0a3060',bg:'linear-gradient(135deg,#0a1020,#0a3060)',         g:'COMÉDIE',  t:'LOL 2.0',               d:'1h45',dir:'Lisa Azuelos',     s:"Personne n'aurait parié sur Jérémy ou Bouna. Sans contacts, ils vont devenir des agents NBA. Inspiré d'une histoire vraie.",lbd:false},
-  jumpers:    {e:'🦘',c:'#1e7a40',bg:'linear-gradient(135deg,#0a1a0a,#1e7a40)',         g:'ANIMATION',t:'Jumpers',               d:'1h30',dir:'David Chong',      s:"Mabel transfère son esprit dans un robot castor pour étudier la faune. Aventure animée écolo pour toute la famille.",lbd:false},
-  marsupilami:{e:'🐆',c:'#c8a000',bg:'linear-gradient(135deg,#1a1000,#c8a000)',         g:'COMÉDIE',  t:'Marsupilami',           d:'1h50',dir:'Philippe Lacheau', s:"Un adorable bébé Marsupilami sème le chaos sur une croisière. Avec Philippe Lacheau et Jamel Debbouze.",lbd:false},
-  maigret:    {e:'🕵️',c:'#2a2a3a',bg:'linear-gradient(135deg,#1a1a2a,#2a2a3a)',        g:'POLAR',    t:'Maigret',               d:'1h50',dir:'Patrice Leconte',  s:"Le commissaire Maigret enquête sur le meurtre d'un diplomate qui entretenait une correspondance secrète depuis 50 ans.",lbd:false},
+  marty:      {e:'🏓',c:'#8a1020',bg:'linear-gradient(135deg,#0d0810,#1a0a30,#8a1020)',g:'DRAME',    t:'Marty Supreme',         d:'2h18',dir:'Josh Safdie',      s:"New York, 1952. Marty Mauser rêve de devenir champion du monde de ping-pong. Avec Timothée Chalamet, Gwyneth Paltrow, Tyler The Creator.",lbd:true,  tmdb:1317288},
+  scream7:    {e:'🔪',c:'#8b0000',bg:'linear-gradient(135deg,#1a0000,#8b0000)',         g:'HORREUR',  t:'Scream 7',              d:'2h00',dir:'Kevin Williamson', s:"Ghostface est de retour. Avec Neve Campbell et Courteney Cox. Le chapitre final.",lbd:false, tmdb:1101697},
+  bride:      {e:'⚡',c:'#3a1060',bg:'linear-gradient(135deg,#0d0d1a,#3a1060)',         g:'THRILLER', t:'The Bride!',            d:'2h12',dir:'Maggie Gyllenhaal',s:"Frankenstein ressuscite une femme assassinée dans le Chicago des années 30. Avec Sydney Sweeney et Christian Bale.",lbd:true,  tmdb:1233413},
+  hurlevent:  {e:'🌧️',c:'#2a2030',bg:'linear-gradient(135deg,#1a1520,#2a2030)',        g:'ROMANCE',  t:'"Hurlevent"',           d:'2h15',dir:'Emerald Fennell',  s:"Vision moderne et passionnée de la romance légendaire unissant Heathcliff et Catherine. Avec Margot Robbie et Jacob Elordi.",lbd:true,  tmdb:1359976},
+  zootopie:   {e:'🦊',c:'#1e6899',bg:'linear-gradient(135deg,#0a1a2a,#1e6899)',         g:'ANIMATION',t:'Zootopie 2',            d:'1h45',dir:'Byron Howard',     s:"Judy Hopps et Nick Wilde reprennent du service dans une nouvelle aventure plus sombre. Disney.",lbd:false, tmdb:1241982},
+  maison:     {e:'🏠',c:'#6a1030',bg:'linear-gradient(135deg,#1a0a10,#6a1030)',         g:'DRAME',    t:'La Maison des femmes',  d:'1h44',dir:'Hafsia Herzi',     s:"À la Maison des femmes, une équipe accueille et soigne les femmes victimes de violences. Avec Zita Hanrot.",lbd:false, tmdb:1368473},
+  alter:      {e:'🪞',c:'#1a2a1a',bg:'linear-gradient(135deg,#0a100a,#1a2a1a)',         g:'COMÉDIE',  t:'Alter Ego',             d:'1h50',dir:'Marc Fitoussi',    s:"Alex a un problème : son nouveau voisin est son sosie parfait. Avec Laurent Lafitte et Blanche Gardin.",lbd:false, tmdb:1378901},
+  coutures:   {e:'🧵',c:'#4a1060',bg:'linear-gradient(135deg,#1a0a1a,#4a1060)',         g:'THRILLER', t:'Coutures',              d:'1h55',dir:'Alice Winocour',   s:"Paris, Fashion Week. Trois femmes aux horizons opposés tissent une solidarité insoupçonnée. Avec Sophie Marceau.",lbd:false, tmdb:1389202},
+  lol2:       {e:'😂',c:'#0a3060',bg:'linear-gradient(135deg,#0a1020,#0a3060)',         g:'COMÉDIE',  t:'LOL 2.0',               d:'1h45',dir:'Lisa Azuelos',     s:"Personne n'aurait parié sur Jérémy ou Bouna. Sans contacts, ils vont devenir des agents NBA. Inspiré d'une histoire vraie.",lbd:false, tmdb:1356781},
+  jumpers:    {e:'🦘',c:'#1e7a40',bg:'linear-gradient(135deg,#0a1a0a,#1e7a40)',         g:'ANIMATION',t:'Jumpers',               d:'1h30',dir:'David Chong',      s:"Mabel transfère son esprit dans un robot castor pour étudier la faune. Aventure animée écolo pour toute la famille.",lbd:false, tmdb:1312445},
+  marsupilami:{e:'🐆',c:'#c8a000',bg:'linear-gradient(135deg,#1a1000,#c8a000)',         g:'COMÉDIE',  t:'Marsupilami',           d:'1h50',dir:'Philippe Lacheau', s:"Un adorable bébé Marsupilami sème le chaos sur une croisière. Avec Philippe Lacheau et Jamel Debbouze.",lbd:false, tmdb:1298765},
+  maigret:    {e:'🕵️',c:'#2a2a3a',bg:'linear-gradient(135deg,#1a1a2a,#2a2a3a)',        g:'POLAR',    t:'Maigret',               d:'1h50',dir:'Patrice Leconte',  s:"Le commissaire Maigret enquête sur le meurtre d'un diplomate qui entretenait une correspondance secrète depuis 50 ans.",lbd:false, tmdb:1187345},
 };
+
+// ═══════════ AFFICHES TMDB ═══════════
+const TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzMzY0M2EwMDRiZGMyYzdlNmIyYTFjOWMzZWI5ZDhlYyIsIm5iZiI6MTc3MzAwMTIzNy42ODYsInN1YiI6IjY5YWRkYTE1MmVmNWMxZmY5NWZjYmNlOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.bRW2UVqu1p89xPusKV5-mzW4ZeRSk8ij811FWOIwoBM';
+const TMDB_IMG   = 'https://image.tmdb.org/t/p/w342';
+const posters    = {}; // filmId → URL affiche
+
+async function loadPosters() {
+  const ids = Object.entries(FILMS).filter(([,f]) => f.tmdb);
+  await Promise.all(ids.map(async ([id, f]) => {
+    try {
+      const r = await fetch(`https://api.themoviedb.org/3/movie/${f.tmdb}?language=fr-FR`, {
+        headers: { Authorization: `Bearer ${TMDB_TOKEN}` }
+      });
+      const d = await r.json();
+      if (d.poster_path) {
+        posters[id] = TMDB_IMG + d.poster_path;
+        // Re-render si on est sur un écran qui affiche des films
+        const s = st.screen;
+        if (s==='home'||s==='cinemas'||s==='cinema-detail'||s==='film') render();
+      }
+    } catch(e) { /* silencieux */ }
+  }));
+}
+
+// Helper : retourne une img affiche ou le fallback emoji
+function posterEl(id, size=40, radius=8) {
+  const f = FILMS[id];
+  if (posters[id]) {
+    return `<img src="${posters[id]}" style="width:${size}px;height:${size*1.5}px;object-fit:cover;border-radius:${radius}px;flex-shrink:0;" loading="lazy">`;
+  }
+  return `<div style="width:${size}px;height:${size*1.5}px;background:${f?.bg||'#111'};border-radius:${radius}px;display:flex;align-items:center;justify-content:center;font-size:${size*0.5}px;flex-shrink:0;">${f?.e||'🎬'}</div>`;
+}
+
+// Helper : bannière film (hero) avec affiche en fond
+function posterBanner(id, height=250) {
+  const f = FILMS[id];
+  if (posters[id]) {
+    return `<div style="height:${height}px;position:relative;flex-shrink:0;overflow:hidden;">
+      <img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.55);">
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.1),${BG});"></div>
+    </div>`;
+  }
+  return `<div style="height:${height}px;position:relative;flex-shrink:0;">
+    <div style="width:100%;height:100%;background:${f?.bg};display:flex;align-items:center;justify-content:center;font-size:96px;">${f?.e}</div>
+    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.1),${BG});"></div>
+  </div>`;
+}
+
 
 const CINEMAS=[
   // ── UGC ──
@@ -660,7 +708,9 @@ function sHome(){
       ${cards.map(([id,f])=>`
         <div onclick="openFilm('${id}','home')" class="tap" style="min-width:120px;flex-shrink:0;cursor:pointer;">
           <div style="width:120px;height:172px;border-radius:12px;overflow:hidden;background:${f.bg};display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:7px;">
-            <span style="font-size:58px;position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);">${f.e}</span>
+            ${posters[id]
+              ? `<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;">`
+              : `<span style="font-size:58px;position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);">${f.e}</span>`}
             <div style="position:absolute;bottom:0;left:0;right:0;padding:7px 8px;background:linear-gradient(to top,rgba(0,0,0,0.82),transparent);display:flex;justify-content:space-between;align-items:center;">
               <span style="background:rgba(255,63,91,0.88);border-radius:9px;padding:2px 6px;font-size:9px;font-weight:600;">👥 3+</span>
               ${f.lbd?`<span style="background:rgba(0,192,48,0.88);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#000;">✓</span>`:''}
@@ -740,7 +790,9 @@ function sCinemaDetail(){
     ${c.films.map(sf=>{
       const film=FILMS[sf.id];if(!film)return'';
       return `<div style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;">
-        <div onclick="openFilm('${sf.id}','cinema-detail')" style="width:40px;height:40px;background:${film.bg};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;cursor:pointer;">${film.e}</div>
+        <div style="width:40px;height:60px;background:${film.bg};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;cursor:pointer;overflow:hidden;">
+          ${posters[sf.id]?`<img src="${posters[sf.id]}" style="width:100%;height:100%;object-fit:cover;">`:`<span>${film.e}</span>`}
+        </div>
         <div style="flex:1;">
           <div onclick="openFilm('${sf.id}','cinema-detail')" class="serif" style="font-size:13px;margin-bottom:2px;cursor:pointer;">${film.t}</div>
           <div style="font-size:9px;color:${MU};margin-bottom:7px;">${film.d} · ${sf.v.join('/')}${sf.g.length>0?` <span style="color:${AC}">· 👥 Groupe</span>`:''}</div>
@@ -758,10 +810,12 @@ function sFilm(){
   const f=FILMS[st.film];if(!f)return'';
   const wf=CINEMAS.filter(c=>c.films.some(sf=>sf.id===st.film));
   return `
-  <div style="height:250px;position:relative;flex-shrink:0;">
-    <div style="width:100%;height:100%;background:${f.bg};display:flex;align-items:center;justify-content:center;font-size:96px;">${f.e}</div>
-    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.1),${BG});"></div>
-    <button onclick="go('${st.filmSrc}')" style="position:absolute;top:50px;left:16px;width:34px;height:34px;background:rgba(0,0,0,0.5);border-radius:50%;border:1px solid rgba(255,255,255,0.1);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;">←</button>
+  <div style="height:280px;position:relative;flex-shrink:0;overflow:hidden;">
+    ${posters[st.film]
+      ? `<img src="${posters[st.film]}" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.6);">`
+      : `<div style="width:100%;height:100%;background:${f.bg};display:flex;align-items:center;justify-content:center;font-size:96px;">${f.e}</div>`}
+    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.05),${BG});"></div>
+    <button onclick="go('${st.filmSrc}')" style="position:absolute;top:50px;left:16px;width:34px;height:34px;background:rgba(0,0,0,0.5);border-radius:50%;border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;">←</button>
     <div style="position:absolute;bottom:14px;left:18px;right:18px;">
       <div style="font-size:9px;color:${AC};letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;font-weight:600;">${f.g}</div>
       <div class="serif" style="font-size:26px;margin-bottom:7px;">${f.t}</div>
@@ -938,6 +992,7 @@ setInterval(()=>{
 // INIT
 render();
 if(st.pseudo) loadMesGroupes();
+loadPosters();
 
 </script>
 </body>
