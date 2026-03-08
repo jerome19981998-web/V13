@@ -475,13 +475,13 @@ let st={
 };
 function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo}))}catch(e){}}
 
+
 function setDate(d){
   if(st.date===d)return;
   st.date=d;
-  dataLoaded=false;
   render();
-  loadProgramme(d);
 }
+
 
 function dayPicker(){
   const days=next7days();
