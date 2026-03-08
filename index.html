@@ -532,14 +532,9 @@ function isPast(h){
 function go(sc){
   st.screen=sc;
   if(sc==='group'){
-    st.tab='chat';
+    // Écran de sélection : on n'entre pas encore dans un groupe
+    st.groupe=null;
     render();
-    if(mesGroupes.length>0){
-      const g=mesGroupes[0];
-      st.groupe=g.id; st.film=g.film_id;
-      setupTypingChannel(); subscribeMembers(); subscribeVotes();
-      loadMessages(); rejoindreGroupe(); loadVotes();
-    }
   } else render();
 }
 function switchGroupe(val){
@@ -821,9 +816,44 @@ function sFilm(){
 
 function sGroup(){
   const f=st.film&&FILMS[st.film]?FILMS[st.film]:null;
-  const filmNom=f?f.t:'Groupe général';
+  const filmNom=f?f.t:'';
   const filmIcon=f?f.e:'🎬';
-  // Nom du groupe actuel
+
+  // ── ÉCRAN DE SÉLECTION (pas encore dans un groupe) ──
+  if(!st.groupe){
+    return `
+    <div style="background:linear-gradient(to bottom,${S1},${BG});padding:50px 18px 14px;flex-shrink:0;">
+      <div class="serif" style="font-size:22px;margin-bottom:4px;">Mes groupes</div>
+      <div style="font-size:11px;color:${MU};">Choisissez un groupe pour rejoindre le chat</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:14px 18px;">
+      ${mesGroupes.length===0
+        ? `<div style="text-align:center;padding:60px 0;color:${MU};">
+            <div style="font-size:40px;margin-bottom:12px;">👥</div>
+            <div style="font-size:14px;margin-bottom:8px;">Aucun groupe rejoint</div>
+            <div style="font-size:11px;line-height:1.6;">Allez sur la fiche d'un film<br>et créez ou rejoignez un groupe !</div>
+            <button onclick="go('home')" style="margin-top:20px;background:${AC};border:none;color:#fff;border-radius:12px;padding:11px 22px;font-size:12px;font-weight:600;">Voir les films →</button>
+          </div>`
+        : mesGroupes.map(g=>{
+            const gf=FILMS[g.film_id];
+            return `<div onclick="openGroup('${g.film_id}','${g.id}')" class="tap" style="margin-bottom:11px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:13px;display:flex;align-items:center;gap:12px;cursor:pointer;">
+              <div style="width:46px;height:68px;border-radius:9px;overflow:hidden;background:${gf?gf.bg:'#222'};display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">
+                ${posters[g.film_id]?`<img src="${posters[g.film_id]}" style="width:100%;height:100%;object-fit:cover;">`:(gf?gf.e:'🎬')}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:11px;color:${MU};margin-bottom:2px;">${gf?gf.t:g.film_id}</div>
+                <div style="font-size:14px;font-weight:600;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.nom}</div>
+                <div style="display:flex;gap:6px;">${chip('💬 Chat',AC,'rgba(255,63,91,0.1)','rgba(255,63,91,0.25)',9)}${chip('👥 Membres',TX,'rgba(255,255,255,0.05)',BD,9)}</div>
+              </div>
+              <span style="color:${MU};font-size:18px;">›</span>
+            </div>`;
+          }).join('')
+      }
+    </div>
+    ${nav('group')}`;
+  }
+
+  // ── ÉCRAN CHAT (dans un groupe) ──
   const groupeActuel=mesGroupes.find(g=>g.id===st.groupe);
   const groupeNom=groupeActuel?groupeActuel.nom:(f?f.t:'Groupe');
   const tabs=[['vote','Vote'],['membres','Membres'],['chat','Chat 💬']];
@@ -863,24 +893,10 @@ function sGroup(){
     </div>`;
   }
 
-  // Menu déroulant mes groupes
-  const menuGroupes = mesGroupes.length > 1 ? `
-  <div style="padding:0 18px 10px;flex-shrink:0;">
-    <div style="position:relative;">
-      <select onchange="switchGroupe(this.value)" style="width:100%;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 32px 8px 12px;font-size:11px;color:${TX};appearance:none;outline:none;cursor:pointer;">
-        ${mesGroupes.map(g=>{
-          const gf=FILMS[g.film_id];
-          return `<option value="${g.film_id}|||${g.id}" ${g.id===st.groupe?'selected':''}>${gf?gf.e+' ':''} ${g.nom}</option>`;
-        }).join('')}
-      </select>
-      <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:10px;color:${MU};">▾</span>
-    </div>
-  </div>` : '';
-
   return `
   <div style="background:linear-gradient(to bottom,${S1},${BG});padding:50px 18px 12px;flex-shrink:0;">
     <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;">
-      <button onclick="openFilm('${st.film}','${st.filmSrc||'home'}')" style="width:34px;height:34px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;">←</button>
+      <button onclick="st.groupe=null;render();" style="width:34px;height:34px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;">←</button>
       <div style="flex:1;min-width:0;">
         <div style="font-size:10px;color:${MU};margin-bottom:1px;">${filmIcon} ${filmNom}</div>
         <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${groupeNom}</div>
@@ -888,7 +904,6 @@ function sGroup(){
       <span style="font-size:9px;background:${AC}18;border:1px solid ${AC}35;color:${AC};border-radius:8px;padding:2px 7px;flex-shrink:0;" id="membres-badge">${membresData.length} membre${membresData.length!==1?'s':''}</span>
     </div>
   </div>
-  ${menuGroupes}
   <div style="display:flex;border-bottom:1px solid ${BD};flex-shrink:0;">
     ${tabs.map(([id,lb])=>`<button onclick="setTab('${id}')" style="flex:1;padding:11px 0 9px;font-size:11px;font-weight:500;color:${st.tab===id?TX:MU};border:none;background:none;cursor:pointer;position:relative;">${lb}${st.tab===id?`<div style="position:absolute;bottom:-1px;left:15%;right:15%;height:2px;background:${AC};border-radius:2px;"></div>`:''}</button>`).join('')}
   </div>
