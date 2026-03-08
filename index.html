@@ -74,113 +74,157 @@ const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsd2ZibWluaGR3aW54Y296amxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODA1NTYsImV4cCI6MjA4ODU1NjU1Nn0.OTr8lyDpRQsmXUCPKsm1wvNPYfCA32UBQShRibI_bDg';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// Couleurs auto pour les pseudos
 const PSEUDO_COLORS=['#e74c3c','#3498db','#2ecc71','#9b59b6','#ff8c42','#00c030','#f0c060','#e91e8c'];
 function pseudoColor(name){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))%PSEUDO_COLORS.length;return PSEUDO_COLORS[Math.abs(h)];}
 function pseudoInitial(name){return name.trim().charAt(0).toUpperCase()||'?';}
 
-// Construire le HTML d'un message
+// ── MESSAGES ──
 function msgHTML(m){
   const me=m.pseudo===st.pseudo;
-  const bg=pseudoColor(m.pseudo), av=pseudoInitial(m.pseudo);
+  const bg=pseudoColor(m.pseudo),av=pseudoInitial(m.pseudo);
   const t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   return `<div style="display:flex;gap:8px;margin-bottom:13px;align-items:flex-end;flex-direction:${me?'row-reverse':'row'};">
     <div style="width:26px;height:26px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;">${av}</div>
-    <div>
-      <div style="font-size:8px;color:${MU};margin-bottom:3px;text-align:${me?'right':'left'};">${m.pseudo} · ${t}</div>
-      <div style="padding:8px 12px;border-radius:14px;font-size:12px;line-height:1.55;max-width:195px;word-break:break-word;background:${me?AC:S2};border-bottom-left-radius:${me?'14px':'3px'};border-bottom-right-radius:${me?'3px':'14px'};">${m.texte}</div>
-    </div>
+    <div><div style="font-size:8px;color:${MU};margin-bottom:3px;text-align:${me?'right':'left'};">${m.pseudo} · ${t}</div>
+    <div style="padding:8px 12px;border-radius:14px;font-size:12px;line-height:1.55;max-width:195px;word-break:break-word;background:${me?AC:S2};border-bottom-left-radius:${me?'14px':'3px'};border-bottom-right-radius:${me?'3px':'14px'};">${m.texte}</div></div>
   </div>`;
 }
-
-// Injecter un message dans le DOM sans re-render
 function appendMsg(m){
-  const ca=document.getElementById('ca'); if(!ca)return;
+  const ca=document.getElementById('ca');if(!ca)return;
   const typing=document.getElementById('typing-indicator');
-  const div=document.createElement('div');
-  div.innerHTML=msgHTML(m);
-  if(typing) ca.insertBefore(div.firstChild, typing);
-  else ca.appendChild(div.firstChild);
+  const div=document.createElement('div');div.innerHTML=msgHTML(m);
+  if(typing)ca.insertBefore(div.firstChild,typing);else ca.appendChild(div.firstChild);
   ca.scrollTop=ca.scrollHeight;
 }
-
-// Indicateur "en train d'écrire"
-let typingTimeout=null, typingUsers={};
+let typingTimeout=null,typingUsers={};
 function showTyping(){
-  const el=document.getElementById('typing-indicator'); if(!el)return;
+  const el=document.getElementById('typing-indicator');if(!el)return;
   const others=Object.keys(typingUsers).filter(p=>p!==st.pseudo);
   if(others.length===0){el.style.display='none';return;}
   el.style.display='flex';
-  el.querySelector('.typing-names').textContent=others.length===1?others[0]+' écrit…':others.slice(0,-1).join(', ')+' et '+others[others.length-1]+' écrivent…';
+  el.querySelector('.typing-names').textContent=others.length===1?others[0]+' écrit…':others.join(', ')+' écrivent…';
 }
-
-// Broadcast "en train d'écrire" via Supabase Presence — par groupe
-let typingChannel=null;
+let typingChannel=null,realtimeChannel=null;
 function setupTypingChannel(){
   if(typingChannel)supa.removeChannel(typingChannel);
+  if(realtimeChannel)supa.removeChannel(realtimeChannel);
   const g=st.groupe||'general';
   typingChannel=supa.channel('typing-'+g,{config:{presence:{key:st.pseudo}}});
   typingChannel.on('presence',{event:'sync'},()=>{
-    const state=typingChannel.presenceState();
-    typingUsers={};
-    Object.values(state).flat().forEach(u=>{if(u.typing)typingUsers[u.pseudo]=true;else delete typingUsers[u.pseudo];});
+    const s=typingChannel.presenceState();typingUsers={};
+    Object.values(s).flat().forEach(u=>{if(u.typing)typingUsers[u.pseudo]=true;else delete typingUsers[u.pseudo];});
     showTyping();
   }).subscribe();
-  subscribeChat();
+  realtimeChannel=supa.channel('db-msg-'+g)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`groupe=eq.${g}`},p=>appendMsg(p.new))
+    .subscribe();
 }
-
 function onTyping(){
   if(!typingChannel)return;
   typingChannel.track({pseudo:st.pseudo,typing:true});
   clearTimeout(typingTimeout);
-  typingTimeout=setTimeout(()=>{typingChannel.track({pseudo:st.pseudo,typing:false});},2000);
+  typingTimeout=setTimeout(()=>typingChannel.track({pseudo:st.pseudo,typing:false}),2000);
 }
-
-// Charger les messages du groupe actuel
 async function loadMessages(){
   const g=st.groupe||'general';
   const{data,error}=await supa.from('messages').select('*').eq('groupe',g).order('created_at',{ascending:true}).limit(80);
   if(error){console.error(error);return;}
-  const ca=document.getElementById('ca'); if(!ca)return;
-  const typing=document.getElementById('typing-indicator');
+  const ca=document.getElementById('ca');if(!ca)return;
   ca.innerHTML='';
-  if(data.length===0){
-    const empty=document.createElement('div');
-    empty.style.cssText=`text-align:center;padding:40px 0;color:${MU};font-size:12px;`;
-    empty.innerHTML='Aucun message encore…<br>Soyez le premier ! 🎬';
-    ca.appendChild(empty);
-  }
-  data.forEach(m=>{const div=document.createElement('div');div.innerHTML=msgHTML(m);ca.appendChild(div.firstChild);});
-  if(typing)ca.appendChild(typing); else{
-    const t=document.createElement('div');
-    t.id='typing-indicator';t.style.cssText=`display:none;align-items:center;gap:8px;padding:4px 0 8px;flex-shrink:0;`;
-    t.innerHTML=`<div style="display:flex;gap:3px;align-items:center;">${[0,150,300].map(d=>`<div style="width:5px;height:5px;background:${MU};border-radius:50%;animation:pulse 1.2s ${d}ms infinite;"></div>`).join('')}</div><span class="typing-names" style="font-size:10px;color:${MU};font-style:italic;"></span>`;
-    ca.appendChild(t);
-  }
+  if(data.length===0){const e=document.createElement('div');e.style.cssText=`text-align:center;padding:40px 0;color:${MU};font-size:12px;`;e.innerHTML='Aucun message encore…<br>Soyez le premier ! 🎬';ca.appendChild(e);}
+  data.forEach(m=>{const d=document.createElement('div');d.innerHTML=msgHTML(m);ca.appendChild(d.firstChild);});
+  const t=document.createElement('div');t.id='typing-indicator';t.style.cssText=`display:none;align-items:center;gap:8px;padding:4px 0 8px;`;
+  t.innerHTML=`<div style="display:flex;gap:3px;">${[0,150,300].map(d=>`<div style="width:5px;height:5px;background:${MU};border-radius:50%;animation:pulse 1.2s ${d}ms infinite;"></div>`).join('')}</div><span class="typing-names" style="font-size:10px;color:${MU};font-style:italic;"></span>`;
+  ca.appendChild(t);
   ca.scrollTop=ca.scrollHeight;
 }
-
-// Écouter les nouveaux messages en temps réel — filtré par groupe
-let realtimeChannel=null;
-function subscribeChat(){
-  if(realtimeChannel)supa.removeChannel(realtimeChannel);
-  const g=st.groupe||'general';
-  realtimeChannel=supa.channel('db-messages-'+g)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`groupe=eq.${g}`},payload=>{
-      appendMsg(payload.new);
-    }).subscribe();
-}
-
-// Envoyer un message dans le bon groupe
 async function sendMsg(){
-  const inp=document.getElementById('ci');
-  if(!inp||!inp.value.trim())return;
-  const texte=inp.value.trim();
-  inp.value=''; inp.focus();
+  const inp=document.getElementById('ci');if(!inp||!inp.value.trim())return;
+  const texte=inp.value.trim();inp.value='';inp.focus();
   if(typingChannel)typingChannel.track({pseudo:st.pseudo,typing:false});
   clearTimeout(typingTimeout);
-  const{error}=await supa.from('messages').insert({pseudo:st.pseudo,texte,groupe:st.groupe||'general'});
-  if(error)console.error('Erreur envoi:',error);
+  await supa.from('messages').insert({pseudo:st.pseudo,texte,groupe:st.groupe||'general'});
+}
+
+// ── MEMBRES ──
+let membresData=[];
+async function loadMembres(){
+  const g=st.groupe||'general';
+  const{data}=await supa.from('groupe_membres').select('*').eq('groupe',g).order('joined_at',{ascending:true});
+  membresData=data||[];
+  if(st.tab==='membres')renderMembresDOM();
+}
+function renderMembresDOM(){
+  const el=document.getElementById('membres-list');if(!el)return;
+  const moi=membresData.find(m=>m.pseudo===st.pseudo);
+  el.innerHTML=membresData.map(m=>`
+    <div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid ${BD};">
+      <div style="width:38px;height:38px;border-radius:50%;background:${pseudoColor(m.pseudo)};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(m.pseudo)}</div>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${m.pseudo}${m.pseudo===st.pseudo?' <span style="color:'+MU+';font-size:10px;">(moi)</span>':''}</div>
+      <div style="font-size:9px;color:${MU};">Rejoint ${new Date(m.joined_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div></div>
+    </div>`).join('')||`<div style="text-align:center;padding:30px 0;color:${MU};font-size:12px;">Aucun membre encore</div>`;
+}
+async function rejoindreGroupe(){
+  const g=st.groupe||'general';
+  await supa.from('groupe_membres').upsert({groupe:g,pseudo:st.pseudo},{onConflict:'groupe,pseudo'});
+  await loadMembres();
+}
+function subscribeMembers(){
+  const g=st.groupe||'general';
+  supa.channel('db-membres-'+g)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'groupe_membres',filter:`groupe=eq.${g}`},async()=>{
+      await loadMembres();
+      // Mettre à jour le compteur dans le header
+      const el=document.getElementById('membres-count');
+      if(el)el.textContent=membresData.length;
+    })
+    .subscribe();
+}
+
+// ── VOTES ──
+let votesData=[];
+async function loadVotes(){
+  const g=st.groupe||'general';
+  const{data}=await supa.from('votes').select('*').eq('groupe',g);
+  votesData=data||[];
+  if(st.tab==='vote')renderVotesDOM();
+}
+function renderVotesDOM(){
+  const el=document.getElementById('votes-list');if(!el)return;
+  const total=votesData.length||1;
+  const heures=['19h00','19h30','20h00','20h30','21h00'];
+  el.innerHTML=heures.map(h=>{
+    const voters=votesData.filter(v=>v.heure===h);
+    const pct=Math.round(voters.length/total*100);
+    const myVote=votesData.find(v=>v.pseudo===st.pseudo&&v.heure===h);
+    return `<div onclick="castVote('${h}')" style="background:${S1};border:1px solid ${myVote?GD:BD};border-radius:11px;padding:12px 13px;margin-bottom:6px;cursor:pointer;position:relative;overflow:hidden;display:flex;align-items:center;gap:9px;">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:${voters.length?pct:0}%;background:${myVote?'rgba(240,192,96,0.09)':'rgba(255,63,91,0.05)'};border-radius:11px;transition:width 0.4s;"></div>
+      <div class="serif" style="font-size:16px;z-index:1;min-width:48px;">${h}</div>
+      <div style="flex:1;display:flex;gap:-4px;z-index:1;">
+        ${voters.slice(0,5).map(v=>`<div style="width:18px;height:18px;border-radius:50%;background:${pseudoColor(v.pseudo)};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;margin-left:-4px;">${pseudoInitial(v.pseudo)}</div>`).join('')}
+        ${voters.length>0?`<span style="font-size:9px;color:${MU};margin-left:6px;align-self:center;">${voters.length} vote${voters.length>1?'s':''}</span>`:'<span style="font-size:9px;color:'+MU+';">—</span>'}
+      </div>
+      <span style="font-weight:600;font-size:12px;color:${myVote?GD:TX};z-index:1;">${voters.length?pct+'%':''}</span>
+      ${myVote?'<span style="z-index:1;">👑</span>':''}
+    </div>`;
+  }).join('');
+  // Résultat en tête
+  const winner=heures.reduce((a,h)=>votesData.filter(v=>v.heure===h).length>votesData.filter(v=>v.heure===a).length?h:a,heures[0]);
+  const myVote=votesData.find(v=>v.pseudo===st.pseudo);
+  const res=document.getElementById('vote-result');
+  if(res)res.innerHTML=myVote?`✅ Votre vote : <strong>${myVote.heure}</strong>${votesData.length>1?' · 🏆 Tête : <strong>'+winner+'</strong> ('+votesData.filter(v=>v.heure===winner).length+' votes)':''}`:`<span style="color:${MU};">Votez pour une heure de RDV ↑</span>`;
+}
+async function castVote(heure){
+  const g=st.groupe||'general';
+  await supa.from('votes').upsert({groupe:g,pseudo:st.pseudo,heure},{onConflict:'groupe,pseudo'});
+  await loadVotes();
+}
+function subscribeVotes(){
+  const g=st.groupe||'general';
+  supa.channel('db-votes-'+g)
+    .on('postgres_changes',{event:'*',schema:'public',table:'votes',filter:`groupe=eq.${g}`},async()=>{
+      await loadVotes();
+    }).subscribe();
 }
 
 // ═══════════ STATE ═══════════
@@ -206,20 +250,23 @@ function go(sc){
 function openCinema(id){st.cinema=id;st.screen='cinema-detail';render();}
 function openFilm(id,src){st.film=id;if(src)st.filmSrc=src;st.screen='film';render();}
 function openGroup(filmId){
-  st.groupe=filmId;
-  st.film=filmId;
-  st.tab='chat';
-  typingChannel=null; // reset pour nouveau canal
+  st.groupe=filmId; st.film=filmId; st.tab='chat';
+  typingChannel=null; realtimeChannel=null;
   render();
-  loadMessages();
   setupTypingChannel();
+  subscribeMembers();
+  subscribeVotes();
+  loadMessages();
+  rejoindreGroupe();
+  loadVotes();
 }
 function setGenre(g){st.genre=g;render();}
 function setCinFilter(f){st.cinFilter=f;render();}
 function setTab(t){
-  st.tab=t;
-  render();
+  st.tab=t; render();
   if(t==='chat'){loadMessages();setupTypingChannel();}
+  if(t==='membres'){loadMembres();}
+  if(t==='vote'){loadVotes();}
 }
 function setVote(h){st.voted=h;render();}
 function doSync(){if(st.syncing)return;st.syncing=true;render();setTimeout(()=>{st.syncing=false;st.syncLabel='à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});st.secs=3600;render();},1500);}
@@ -463,40 +510,22 @@ function sGroup(){
   const f=st.film&&FILMS[st.film]?FILMS[st.film]:null;
   const filmNom=f?f.t:'Groupe général';
   const filmIcon=f?f.e:'🎬';
-  const tabs=[['vote','Vote'],['membres','Membres'],['regles','Règles'],['chat','Chat 💬']];
+  const tabs=[['vote','Vote'],['membres','Membres'],['chat','Chat 💬']];
   let tc='';
   if(st.tab==='vote'){
     tc=`<div style="flex:1;overflow-y:auto;padding:15px 18px;">
-      <div class="serif" style="font-size:16px;margin-bottom:13px;">Heure de rendez-vous ?</div>
-      ${[{h:'19h30',pct:60,v:3},{h:'19h00',pct:25,v:1},{h:'20h00',pct:15,v:0}].map(({h,pct,v})=>`
-        <div onclick="setVote('${h}')" style="background:${S1};border:1px solid ${st.voted===h?GD:BD};border-radius:11px;padding:12px 13px;margin-bottom:6px;cursor:pointer;position:relative;overflow:hidden;display:flex;align-items:center;gap:9px;">
-          <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:${st.voted===h?'rgba(240,192,96,0.09)':'rgba(255,63,91,0.05)'};border-radius:11px;"></div>
-          <div class="serif" style="font-size:16px;z-index:1;min-width:48px;">${h}</div>
-          <span style="flex:1;font-size:10px;color:${MU};z-index:1;">${v} vote${v!==1?'s':''}</span>
-          <span style="font-weight:600;font-size:12px;color:${st.voted===h?GD:TX};z-index:1;">${pct}%</span>
-          ${st.voted===h?'<span style="z-index:1;">👑</span>':''}
-        </div>
-      `).join('')}
-      <div style="background:rgba(240,192,96,0.06);border:1px solid rgba(240,192,96,0.18);border-radius:11px;padding:11px;font-size:11px;margin-top:7px;display:flex;gap:7px;align-items:center;">✅ Votre vote : <strong>${st.voted}</strong></div>
+      <div class="serif" style="font-size:16px;margin-bottom:4px;">Heure de rendez-vous ?</div>
+      <div style="font-size:10px;color:${MU};margin-bottom:13px;">Votez — les résultats se mettent à jour en direct</div>
+      <div id="votes-list"><div style="text-align:center;padding:30px 0;color:${MU};font-size:11px;">Chargement… ⏳</div></div>
+      <div id="vote-result" style="background:rgba(240,192,96,0.06);border:1px solid rgba(240,192,96,0.18);border-radius:11px;padding:11px;font-size:11px;margin-top:7px;"></div>
     </div>`;
   } else if(st.tab==='membres'){
     tc=`<div style="flex:1;overflow-y:auto;padding:14px 18px;">
-      <div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.18);border-radius:13px;padding:13px;margin-bottom:13px;">
-        <div style="font-size:11px;font-weight:600;margin-bottom:9px;">🎬 Compatibilité Letterboxd</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;">
-          ${[['82%','Compat.',LB],['3','Communs',GD],['4/5','LBD','#ff8c42']].map(([v,l,c])=>`<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px;text-align:center;"><div class="serif" style="font-size:17px;color:${c};">${v}</div><div style="font-size:8px;color:${MU};">${l}</div></div>`).join('')}
-        </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;">
+        <div class="serif" style="font-size:16px;">Membres <span id="membres-count" style="color:${AC};">${membresData.length}</span></div>
+        <div style="width:7px;height:7px;background:${LB};border-radius:50%;" class="pulse"></div>
       </div>
-      ${[{i:'L',bg:'#e74c3c',n:'Lucas M.',u:'@lucasm',f:847},{i:'T',bg:'#3498db',n:'Théa R.',u:'@thear',f:312},{i:'S',bg:'#2ecc71',n:'Sophie K.',u:'@sophiek',f:1204},{i:'A',bg:'#9b59b6',n:'Antoine V.',u:'@antov',f:520},{i:'M',bg:GD,n:'Marie (moi)',u:'@mariedup',f:156}].map(m=>`
-        <div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid ${BD};">
-          <div style="width:38px;height:38px;border-radius:50%;background:${m.bg};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;position:relative;">${m.i}<div style="position:absolute;bottom:0;right:0;background:${LB};color:#000;font-size:5px;font-weight:900;width:12px;height:12px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid ${BG};">L</div></div>
-          <div style="flex:1;"><div style="font-size:12px;font-weight:500;margin-bottom:1px;">${m.n}</div><div style="font-size:9px;color:${MU};">${m.u} · <span style="color:${LB};font-weight:600;">${m.f}</span> films</div></div>
-        </div>
-      `).join('')}
-    </div>`;
-  } else if(st.tab==='regles'){
-    tc=`<div style="flex:1;overflow-y:auto;padding:14px 18px;">
-      ${[['🤫','Pas de spoilers'],['🍺','Verre après séance'],['⏰','RV 30 min avant'],['🎟️','Réservez à l\'avance'],['📵','Téléphones silencieux']].map(([ic,r])=>`<div style="display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid ${BD};font-size:12px;"><span style="font-size:17px;">${ic}</span>${r}</div>`).join('')}
+      <div id="membres-list"><div style="text-align:center;padding:30px 0;color:${MU};font-size:11px;">Chargement… ⏳</div></div>
     </div>`;
   } else {
     tc=`
@@ -513,8 +542,7 @@ function sGroup(){
     <div style="display:flex;gap:8px;padding:9px 18px 14px;background:${BG};border-top:1px solid ${BD};flex-shrink:0;">
       <input id="ci" type="text" placeholder="Écrire à tous…"
         style="flex:1;background:${S2};border:1px solid ${BD};border-radius:18px;padding:9px 14px;font-size:11px;color:${TX};outline:none;"
-        onkeydown="if(event.key==='Enter')sendMsg()"
-        oninput="onTyping()">
+        onkeydown="if(event.key==='Enter')sendMsg()" oninput="onTyping()">
       <button onclick="sendMsg()" style="width:36px;height:36px;background:${AC};border:none;border-radius:50%;font-size:14px;flex-shrink:0;">↑</button>
     </div>`;
   }
@@ -525,11 +553,8 @@ function sGroup(){
       <div style="flex:1;background:${S2};border-radius:16px;padding:5px 11px;display:flex;align-items:center;gap:7px;font-size:12px;">
         <span style="font-size:16px;">${filmIcon}</span>
         <span style="font-weight:500;">${filmNom}</span>
-        <span style="margin-left:auto;font-size:9px;color:${MU};">Groupe</span>
+        <span style="margin-left:auto;font-size:9px;background:${AC}18;border:1px solid ${AC}35;color:${AC};border-radius:8px;padding:2px 7px;" id="membres-badge">${membresData.length} membre${membresData.length!==1?'s':''}</span>
       </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
-      ${[['🎬 Séance','20h15','Salle 12 · IMAX'],['📍 RDV','19h45','Hall principal'],['📅 Date','Sam 8 Mars','Ce soir !'],['👥 Membres','5/8','3 places libres']].map(([l,v,s])=>`<div style="background:${S2};border-radius:11px;padding:11px;border:1px solid ${BD};"><div style="font-size:8px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;">${l}</div><div class="serif" style="font-size:17px;">${v}</div><div style="font-size:9px;color:${MU};margin-top:2px;">${s}</div></div>`).join('')}
     </div>
   </div>
   <div style="display:flex;border-bottom:1px solid ${BD};flex-shrink:0;">
