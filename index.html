@@ -522,20 +522,14 @@ function isWatchlist(id){ return lbdLoaded && filmInLbd(id, lbdWatchlist); }
 
 async function loadLbd(pseudo){
   if(!pseudo) return;
-  // Proxy CORS via allorigins
-  const rssUrl = `https://letterboxd.com/${pseudo}/rss/`;
-  const proxy  = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
   try {
-    const r = await fetch(proxy);
-    const d = await r.json();
-    const xml = new DOMParser().parseFromString(d.contents, 'text/xml');
-    const items = [...xml.querySelectorAll('item')];
+    const r = await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);
+    if(!r.ok) { console.warn('LBD:', await r.json()); return; }
+    const { items } = await r.json();
     lbdSeen.clear(); lbdWatchlist.clear();
     for(const item of items){
-      const title = item.querySelector('title')?.textContent || '';
-      const cats  = [...item.querySelectorAll('category')].map(c=>c.textContent.toLowerCase());
-      const nt    = normTitle(title.replace(/,\s*\d{4}$/, '').replace(/^.*?: /, ''));
-      if(cats.includes('watchlist')) lbdWatchlist.add(nt);
+      const nt = normTitle(item.title);
+      if(item.cats.includes('watchlist')) lbdWatchlist.add(nt);
       else lbdSeen.add(nt);
     }
     lbdLoaded = true;
