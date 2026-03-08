@@ -679,7 +679,7 @@ async function openGroup(filmId,groupeId){
       st.groupe=existing[0].id;
     }else{
       // Créer le groupe puis le récupérer
-      await supa.from('groupes').insert({film_id:filmId,nom:FILMS[filmId]?.t||filmId});
+      await supa.from('groupes').insert({film_id:filmId,nom:FILMS[filmId]?.t||filmId,createur:st.pseudo});
       const{data:fresh}=await supa.from('groupes').select('id').eq('film_id',filmId).limit(1);
       if(fresh&&fresh.length>0)st.groupe=fresh[0].id;
     }
