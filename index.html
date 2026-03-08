@@ -781,29 +781,38 @@ function sPseudo(){
         onkeydown="if(event.key==='Enter')confirmPseudo()"
         oninput="st.pseudoInput=this.value">
     </div>
-    ${st.showAvatarPicker
-      ? `<div style="width:100%;background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;margin-bottom:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:11px;color:${MU};font-weight:600;letter-spacing:1px;text-transform:uppercase;">Choisir votre animal</span>
-            <span onclick="st.showAvatarPicker=false;render();" style="font-size:10px;color:${AC};cursor:pointer;">✕ Fermer</span>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:160px;overflow-y:auto;">
-            ${ANIMAL_EMOJIS.map(e=>`<div onclick="st.avatar='${e}';st.showAvatarPicker=false;save();render();" style="width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;background:${st.avatar===e?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.03)'};border:1px solid ${st.avatar===e?AC:BD};">${e}</div>`).join('')}
-          </div>
-        </div>`
-      : `<div onclick="st.showAvatarPicker=true;render();" style="width:100%;display:flex;align-items:center;gap:10px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px 16px;margin-bottom:12px;cursor:pointer;">
-          <div style="width:44px;height:44px;border-radius:50%;background:${pseudoColor(st.pseudoInput||'A')};display:flex;align-items:center;justify-content:center;font-size:26px;">${st.avatar}</div>
-          <div style="flex:1;text-align:left;">
-            <div style="font-size:12px;font-weight:500;">Votre avatar</div>
-            <div style="font-size:10px;color:${MU};">Appuyez pour choisir un animal</div>
-          </div>
-          <span style="color:${MU};">›</span>
-        </div>`
-    }
+
+    <div id="avatar-picker-wrap" style="width:100%;margin-bottom:12px;">
+      ${st.showAvatarPicker
+        ? `<div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;color:${MU};font-weight:600;letter-spacing:1px;text-transform:uppercase;">Choisir votre animal</span>
+              <span onclick="st.showAvatarPicker=false;document.getElementById('avatar-picker-wrap').innerHTML=renderAvatarBtn();" style="font-size:11px;color:${AC};cursor:pointer;padding:2px 8px;border:1px solid rgba(255,63,91,0.3);border-radius:8px;">✕</span>
+            </div>
+            <div id="avatar-picker-grid" style="display:flex;flex-wrap:wrap;gap:5px;max-height:180px;overflow-y:auto;">
+              ${ANIMAL_EMOJIS.map(e=>`<div data-emoji="${e}" onclick="pickAvatar(this)" style="width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;background:${st.avatar===e?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.03)'};border:1px solid ${st.avatar===e?AC:BD};">${e}</div>`).join('')}
+            </div>
+          </div>`
+        : renderAvatarBtn()
+      }
+    </div>
+
     <button onclick="confirmPseudo()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;">Entrer dans CinéMatch →</button>
     <div style="margin-top:20px;font-size:10px;color:${MU};">Votre pseudo est visible dans le chat par tous</div>
   </div>`;
 }
+
+function renderAvatarBtn(){
+  return `<div id="avatar-btn-wrap" onclick="st.showAvatarPicker=true;document.getElementById('avatar-picker-wrap').innerHTML='<div style=\'padding:20px;text-align:center;color:'+MU+';font-size:11px;\'>Chargement…</div>';render();" style="display:flex;align-items:center;gap:10px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px 16px;cursor:pointer;">
+    <div id="avatar-preview" style="width:44px;height:44px;border-radius:50%;background:${pseudoColor(st.pseudoInput||'A')};display:flex;align-items:center;justify-content:center;font-size:26px;">${st.avatar}</div>
+    <div style="flex:1;text-align:left;">
+      <div style="font-size:12px;font-weight:500;">Votre avatar</div>
+      <div style="font-size:10px;color:${MU};">Appuyez pour choisir un animal</div>
+    </div>
+    <span style="color:${MU};">›</span>
+  </div>`;
+}
+
 
 // HELPERS
 function getAvatar(pseudo){
@@ -822,16 +831,18 @@ function avatarEl(pseudo, size=38, radius='50%'){
 function pickAvatar(el){
   const e = el.dataset.emoji;
   if(!e) return;
-  // Sauvegarder le pseudo saisi avant le render
-  const inp = document.getElementById('pseudoInput');
-  if(inp) st.pseudoInput = inp.value;
   st.avatar = e;
   st.showAvatarPicker = false;
   save();
+
+  // Si on est sur l'écran pseudo : mise à jour sans render() pour ne pas effacer le champ
+  if(st.screen === 'pseudo'){
+    // Remplacer juste le bloc avatar sans toucher à l'input
+    const wrap = document.getElementById('avatar-picker-wrap');
+    if(wrap) wrap.innerHTML = renderAvatarBtn();
+    return;
+  }
   render();
-  // Restaurer le curseur en fin d'input
-  const inp2 = document.getElementById('pseudoInput');
-  if(inp2){ inp2.value = st.pseudoInput; inp2.focus(); }
 }
 function avatarPicker(title='Choisir votre avatar'){
   return `<div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;margin-bottom:14px;">
