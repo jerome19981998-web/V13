@@ -335,10 +335,13 @@ function renderMembresDOM(){
   const el=document.getElementById('membres-list');if(!el)return;
   const moi=membresData.find(m=>m.pseudo===st.pseudo);
   el.innerHTML=membresData.map(m=>`
-    <div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid ${BD};">
-      <div style="width:38px;height:38px;border-radius:50%;background:${pseudoColor(m.pseudo)};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(m.pseudo)}</div>
-      <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${m.pseudo}${m.pseudo===st.pseudo?' <span style="color:'+MU+';font-size:10px;">(moi)</span>':''}</div>
-      <div style="font-size:9px;color:${MU};">Rejoint ${new Date(m.joined_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div></div>
+    <div onclick="openMemberProfile('${m.pseudo}')" class="tap" style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid ${BD};cursor:pointer;">
+      <div style="width:42px;height:42px;border-radius:50%;background:${pseudoColor(m.pseudo)};display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(m.pseudo)}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${m.pseudo}${m.pseudo===st.pseudo?' <span style="color:'+MU+';font-size:10px;">(moi)</span>':''}</div>
+        <div style="font-size:9px;color:${MU};">Rejoint ${new Date(m.joined_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      ${m.pseudo!==st.pseudo?`<span style="color:${MU};font-size:14px;">›</span>`:''}
     </div>`).join('')||`<div style="text-align:center;padding:30px 0;color:${MU};font-size:12px;">Aucun membre encore</div>`;
 }
 async function rejoindreGroupe(){
@@ -499,6 +502,7 @@ let st={
   date: todayStr(),
   lbdPseudo: _saved.lbdPseudo || '',
   lbdInput: '',
+  viewedMember: null,
 };
 function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo}))}catch(e){}}
 
@@ -952,6 +956,138 @@ function sGroup(){
   ${st.tab!=='chat'?nav('group'):''}`;
 }
 
+// ── PROFILS MEMBRES ──
+const membresLbd = {}; // pseudo → {seen: Set, watchlist: Set, loaded: bool}
+
+async function loadMemberLbd(pseudo){
+  if(membresLbd[pseudo]?.loaded) return;
+  membresLbd[pseudo] = {seen: new Set(), watchlist: new Set(), loaded: false};
+  try {
+    const r = await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);
+    if(!r.ok) return;
+    const { items } = await r.json();
+    for(const item of items){
+      const nt = normTitle(item.title);
+      if(item.cats.includes('watchlist')) membresLbd[pseudo].watchlist.add(nt);
+      else membresLbd[pseudo].seen.add(nt);
+    }
+    membresLbd[pseudo].loaded = true;
+    if(st.screen==='member-profile' && st.viewedMember===pseudo) render();
+  } catch(e) {}
+}
+
+function openMemberProfile(pseudo){
+  if(pseudo===st.pseudo){ go('profile'); return; }
+  st.viewedMember = pseudo;
+  st.screen = 'member-profile';
+  render();
+  loadMemberLbd(pseudo);
+}
+
+function sMemberProfile(){
+  const pseudo = st.viewedMember;
+  if(!pseudo) return '';
+  const lbd = membresLbd[pseudo];
+
+  // Films vus en commun (moi ET le membre)
+  const filmsEnCommun = Object.keys(FILMS).filter(id => {
+    const monVu   = isVu(id);
+    const sonVu   = lbd?.loaded && filmInLbd(id, lbd.seen);
+    return monVu && sonVu;
+  });
+
+  // Films dans sa watchlist
+  const saWatchlist = lbd?.loaded
+    ? Object.keys(FILMS).filter(id => filmInLbd(id, lbd.watchlist))
+    : [];
+
+  // Films qu'il a vus (tous)
+  const sesFilmsVus = lbd?.loaded
+    ? Object.keys(FILMS).filter(id => filmInLbd(id, lbd.seen))
+    : [];
+
+  const filmCard = (id) => {
+    const f = FILMS[id];
+    return `<div onclick="openFilm('${id}','group')" class="tap" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid ${BD};cursor:pointer;">
+      <div style="width:34px;height:50px;border-radius:6px;overflow:hidden;background:${f.bg};flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">
+        ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;">`:`${f.e}`}
+      </div>
+      <div style="flex:1;">
+        <div class="serif" style="font-size:13px;">${f.t}</div>
+        <div style="font-size:9px;color:${MU};">${f.g} · ${f.d}</div>
+      </div>
+      <span style="color:${MU};font-size:12px;">›</span>
+    </div>`;
+  };
+
+  return `
+  <div style="background:linear-gradient(to bottom,${S1},${BG});padding:50px 18px 20px;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:18px;">
+      <button onclick="st.screen='group';render();" style="width:34px;height:34px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;">←</button>
+      <span style="font-size:11px;color:${MU};">Profil membre</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="width:64px;height:64px;border-radius:18px;background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(pseudo)}</div>
+      <div>
+        <div class="serif" style="font-size:22px;margin-bottom:2px;">${pseudo}</div>
+        <div style="font-size:10px;color:${MU};">Membre du groupe · Cinéphile 🎬</div>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:0 18px 24px;">
+
+    ${!lbdLoaded && !lbd ? `
+    <div style="background:${S1};border:1px solid ${BD};border-radius:13px;padding:13px 15px;margin-bottom:14px;font-size:11px;color:${MU};text-align:center;">
+      Connectez votre Letterboxd pour voir les films en commun
+    </div>` : ''}
+
+    ${lbd && !lbd.loaded ? `
+    <div style="background:${S1};border:1px solid ${BD};border-radius:13px;padding:14px;margin-bottom:14px;text-align:center;color:${MU};font-size:11px;">
+      Chargement du profil Letterboxd… ⏳
+    </div>` : ''}
+
+    ${lbd?.loaded ? `
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div style="flex:1;background:rgba(0,192,48,0.07);border:1px solid rgba(0,192,48,0.2);border-radius:11px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:${LB};">${sesFilmsVus.length}</div>
+        <div style="font-size:9px;color:${MU};">films vus<br>au programme</div>
+      </div>
+      <div style="flex:1;background:rgba(240,192,96,0.07);border:1px solid rgba(240,192,96,0.2);border-radius:11px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:${GD};">${saWatchlist.length}</div>
+        <div style="font-size:9px;color:${MU};">dans sa<br>watchlist</div>
+      </div>
+      ${lbdLoaded ? `
+      <div style="flex:1;background:rgba(255,63,91,0.07);border:1px solid rgba(255,63,91,0.2);border-radius:11px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:${AC};">${filmsEnCommun.length}</div>
+        <div style="font-size:9px;color:${MU};">films<br>en commun</div>
+      </div>` : ''}
+    </div>
+
+    ${lbdLoaded && filmsEnCommun.length > 0 ? `
+    <div style="margin-bottom:16px;">
+      <div class="serif" style="font-size:16px;margin-bottom:8px;">🎬 Films vus en commun</div>
+      ${filmsEnCommun.map(filmCard).join('')}
+    </div>` : lbdLoaded ? `
+    <div style="background:rgba(255,63,91,0.05);border:1px solid rgba(255,63,91,0.15);border-radius:11px;padding:12px;text-align:center;font-size:11px;color:${MU};margin-bottom:14px;">
+      Aucun film en commun au programme cette semaine
+    </div>` : ''}
+
+    ${saWatchlist.length > 0 ? `
+    <div style="margin-bottom:16px;">
+      <div class="serif" style="font-size:16px;margin-bottom:8px;">🔖 Sa watchlist</div>
+      ${saWatchlist.map(filmCard).join('')}
+    </div>` : ''}
+
+    ${sesFilmsVus.length > 0 && saWatchlist.length === 0 ? `
+    <div>
+      <div class="serif" style="font-size:16px;margin-bottom:8px;">✓ Films déjà vus</div>
+      ${sesFilmsVus.map(filmCard).join('')}
+    </div>` : ''}
+    ` : ''}
+
+  </div>`;
+}
+
 function connectLbd(){
   const p = st.lbdInput.trim();
   if(!p) return;
@@ -1065,6 +1201,7 @@ function render(){
     else if(st.screen==='film')     inner.innerHTML=sFilm();
     else if(st.screen==='group')    inner.innerHTML=sGroup();
     else if(st.screen==='profile')  inner.innerHTML=sProfile();
+    else if(st.screen==='member-profile') inner.innerHTML=sMemberProfile();
   }catch(e){inner.innerHTML=`<div style="padding:80px 20px;color:#ff3f5b;font-size:12px;">Erreur: ${e.message}</div>`;}
   phone.appendChild(inner);
   app.innerHTML='';
