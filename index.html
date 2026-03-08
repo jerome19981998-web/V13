@@ -3,12 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CinéMatch - Chat partagé</title>
+  <title>CinéMatch - Chat local persistant</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Supabase UMD (version classique, fiable sur mobile) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 
   <style>
@@ -26,8 +23,9 @@
     }
     .screen { animation:fadeIn 0.35s ease-out forwards; }
     @keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-    #errorMsg { color:#ff3366; padding:20px; text-align:center; font-weight:bold; background:#1a1a24; margin:20px; border-radius:12px; }
+    .card-tap:active { transform:scale(0.97); transition:transform 0.12s; }
     #chatArea::-webkit-scrollbar { display: none; }
+    #errorMsg { color:#ff3366; padding:20px; text-align:center; font-weight:bold; background:#1a1a24; margin:20px; border-radius:12px; }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -36,42 +34,17 @@
 <div id="errorMsg"></div>
 
 <script>
-// CONFIG SUPABASE (tes vraies valeurs)
-const SUPABASE_URL = 'https://alwfbminhdwinxcozjlj.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsd2ZibWluaGR3aW54Y296amxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODA1NTYsImV4cCI6MjA4ODU1NjU1Nn0.OTr8lyDpRQsmXUCPKsm1wvNPYfCA32UBQShRibI_bDg';
-
-// Initialise Supabase
-let supabase;
-try {
-  supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.log("Supabase chargé");
-} catch (e) {
-  document.getElementById('errorMsg').innerHTML = 'Erreur Supabase : ' + e.message;
-}
-
-// STATE
-let state = {
-  messages: [],
-  username: localStorage.getItem('chatUsername') || prompt("Ton pseudo ?") || "Anonyme"
+// STATE avec persistance localStorage
+let state = JSON.parse(localStorage.getItem('cinematchChat')) || {
+  messages: [
+    { user: "Test", text: "Salut la team !", time: "16:42" },
+    { user: "Toi", text: "Ça marche enfin ?", time: "16:45" }
+  ],
+  username: localStorage.getItem('username') || "Anonyme"
 };
-localStorage.setItem('chatUsername', state.username);
 
-// Charger messages
-async function loadMessages() {
-  if (!supabase) return;
-  const { data } = await supabase.from('messages').select('*').order('created_at');
-  state.messages = data || [];
-  render();
-  scrollToBottom();
-}
-
-// Temps réel
-if (supabase) {
-  supabase.channel('messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-    state.messages.push(payload.new);
-    render();
-    scrollToBottom();
-  }).subscribe();
+function saveState() {
+  localStorage.setItem('cinematchChat', JSON.stringify(state));
 }
 
 // RENDER
@@ -87,27 +60,25 @@ function render() {
   phone.innerHTML += `
     <div class="flex flex-col h-full">
       <div class="pt-16 px-6 pb-4 bg-gradient-to-b from-[#111119] to-transparent">
-        <div class="text-xl font-serif text-center">Chat partagé</div>
-        <div class="text-sm opacity-70 text-center mt-1">${state.username}</div>
+        <div class="text-xl font-serif text-center">Chat local persistant</div>
+        <div class="text-sm opacity-70 text-center mt-1">Connecté comme : ${state.username}</div>
       </div>
 
       <div id="chatArea" class="flex-1 overflow-y-auto p-6 space-y-4">
         ${state.messages.map(m => `
-          <div class="flex ${m.user_name === state.username ? 'justify-end' : 'justify-start'} mb-4">
-            <div class="max-w-[78%] px-4 py-3 rounded-3xl ${m.user_name === state.username ? 'bg-pink-600' : 'bg-[#1a1a24]'}">
-              <div class="text-xs opacity-70 mb-1">${m.user_name}</div>
-              ${m.message}
-              <div class="text-xs opacity-70 mt-1 text-right">
-                ${new Date(m.created_at).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}
-              </div>
+          <div class="flex ${m.user === state.username ? 'justify-end' : 'justify-start'} mb-4">
+            <div class="max-w-[78%] px-4 py-3 rounded-3xl ${m.user === state.username ? 'bg-pink-600 text-white' : 'bg-[#1a1a24]'}">
+              <div class="text-xs opacity-70 mb-1">${m.user}</div>
+              ${m.text}
+              <div class="text-xs opacity-70 mt-1 text-right">${m.time}</div>
             </div>
           </div>
         `).join('') || '<div class="text-center opacity-70 py-10">Aucun message...</div>'}
       </div>
 
-      <div class="p-4 border-t border-white/10 bg-black/60 flex gap-3">
-        <input id="chatInput" type="text" placeholder="Message..." class="flex-1 bg-[#1a1a24] rounded-full px-5 py-3 outline-none">
-        <button onclick="sendMessage()" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-xl">↑</button>
+      <div class="p-4 border-t border-white/10 bg-black/60 backdrop-blur-xl flex gap-3">
+        <input id="chatInput" type="text" placeholder="Écris un message…" class="flex-1 bg-[#1a1a24] rounded-full px-5 py-3 outline-none">
+        <button onclick="sendMessage()" class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-xl active:scale-95">↑</button>
       </div>
     </div>
   `;
@@ -123,25 +94,26 @@ function scrollToBottom() {
   }, 100);
 }
 
-// ENVOYER
-async function sendMessage() {
+// ENVOYER MESSAGE
+function sendMessage() {
   const input = document.getElementById('chatInput');
   if (!input || !input.value.trim()) return;
 
   const message = input.value.trim();
 
-  if (!supabase) return alert("Supabase non chargé");
-
-  await supabase.from('messages').insert({
-    message,
-    user_name: state.username
+  state.messages.push({
+    user: state.username,
+    text: message,
+    time: new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})
   });
 
+  saveState();
   input.value = '';
+  render();
 }
 
 // DÉMARRAGE
-loadMessages();
+render();
 </script>
 </body>
 </html>
