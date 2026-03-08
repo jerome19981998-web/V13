@@ -633,6 +633,22 @@ function confirmChangePseudo(){
   render();
 }
 
+async function quitterGroupe(){
+  if(!st.groupe||!st.pseudo)return;
+  if(!confirm('Quitter ce groupe ?\nVos votes et messages resteront visibles.'))return;
+  const {error}=await SB.from('groupe_membres')
+    .delete()
+    .eq('groupe_id',st.groupe)
+    .eq('pseudo',st.pseudo);
+  if(error){alert('Erreur : '+error.message);return;}
+  if(realtimeChannel){SB.removeChannel(realtimeChannel);realtimeChannel=null;}
+  if(votesChannel){SB.removeChannel(votesChannel);votesChannel=null;}
+  st.groupe=null;st.film=null;st.tab='vote';
+  membresData=[];votesData={};
+  await loadMesGroupes();
+  render();
+}
+
 function logoutApp(){
   if(!confirm('Se déconnecter de CinéMatch ?\nVous devrez entrer un pseudo pour revenir.'))return;
   try{localStorage.removeItem('cm2');}catch(e){}
@@ -1000,6 +1016,7 @@ function sGroup(){
       </div>
       <span id="membres-badge" style="font-size:9px;background:${AC}18;border:1px solid ${AC}35;color:${AC};border-radius:8px;padding:2px 7px;flex-shrink:0;">${membresData.length} membre${membresData.length!==1?'s':''}</span>
       <button onclick="shareGroupe()" style="width:30px;height:30px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">🔗</button>
+      <button onclick="quitterGroupe()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,63,91,0.08);border:1px solid rgba(255,63,91,0.3);color:${AC};font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;" title="Quitter le groupe">🚪</button>
     </div>
     <div style="display:flex;gap:6px;">
       ${tabs.map(([id,lb])=>`<div onclick="st.tab='${id}';render();" style="flex:1;text-align:center;padding:6px;border-radius:10px;font-size:11px;cursor:pointer;background:${st.tab===id?AC:'rgba(255,255,255,0.03)'};border:1px solid ${st.tab===id?AC:BD};color:${st.tab===id?'#fff':MU};">${lb}</div>`).join('')}
