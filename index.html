@@ -30,202 +30,50 @@
 const BG='#07070f',S1='#111120',S2='#1a1a2e',BD='rgba(255,255,255,0.07)',TX='#e8e0d4',MU='#555570',AC='#ff3f5b',GD='#f0c060',LB='#00c030';
 const CC={ugc:'#ff3f5b',pathe:'#f0c060',gaumont:'#4a9eff'};
 
-// ═══════════ DONNÉES RÉELLES — semaine du 8 mars 2026 ═══════════
-const FILMS={
-  marty:    {e:'🏓',c:'#8a1020',bg:'linear-gradient(135deg,#0d0810,#1a0a30,#8a1020)',g:'DRAME',t:'Marty Supreme',d:'2h18',dir:'Josh Safdie',s:"New York, 1952. Marty Mauser rêve de devenir champion du monde de ping-pong. Avec Timothée Chalamet, Gwyneth Paltrow, Tyler The Creator.",lbd:true},
-  scream7:  {e:'🔪',c:'#8b0000',bg:'linear-gradient(135deg,#1a0000,#8b0000)',g:'HORREUR',t:'Scream 7',d:'2h00',dir:'Kevin Williamson',s:"Ghostface est de retour. Avec Neve Campbell et Courteney Cox. Le chapitre final.",lbd:false},
-  bride:    {e:'⚡',c:'#3a1060',bg:'linear-gradient(135deg,#0d0d1a,#3a1060)',g:'THRILLER',t:'The Bride!',d:'2h12',dir:'Maggie Gyllenhaal',s:"Frankenstein ressuscite une femme assassinée dans le Chicago des années 30. Avec Sydney Sweeney et Christian Bale.",lbd:true},
-  hurlevent:{e:'🌧️',c:'#2a2030',bg:'linear-gradient(135deg,#1a1520,#2a2030)',g:'ROMANCE',t:'"Hurlevent"',d:'2h15',dir:'Emerald Fennell',s:"Vision moderne et passionnée de la romance légendaire unissant Heathcliff et Catherine. Avec Margot Robbie et Jacob Elordi.",lbd:true},
-  zootopie: {e:'🦊',c:'#1e6899',bg:'linear-gradient(135deg,#0a1a2a,#1e6899)',g:'ANIMATION',t:'Zootopie 2',d:'1h45',dir:'Byron Howard',s:"Judy Hopps et Nick Wilde reprennent du service dans une nouvelle aventure plus sombre. Disney.",lbd:false},
-  maison:   {e:'🏠',c:'#6a1030',bg:'linear-gradient(135deg,#1a0a10,#6a1030)',g:'DRAME',t:'La Maison des femmes',d:'1h44',dir:'Hafsia Herzi',s:"À la Maison des femmes, une équipe accueille et soigne les femmes victimes de violences. Avec Zita Hanrot.",lbd:false},
-  alter:    {e:'🪞',c:'#1a2a1a',bg:'linear-gradient(135deg,#0a100a,#1a2a1a)',g:'COMÉDIE',t:'Alter Ego',d:'1h50',dir:'Marc Fitoussi',s:"Alex a un problème : son nouveau voisin est son sosie parfait. Avec des cheveux. Avec Laurent Lafitte et Blanche Gardin.",lbd:false},
-  coutures: {e:'🧵',c:'#4a1060',bg:'linear-gradient(135deg,#1a0a1a,#4a1060)',g:'THRILLER',t:'Coutures',d:'1h55',dir:'Alice Winocour',s:"Paris, Fashion Week. Trois femmes aux horizons opposés tissent une solidarité insoupçonnée. Avec Sophie Marceau.",lbd:false},
-  lol2:     {e:'😂',c:'#0a3060',bg:'linear-gradient(135deg,#0a1020,#0a3060)',g:'COMÉDIE',t:'LOL 2.0',d:'1h45',dir:'Lisa Azuelos',s:"Personne n'aurait parié sur Jérémy ou Bouna. Sans contacts, ils vont devenir des agents NBA. Inspiré d'une histoire vraie.",lbd:false},
-  jumpers:  {e:'🦘',c:'#1e7a40',bg:'linear-gradient(135deg,#0a1a0a,#1e7a40)',g:'ANIMATION',t:'Jumpers',d:'1h30',dir:'David Chong',s:"Mabel transfère son esprit dans un robot castor pour étudier la faune. Aventure animée écolo pour toute la famille.",lbd:false},
-  marsupilami:{e:'🐆',c:'#c8a000',bg:'linear-gradient(135deg,#1a1000,#c8a000)',g:'COMÉDIE',t:'Marsupilami',d:'1h50',dir:'Philippe Lacheau',s:"Un adorable bébé Marsupilami sème le chaos sur une croisière. Avec Philippe Lacheau et Jamel Debbouze.",lbd:false},
-  maigret:  {e:'🕵️',c:'#2a2a3a',bg:'linear-gradient(135deg,#1a1a2a,#2a2a3a)',g:'POLAR',t:'Maigret et le mort amoureux',d:'1h50',dir:'Patrice Leconte',s:"Le commissaire Maigret enquête sur le meurtre d'un diplomate qui entretenait une correspondance secrète depuis 50 ans.",lbd:false},
+// ═══════════ DONNÉES — chargées depuis /api/programme ═══════════
+let FILMS = {};
+let CINEMAS = [];
+let dataLoaded = false;
+
+async function loadProgramme(date) {
+  const d = date || (typeof st !== 'undefined' ? st.date : null) || new Date().toISOString().split('T')[0];
+  try {
+    const res = await fetch('/api/programme?date=' + d);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    FILMS   = data.films   || {};
+    CINEMAS = data.cinemas || [];
+    dataLoaded = true;
+    if (st.screen === 'home' || st.screen === 'cinemas' || st.screen === 'cinema-detail' || st.screen === 'film') render();
+    if (st.screen === 'film' && st.film) loadGroupesFilm(st.film);
+    console.log(`✅ Programme ${d}: ${Object.keys(FILMS).length} films, ${CINEMAS.length} cinémas`);
+  } catch (e) {
+    console.warn('⚠️ API indisponible, fallback données locales', e.message);
+    FILMS = FILMS_FALLBACK;
+    CINEMAS = CINEMAS_FALLBACK;
+    dataLoaded = true;
+    render();
+  }
+}
+
+// ── Fallback données statiques (utilisées si l'API échoue) ──
+const FILMS_FALLBACK={
+  marty:    {e:'🏓',c:'#8a1020',bg:'linear-gradient(135deg,#0d0810,#1a0a30,#8a1020)',g:'DRAME',t:'Marty Supreme',d:'2h18',dir:'Josh Safdie',s:"New York, 1952. Marty Mauser rêve de devenir champion du monde de ping-pong. Avec Timothée Chalamet.",lbd:true},
+  scream7:  {e:'🔪',c:'#8b0000',bg:'linear-gradient(135deg,#1a0000,#8b0000)',g:'HORREUR',t:'Scream 7',d:'2h00',dir:'Kevin Williamson',s:"Ghostface est de retour. Avec Neve Campbell et Courteney Cox.",lbd:false},
+  bride:    {e:'⚡',c:'#3a1060',bg:'linear-gradient(135deg,#0d0d1a,#3a1060)',g:'THRILLER',t:'The Bride!',d:'2h12',dir:'Maggie Gyllenhaal',s:"Frankenstein ressuscite une femme assassinée dans le Chicago des années 30. Avec Sydney Sweeney.",lbd:true},
+  hurlevent:{e:'🌧️',c:'#2a2030',bg:'linear-gradient(135deg,#1a1520,#2a2030)',g:'ROMANCE',t:'"Hurlevent"',d:'2h15',dir:'Emerald Fennell',s:"Vision moderne de la romance légendaire unissant Heathcliff et Catherine. Avec Margot Robbie.",lbd:true},
+  zootopie: {e:'🦊',c:'#1e6899',bg:'linear-gradient(135deg,#0a1a2a,#1e6899)',g:'ANIMATION',t:'Zootopie 2',d:'1h45',dir:'Byron Howard',s:"Judy Hopps et Nick Wilde reprennent du service. Disney.",lbd:false},
+  maison:   {e:'🏠',c:'#6a1030',bg:'linear-gradient(135deg,#1a0a10,#6a1030)',g:'DRAME',t:'La Maison des femmes',d:'1h44',dir:'Hafsia Herzi',s:"Une équipe accueille et soigne les femmes victimes de violences.",lbd:false},
+  alter:    {e:'🪞',c:'#1a2a1a',bg:'linear-gradient(135deg,#0a100a,#1a2a1a)',g:'COMÉDIE',t:'Alter Ego',d:'1h50',dir:'Marc Fitoussi',s:"Alex a un problème : son nouveau voisin est son sosie parfait.",lbd:false},
+  coutures: {e:'🧵',c:'#4a1060',bg:'linear-gradient(135deg,#1a0a1a,#4a1060)',g:'THRILLER',t:'Coutures',d:'1h55',dir:'Alice Winocour',s:"Paris, Fashion Week. Avec Sophie Marceau.",lbd:false},
+  lol2:     {e:'😂',c:'#0a3060',bg:'linear-gradient(135deg,#0a1020,#0a3060)',g:'COMÉDIE',t:'LOL 2.0',d:'1h45',dir:'Lisa Azuelos',s:"Inspiré d'une histoire vraie. Deux jeunes deviennent agents NBA.",lbd:false},
+  jumpers:  {e:'🦘',c:'#1e7a40',bg:'linear-gradient(135deg,#0a1a0a,#1e7a40)',g:'ANIMATION',t:'Jumpers',d:'1h30',dir:'David Chong',s:"Mabel transfère son esprit dans un robot castor.",lbd:false},
+  marsupilami:{e:'🐆',c:'#c8a000',bg:'linear-gradient(135deg,#1a1000,#c8a000)',g:'COMÉDIE',t:'Marsupilami',d:'1h50',dir:'Philippe Lacheau',s:"Un adorable bébé Marsupilami sème le chaos sur une croisière.",lbd:false},
+  maigret:  {e:'🕵️',c:'#2a2a3a',bg:'linear-gradient(135deg,#1a1a2a,#2a2a3a)',g:'POLAR',t:'Maigret',d:'1h50',dir:'Patrice Leconte',s:"Le commissaire Maigret enquête sur un meurtre.",lbd:false},
 };
+const CINEMAS_FALLBACK=[];
 
-const H={
-  lg:  ['09h45','12h00','14h15','16h30','18h45','21h00'],
-  main:['10h00','12h15','14h30','16h45','19h00','21h15'],
-  mid: ['11h00','13h30','16h00','18h30','21h00'],
-  std: ['10h15','12h30','14h45','17h00','19h15','21h30'],
-  sm:  ['11h30','14h00','16h30','19h00','21h30'],
-  an:  ['10h00','11h45','13h30','15h15','17h00','18h45'],
-  an2: ['10h15','12h00','13h45','15h30','17h15'],
-};
 
-const CINEMAS=[
-  // ── UGC ──
-  {id:'ugc-halles',chain:'ugc',icon:'🎬',name:'UGC Ciné Cité Les Halles',addr:'Forum des Halles · 75001',metro:'M° Les Halles / Châtelet',salles:27,tech:['IMAX','Dolby Atmos'],
-   films:[
-    {id:'marty',     h:['10h00','12h30','14h50','17h10','19h30','22h00'],v:['VF','VOST'],g:[]},
-    {id:'scream7',   h:['11h30','14h00','16h15','18h45','21h00'],       v:['VF','VOST'],g:[]},
-    {id:'bride',     h:['13h00','16h00','19h00','21h45'],               v:['VF','VOST'],g:[]},
-    {id:'zootopie',  h:['10h15','12h00','13h45','15h30','17h15','19h00'],v:['VF'],       g:[]},
-    {id:'hamnet',    h:['11h00','14h00','17h00','20h00'],               v:['VOST'],      g:[]},
-    {id:'jumpers',   h:['10h30','12h15','14h00','15h45'],               v:['VF'],        g:[]},
-    {id:'maison',    h:['12h00','14h30','17h00','19h30','22h00'],       v:['VF'],        g:[]},
-    {id:'alter',     h:['10h15','13h40','15h50','18h00','19h35','22h20'],v:['VF'],       g:[]},
-    {id:'coutures',  h:['12h30','15h00','17h30','19h30','22h15'],       v:['VF'],        g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40','22h20'],       v:['VF','VOST'], g:[]},
-  ]},
-  {id:'ugc-bercy',chain:'ugc',icon:'🎬',name:'UGC Ciné Cité Bercy',addr:'Cour Saint-Émilion · 75012',metro:'M° Cour St-Émilion',salles:18,tech:['4DX','Dolby'],
-   films:[
-    {id:'marty',     h:['10h15','12h30','14h45','17h00','19h15','21h30'],v:['VF','VOST'],g:[]},
-    {id:'scream7',   h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF','VOST'],g:[]},
-    {id:'zootopie',  h:['10h00','11h45','13h30','15h15','17h00','18h45'],v:['VF'],       g:[]},
-    {id:'bride',     h:['12h00','15h00','18h00','21h00'],               v:['VF','VOST'],g:[]},
-    {id:'maison',    h:['10h30','13h00','15h30','17h45','19h30','22h00'],v:['VF'],       g:[]},
-    {id:'alter',     h:['10h15','13h25','15h35','17h45','19h50','22h10'],v:['VF'],       g:[]},
-    {id:'jumpers',   h:['10h00','11h45','13h30','15h15'],               v:['VF'],        g:[]},
-    {id:'marsupilami',h:['10h30','12h30','14h30','16h30','18h30','20h30'],v:['VF'],      g:[]},
-  ]},
-  {id:'ugc-paris19',chain:'ugc',icon:'🎬',name:'UGC Ciné Cité Paris 19',addr:"Rue de l'Orient-Express · 75019",metro:'Tram T3b Ella Fitzgerald',salles:14,tech:[],
-   films:[
-    {id:'marty',     h:['10h00','12h30','14h45','17h00','19h15','21h30'],v:['VF','VO'],  g:[]},
-    {id:'scream7',   h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'maison',    h:['10h15','12h45','15h00','17h30','20h00'],       v:['VF'],        g:[]},
-    {id:'bride',     h:['13h00','16h00','19h00','21h30'],               v:['VF'],        g:[]},
-    {id:'zootopie',  h:['10h00','11h45','13h30','15h15','17h00'],       v:['VF'],        g:[]},
-    {id:'alter',     h:['10h30','13h00','15h15','17h30','19h45','22h00'],v:['VF'],       g:[]},
-  ]},
-  {id:'ugc-maillot',chain:'ugc',icon:'🎬',name:'UGC Maillot',addr:'Palais des Congrès · 75017',metro:'M° Porte Maillot',salles:12,tech:['Dolby Atmos'],
-   films:[
-    {id:'marty',     h:['10h15','12h30','14h45','17h00','19h15','21h30'],v:['VF','VO'],  g:[]},
-    {id:'scream7',   h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40','22h20'],       v:['VF','VOST'], g:[]},
-    {id:'alter',     h:['11h30','14h00','16h30','19h00','21h30'],       v:['VF'],        g:[]},
-  ]},
-  {id:'ugc-opera',chain:'ugc',icon:'🎬',name:'UGC Opéra',addr:'34 Bd des Italiens · 75009',metro:'M° Opéra',salles:4,tech:[],
-   films:[
-    {id:'maison',    h:['10h30','13h10','15h15','17h35','20h05','22h15'],v:['VF'],       g:[]},
-    {id:'marsupilami',h:['10h20','13h40','15h00','17h20','19h20','22h15'],v:['VF'],      g:[]},
-    {id:'hurlevent', h:['11h00','14h00','17h00','20h00'],               v:['VOST'],      g:[]},
-  ]},
-  {id:'ugc-normandie',chain:'ugc',icon:'🎬',name:'UGC Normandie',addr:'116 Av. Champs-Élysées · 75008',metro:'M° Charles de Gaulle-Étoile',salles:1,tech:['Grand Écran · 700 places'],
-   films:[
-    {id:'marty',     h:['11h00','14h00','17h00','20h00'],               v:['VF','VOST'], g:[]},
-    {id:'scream7',   h:['12h00','15h00','18h00','21h00'],               v:['VF'],        g:[]},
-  ]},
-  {id:'ugc-danton',chain:'ugc',icon:'🎬',name:'UGC Danton',addr:'99 Bd Saint-Germain · 75006',metro:"M° Odéon",salles:4,tech:[],
-   films:[
-    {id:'marty',     h:['11h30','14h00','16h30','19h00','21h30'],       v:['VF','VO'],   g:[]},
-    {id:'hurlevent', h:['13h00','16h00','19h00','21h45'],               v:['VOST'],      g:[]},
-    {id:'lol2',      h:['10h30','13h00','15h15','17h30','19h45','22h00'],v:['VF'],       g:[]},
-  ]},
-  {id:'ugc-montparnasse',chain:'ugc',icon:'🎬',name:'UGC Montparnasse',addr:'83 Bd Montparnasse · 75006',metro:'M° Montparnasse-Bienvenüe',salles:7,tech:[],
-   films:[
-    {id:'marty',     h:['09h45','12h00','14h15','16h30','18h45','21h00'],v:['VF','VO'],  g:[]},
-    {id:'scream7',   h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40','22h20'],       v:['VOST'],      g:[]},
-    {id:'lol2',      h:['10h15','12h45','15h00','17h15','19h30','21h45'],v:['VF'],       g:[]},
-  ]},
-  {id:'ugc-rotonde',chain:'ugc',icon:'🎬',name:'UGC Rotonde',addr:'103 Bd Montparnasse · 75014',metro:'M° Vavin',salles:3,tech:[],
-   films:[
-    {id:'maison',    h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'alter',     h:['10h20','13h10','15h10','17h20','19h40','22h15'],v:['VF'],       g:[]},
-  ]},
-  {id:'ugc-lyon',chain:'ugc',icon:'🎬',name:'UGC Lyon-Bastille',addr:'12 Rue de Lyon · 75012',metro:'M° Gare de Lyon',salles:7,tech:[],
-   films:[
-    {id:'marty',     h:['10h00','12h15','14h30','16h45','19h00','21h15'],v:['VF','VO'],  g:[]},
-    {id:'scream7',   h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'bride',     h:['11h30','14h00','16h30','19h00','21h30'],       v:['VF'],        g:[]},
-    {id:'marsupilami',h:['10h30','12h30','14h30','16h30','18h30','20h30'],v:['VF'],      g:[]},
-  ]},
-  {id:'ugc-gobelins',chain:'ugc',icon:'🎬',name:'UGC Gobelins',addr:'66 Av. des Gobelins · 75013',metro:'M° Les Gobelins',salles:3,tech:[],
-   films:[
-    {id:'maison',    h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'zootopie',  h:['10h00','11h45','13h30','15h15','17h00'],       v:['VF'],        g:[]},
-    {id:'alter',     h:['10h15','13h40','15h50','18h00','19h35','22h20'],v:['VF'],       g:[]},
-  ]},
-
-  // ── PATHÉ ──
-  {id:'pathe-palace',chain:'pathe',icon:'🏛️',name:'Pathé Palace',addr:'2 Bd des Capucines · 75009',metro:'M° Opéra',salles:7,tech:['Dolby Vision','Dolby Atmos','Recliner'],
-   films:[
-    {id:'marty',     h:['11h30','14h00','16h30','19h00','21h30'],       v:['VF','VOST'], g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40','22h00'],       v:['VF','VOST'], g:[]},
-    {id:'bride',     h:['13h00','15h30','18h15','21h00'],               v:['VOST'],      g:[]},
-    {id:'coutures',  h:['10h15','13h00','15h15','17h30','19h30','22h15'],v:['VF'],       g:[]},
-    {id:'lol2',      h:['10h30','13h00','15h15','17h30','20h00','22h15'],v:['VF'],       g:[]},
-  ]},
-  {id:'pathe-parnasse',chain:'pathe',icon:'🎭',name:'Pathé Parnasse',addr:'73 Av. du Gal Leclerc · 75014',metro:'M° Mouton-Duvernet',salles:12,tech:['Laser 4K','Dolby Atmos'],
-   films:[
-    {id:'marty',     h:['10h15','13h00','15h15','17h30','19h45','22h00'],v:['VF','VOST'],g:[]},
-    {id:'scream7',   h:['10h00','14h00','16h30','18h00','20h30'],       v:['VF'],        g:[]},
-    {id:'zootopie',  h:['10h15','12h00','13h45','15h30','17h15'],       v:['VF'],        g:[]},
-    {id:'bride',     h:['11h30','14h00','16h30','19h00','21h30'],       v:['VF','VOST'], g:[]},
-    {id:'hurlevent', h:['10h30','13h30','15h10','17h20','19h30','21h45'],v:['VOST'],     g:[]},
-    {id:'coutures',  h:['10h30','13h00','15h15','17h30','19h30','22h15'],v:['VF'],       g:[]},
-    {id:'marsupilami',h:['10h15','12h15','14h15','16h15','18h15','20h15'],v:['VF'],      g:[]},
-    {id:'lol2',      h:['10h15','13h00','15h15','17h30','19h45','22h00'],v:['VF'],       g:[]},
-  ]},
-  {id:'pathe-baugrenelle',chain:'pathe',icon:'🌊',name:'Pathé Baugrenelle',addr:'Rue Linois · 75015',metro:'M° Charles Michels',salles:12,tech:['Dolby Atmos','ScreenX'],
-   films:[
-    {id:'marty',     h:['09h45','12h00','14h15','16h30','18h45','21h00'],v:['VF','VOST'],g:[]},
-    {id:'scream7',   h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'zootopie',  h:['10h00','11h45','13h30','15h15','17h00'],       v:['VF'],        g:[]},
-    {id:'bride',     h:['11h30','14h00','16h30','19h00','21h30'],       v:['VF','VOST'], g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40','22h20'],       v:['VOST'],      g:[]},
-    {id:'jumpers',   h:['10h30','12h15','14h00','15h45'],               v:['VF'],        g:[]},
-    {id:'marsupilami',h:['10h20','12h20','14h20','16h20','18h20'],      v:['VF'],        g:[]},
-  ]},
-  {id:'pathe-wepler',chain:'pathe',icon:'🎬',name:'Pathé Wepler',addr:'140 Bd de Clichy · 75018',metro:'M° Place de Clichy',salles:11,tech:['4DX','ScreenX','Dolby'],
-   films:[
-    {id:'marty',     h:['10h00','12h15','14h30','16h45','19h00','21h15'],v:['VF','VO'],  g:[]},
-    {id:'scream7',   h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'bride',     h:['11h30','14h00','16h30','19h00','21h30'],       v:['VF'],        g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40','22h00'],       v:['VOST'],      g:[]},
-    {id:'marsupilami',h:['10h15','12h15','14h15','16h15','18h15'],      v:['VF'],        g:[]},
-    {id:'lol2',      h:['10h30','13h00','15h15','17h30','19h45','22h00'],v:['VF'],       g:[]},
-  ]},
-  {id:'pathe-bnp',chain:'pathe',icon:'🏦',name:'Pathé BNP Paribas',addr:'2 Rue Louis-le-Grand · 75002',metro:'M° Opéra',salles:6,tech:['Dolby'],
-   films:[
-    {id:'marty',     h:['11h30','14h00','16h30','19h00','21h30'],       v:['VF','VOST'], g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40'],               v:['VOST'],      g:[]},
-    {id:'coutures',  h:['10h15','12h45','15h00','17h15','19h30','21h45'],v:['VF'],       g:[]},
-    {id:'lol2',      h:['10h30','13h00','15h15','17h30','20h00'],       v:['VF'],        g:[]},
-  ]},
-  {id:'pathe-batignolles',chain:'pathe',icon:'🌿',name:'Pathé Les 7 Batignolles',addr:'145 Rue Cardinet · 75017',metro:'M° Brochant',salles:7,tech:['Dolby Atmos','Laser 4K'],
-   films:[
-    {id:'marty',     h:['10h15','12h30','14h45','17h00','19h15','21h30'],v:['VF','VOST'],g:[]},
-    {id:'scream7',   h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40','22h20'],       v:['VOST'],      g:[]},
-    {id:'zootopie',  h:['10h00','11h45','13h30','15h15','17h00'],       v:['VF'],        g:[]},
-    {id:'marsupilami',h:['10h20','12h20','14h20','16h20','18h20'],      v:['VF'],        g:[]},
-  ]},
-
-  // ── GAUMONT ──
-  {id:'gaumont-opera',chain:'gaumont',icon:'🎭',name:'Gaumont Opéra Capucines',addr:'2 Bd des Capucines · 75009',metro:'M° Opéra',salles:7,tech:['Dolby'],
-   films:[
-    {id:'marty',     h:['10h00','12h15','14h30','16h45','19h00','21h15'],v:['VF','VOST'],g:[]},
-    {id:'scream7',   h:['11h00','13h30','16h00','18h30','21h00'],       v:['VF'],        g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40','22h00'],       v:['VOST'],      g:[]},
-    {id:'alter',     h:['10h15','13h40','15h50','18h00','19h35','22h20'],v:['VF'],       g:[]},
-    {id:'maigret',   h:['10h30','13h10','15h15','17h35','20h05','22h15'],v:['VF'],       g:[]},
-  ]},
-  {id:'gaumont-convention',chain:'gaumont',icon:'🎬',name:'Gaumont Convention',addr:'27 Rue A. Chartier · 75015',metro:'M° Convention',salles:9,tech:['4DX','Dolby Atmos'],
-   films:[
-    {id:'alter',     h:['10h15','13h40','15h50','18h00','19h35','22h20'],v:['VF'],       g:[]},
-    {id:'maison',    h:['10h30','13h10','15h15','17h35','20h05','22h15'],v:['VF'],       g:[]},
-    {id:'marty',     h:['10h30','13h10','15h15','17h35','20h05'],       v:['VF','VO'],   g:[]},
-    {id:'coutures',  h:['10h30','13h00','15h15','17h30','19h30','22h15'],v:['VF'],       g:[]},
-    {id:'maigret',   h:['10h30','13h10','15h15','17h35','20h05','22h15'],v:['VF'],       g:[]},
-    {id:'hurlevent', h:['10h30','13h30','17h00','19h40'],               v:['VF','VOST'], g:[]},
-  ]},
-  {id:'gaumont-alesia',chain:'gaumont',icon:'🌿',name:'Gaumont Alésia',addr:'73 Av. du Gal Leclerc · 75014',metro:'M° Alésia',salles:12,tech:['Dolby Cinema','Laser 4K'],
-   films:[
-    {id:'jumpers',   h:['10h00','12h15','13h15','14h30','15h30','16h50'],v:['VF'],       g:[]},
-    {id:'bride',     h:['13h15','15h30','17h45','21h00'],               v:['VF','Dolby'],g:[]},
-    {id:'marty',     h:['10h45','13h15','15h40','18h00','20h20','22h40'],v:['VF','VOST'],g:[]},
-    {id:'maison',    h:['10h00','13h00','16h00','17h45','19h00','22h00'],v:['VF','VOST'],g:[]},
-    {id:'hurlevent', h:['10h30','14h15','17h00','19h40','21h00','22h25'],v:['VF','VOST'],g:[]},
-    {id:'lol2',      h:['10h45','13h15','15h40','18h00','20h20','22h40'],v:['VF'],       g:[]},
-    {id:'marsupilami',h:['10h20','12h20','14h20','16h20','18h20'],      v:['VF'],        g:[]},
-    {id:'maigret',   h:['10h30','13h10','15h15','17h35','20h05','22h15'],v:['VF'],       g:[]},
-  ]},
-];
 
 // ═══════════ SUPABASE ═══════════
 const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
@@ -452,6 +300,23 @@ function subscribeGroupesFilm(filmId){
 
 // ═══════════ STATE ═══════════
 const _saved=(()=>{try{return JSON.parse(localStorage.getItem('cm2')||'{}')}catch(e){return{}}})();
+
+// Helpers date
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function dateLabel(d){
+  const today=todayStr();
+  const diff=Math.round((new Date(d)-new Date(today))/(86400000));
+  if(diff===0)return"Aujourd'hui";
+  if(diff===1)return'Demain';
+  return new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}).replace(/^\w/,x=>x.toUpperCase());
+}
+function next7days(){
+  return Array.from({length:7},(_,i)=>{
+    const d=new Date(); d.setDate(d.getDate()+i);
+    return d.toISOString().split('T')[0];
+  });
+}
+
 let st={
   screen: _saved.pseudo ? 'home' : 'pseudo',
   pseudo: _saved.pseudo || '',
@@ -459,9 +324,33 @@ let st={
   cinema:null, film:null, filmSrc:'home', groupe:null,
   genre:'tous', cinFilter:'tous', secs:3600, syncing:false, syncLabel:'',
   tab:'vote', voted:'19h30',
-  msgs:[]
+  msgs:[],
+  date: todayStr(),
 };
 function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo}))}catch(e){}}
+
+function setDate(d){
+  if(st.date===d)return;
+  st.date=d;
+  dataLoaded=false;
+  render();
+  loadProgramme(d);
+}
+
+function dayPicker(){
+  const days=next7days();
+  return `<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
+    ${days.map(d=>{
+      const lbl=dateLabel(d);
+      const active=st.date===d;
+      const isToday=d===todayStr();
+      return `<div onclick="setDate('${d}')" style="flex-shrink:0;border-radius:12px;padding:7px 13px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${active?GD:BD};background:${active?'rgba(240,192,96,0.12)':'rgba(255,255,255,0.02)'};color:${active?GD:MU};text-align:center;min-width:72px;">
+        ${isToday&&!active?`<span style="color:${AC};font-size:8px;display:block;line-height:1;margin-bottom:2px;">● </span>`:''}
+        ${lbl}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
 function isPast(h){const[hh,mm]=h.replace('h',':').split(':').map(Number),n=new Date();return n.getHours()>hh||(n.getHours()===hh&&n.getMinutes()>mm);}
 
 // ACTIONS
@@ -561,7 +450,22 @@ function nav(active){
 function sHome(){
   const gmap={marty:'drame',scream7:'horreur',bride:'thriller',hurlevent:'romance',zootopie:'anim',maison:'drame',alter:'comedie',coutures:'thriller',lol2:'comedie',jumpers:'anim',marsupilami:'comedie',maigret:'polar'};
   const genres=[['tous','Tous'],['drame','Drame'],['horreur','Horreur'],['romance','Romance'],['thriller','Thriller'],['comedie','Comédie'],['anim','Anim'],['polar','Polar']];
-  const cards=Object.entries(FILMS).filter(([id])=>st.genre==='tous'||gmap[id]===st.genre);
+  const filmGenre = id => { const f=FILMS[id]; return f?f.g?.toLowerCase():''; };
+  const cards = Object.entries(FILMS).filter(([id])=>st.genre==='tous'||filmGenre(id).includes(st.genre));
+
+  // Loader si données pas encore arrivées
+  if(!dataLoaded){
+    return `
+    <div style="padding:50px 18px 12px;flex-shrink:0;">
+      <div class="serif" style="font-size:26px;">Bonsoir ${st.pseudo} 👋</div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+      <div style="font-size:40px;" class="pulse">🎬</div>
+      <div style="font-size:13px;color:${MU};">Chargement du programme…</div>
+      <div style="font-size:10px;color:${MU};opacity:0.6;">UGC · Pathé · Gaumont</div>
+    </div>
+    ${nav('home')}`;
+  }
   return `
   <div style="padding:50px 18px 12px;flex-shrink:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -648,7 +552,8 @@ function sCinemas(){
         ${st.syncing?'Synchro…':(st.syncLabel?'Mis à jour '+st.syncLabel:'Mis à jour')}
       </div>
     </div>
-    <div style="font-size:10px;color:${MU};margin-bottom:11px;">Prochain refresh <strong style="color:${TX}">${mm}:${ss}</strong></div>
+    <div style="font-size:10px;color:${MU};margin-bottom:10px;">Prochain refresh <strong style="color:${TX}">${mm}:${ss}</strong></div>
+    <div style="margin-bottom:10px;">${dayPicker()}</div>
     <div style="display:flex;gap:6px;overflow-x:auto;">
       ${[['tous','Tous (21)'],['ugc','UGC (12)'],['pathe','Pathé (6)'],['gaumont','Gaumont (3)']].map(([id,lb])=>`<div onclick="setCinFilter('${id}')" style="border-radius:20px;padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid ${st.cinFilter===id?AC:BD};background:${st.cinFilter===id?AC:'rgba(255,255,255,0.03)'};color:${st.cinFilter===id?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join('')}
     </div>
@@ -683,7 +588,6 @@ function sCinemas(){
 function sCinemaDetail(){
   const c=CINEMAS.find(x=>x.id===st.cinema);if(!c)return'';
   const col=CC[c.chain],lbl={ugc:'UGC',pathe:'PATHÉ',gaumont:'GAUMONT'}[c.chain];
-  const today=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,x=>x.toUpperCase());
   return `
   <div style="background:linear-gradient(to bottom,${S1},${BG});padding:50px 18px 16px;flex-shrink:0;">
     <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px;">
@@ -693,9 +597,10 @@ function sCinemaDetail(){
     <div class="serif" style="font-size:20px;margin-bottom:2px;">${c.name}</div>
     <div style="font-size:10px;color:${MU};margin-bottom:11px;">${c.addr} · ${c.metro}</div>
     <div style="display:flex;gap:5px;flex-wrap:wrap;">${chip(c.salles+' salle'+(c.salles>1?'s':''),TX,'rgba(255,255,255,0.06)',BD,9)}${c.tech.map(t=>chip(t,col,col+'18',col+'35',9)).join('')}</div>
+    <div style="margin-top:11px;">${dayPicker()}</div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:13px 18px;">
-    <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;font-weight:600;">Films · ${today}</div>
+    <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;font-weight:600;">Films · ${dateLabel(st.date)}</div>
     ${c.films.map(sf=>{
       const film=FILMS[sf.id];if(!film)return'';
       return `<div style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;">
@@ -737,10 +642,11 @@ function sFilm(){
     <div id="groupes-film-list" style="padding:0 18px;">
       <div style="text-align:center;padding:20px 0;color:${MU};font-size:11px;">Chargement… ⏳</div>
     </div>
-    <div style="display:flex;align-items:baseline;justify-content:space-between;padding:6px 18px 9px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;padding:6px 18px 6px;">
       <span class="serif" style="font-size:16px;">Où voir ce film</span>
       <span style="font-size:10px;color:${MU};">${wf.length} cinémas</span>
     </div>
+    <div style="padding:0 18px 10px;">${dayPicker()}</div>
     ${wf.slice(0,6).map(c=>{const sf=c.films.find(x=>x.id===st.film),next=sf.h.find(h=>!isPast(h))||sf.h[sf.h.length-1];return`<div style="margin:0 18px 6px;background:${S1};border:1px solid ${BD};border-radius:11px;padding:10px 12px;display:flex;align-items:center;gap:9px;"><span style="font-size:17px;">${c.icon}</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;margin-bottom:1px;">${c.name}</div><div style="font-size:9px;color:${MU};">${c.metro}</div></div><span style="background:${S2};border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;color:${GD};">${next}</span></div>`;}).join('')}
     <div style="height:24px;"></div>
   </div>`;
@@ -896,6 +802,7 @@ setInterval(()=>{
 // INIT
 render();
 if(st.pseudo) loadMesGroupes();
+loadProgramme();
 </script>
 </body>
 </html>
