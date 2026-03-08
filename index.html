@@ -723,14 +723,21 @@ function renderMembresDOM(){
 
 function renderVotesDOM(){
   const el=document.getElementById('votes-container');
-  if(!el||!st.film||!st.cinema)return;
-  const cinema=CINEMAS.find(c=>c.id===st.cinema);
-  if(!cinema)return;
-  const filmData=cinema.films.find(f=>f.id===st.film);
-  if(!filmData)return;
-  const seances=(SEANCES[st.cinema]||{})[st.film]||[];
-  const filtered=seances.filter(h=>!isPast(h));
-  if(!filtered.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:12px;">Aucune séance disponible ce soir</div>`;return;}
+  if(!el||!st.film)return;
+  // Récupérer toutes les séances de tous les cinémas pour ce film
+  const tousCinemas=CINEMAS.filter(c=>c.films.some(f=>f.id===st.film));
+  // Si un cinéma est sélectionné, filtrer sur lui uniquement
+  const cinemasActifs=st.cinema?tousCinemas.filter(c=>c.id===st.cinema):tousCinemas;
+  // Collecter toutes les séances (dédupliquées par heure)
+  const heuresVues=new Set();
+  const filtered=[];
+  cinemasActifs.forEach(c=>{
+    ((SEANCES[c.id]||{})[st.film]||[]).filter(h=>!isPast(h)).forEach(h=>{
+      if(!heuresVues.has(h)){heuresVues.add(h);filtered.push(h);}
+    });
+  });
+  filtered.sort();
+  if(!filtered.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:12px;">Aucune séance disponible ce jour</div>`;return;}
   el.innerHTML=filtered.map(h=>{
     const voters=votesData[h]||[];
     const voted=voters.some(v=>v.pseudo===st.pseudo);
