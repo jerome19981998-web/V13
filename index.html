@@ -227,6 +227,71 @@ function subscribeVotes(){
     }).subscribe();
 }
 
+// ── GROUPES SUPABASE ──
+let groupesFilm=[]; // groupes du film affiché dans sFilm
+let mesGroupes=[];  // groupes que l'utilisateur a rejoints
+
+async function loadGroupesFilm(filmId){
+  const{data}=await supa.from('groupes').select('*').eq('film_id',filmId).order('created_at',{ascending:true});
+  groupesFilm=data||[];
+  renderGroupesFilmDOM();
+}
+
+function renderGroupesFilmDOM(){
+  const el=document.getElementById('groupes-film-list');if(!el)return;
+  if(groupesFilm.length===0){
+    el.innerHTML=`
+    <div style="text-align:center;padding:24px 0 10px;color:${MU};font-size:12px;line-height:1.8;">Aucun groupe pour ce film encore.<br>Soyez le premier à en créer un !</div>
+    <div style="padding:0 0 8px;">
+      <button onclick="creerGroupe()" style="width:100%;background:${S2};border:1px solid ${AC};color:${AC};border-radius:12px;padding:13px;font-size:13px;font-weight:600;">✨ Créer le premier groupe →</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML=groupesFilm.map(g=>{
+    const nb=g.nb_membres||1;
+    return `<div onclick="openGroup('${g.film_id}','${g.id}')" class="tap" style="margin-bottom:8px;background:${S1};border:1px solid ${BD};border-radius:13px;padding:13px;cursor:pointer;display:flex;align-items:center;gap:11px;">
+      <div style="text-align:center;min-width:46px;">
+        <div class="serif" style="font-size:17px;color:${GD};">${g.nom}</div>
+        <div style="font-size:8px;color:${MU};margin-top:2px;">groupe</div>
+      </div>
+      <div style="width:1px;height:34px;background:${BD};"></div>
+      <div style="flex:1;">
+        <div style="font-size:11px;color:${MU};margin-bottom:4px;">par ${g.createur}</div>
+        <div style="display:flex;gap:5px;">${chip('👥 '+nb+' membre'+(nb>1?'s':''),AC,'rgba(255,63,91,0.1)','rgba(255,63,91,0.25)',9)}</div>
+      </div>
+      <span style="color:${AC};font-size:16px;">→</span>
+    </div>`;
+  }).join('')+`
+  <div style="padding:4px 0 8px;">
+    <button onclick="creerGroupe()" style="width:100%;background:rgba(255,255,255,0.03);border:1px dashed ${BD};color:${MU};border-radius:12px;padding:11px;font-size:12px;">+ Créer un nouveau groupe</button>
+  </div>`;
+}
+
+async function creerGroupe(){
+  const filmId=st.film;
+  const f=FILMS[filmId];if(!f)return;
+  const nom=prompt('Nom de votre groupe (ex: "Séance 20h IMAX") :');
+  if(!nom||!nom.trim())return;
+  const id=filmId+'-'+Date.now();
+  await supa.from('groupes').insert({id,film_id:filmId,nom:nom.trim(),createur:st.pseudo});
+  openGroup(filmId,id);
+}
+
+async function loadMesGroupes(){
+  const{data}=await supa.from('groupe_membres').select('groupe').eq('pseudo',st.pseudo);
+  if(!data||data.length===0){mesGroupes=[];return;}
+  const ids=[...new Set(data.map(d=>d.groupe))];
+  const{data:gs}=await supa.from('groupes').select('*').in('id',ids);
+  mesGroupes=gs||[];
+}
+
+function subscribeGroupesFilm(filmId){
+  supa.channel('db-groupes-'+filmId)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'groupes',filter:`film_id=eq.${filmId}`},async()=>{
+      await loadGroupesFilm(filmId);
+    }).subscribe();
+}
+
 // ═══════════ STATE ═══════════
 const _saved=(()=>{try{return JSON.parse(localStorage.getItem('cm2')||'{}')}catch(e){return{}}})();
 let st={
@@ -244,13 +309,35 @@ function isPast(h){const[hh,mm]=h.replace('h',':').split(':').map(Number),n=new 
 // ACTIONS
 function go(sc){
   st.screen=sc;
-  if(sc==='group'){st.tab='chat'; render(); loadMessages(); setupTypingChannel();}
-  else render();
+  if(sc==='group'){
+    st.tab='chat';
+    render();
+    if(mesGroupes.length>0){
+      const g=mesGroupes[0];
+      st.groupe=g.id; st.film=g.film_id;
+      setupTypingChannel(); subscribeMembers(); subscribeVotes();
+      loadMessages(); rejoindreGroupe(); loadVotes();
+    }
+  } else render();
+}
+function switchGroupe(val){
+  const[filmId,groupeId]=val.split('|||');
+  openGroup(filmId,groupeId);
 }
 function openCinema(id){st.cinema=id;st.screen='cinema-detail';render();}
-function openFilm(id,src){st.film=id;if(src)st.filmSrc=src;st.screen='film';render();}
-function openGroup(filmId){
-  st.groupe=filmId; st.film=filmId; st.tab='chat';
+function openFilm(id,src){
+  st.film=id;if(src)st.filmSrc=src;
+  st.screen='film';
+  groupesFilm=[];
+  render();
+  loadGroupesFilm(id);
+  subscribeGroupesFilm(id);
+}
+function openGroup(filmId, groupeId){
+  st.groupe=groupeId||filmId;
+  st.film=filmId;
+  st.screen='group';
+  st.tab='chat';
   typingChannel=null; realtimeChannel=null;
   render();
   setupTypingChannel();
@@ -259,6 +346,7 @@ function openGroup(filmId){
   loadMessages();
   rejoindreGroupe();
   loadVotes();
+  loadMesGroupes();
 }
 function setGenre(g){st.genre=g;render();}
 function setCinFilter(f){st.cinFilter=f;render();}
@@ -276,6 +364,7 @@ function confirmPseudo(){
   const val=(inp?inp.value:st.pseudoInput).trim();
   if(!val||val.length<2)return;
   st.pseudo=val; save(); st.screen='home'; render();
+  loadMesGroupes();
 }
 
 // ÉCRAN PSEUDO
@@ -485,24 +574,17 @@ function sFilm(){
     <div style="padding:11px 18px 4px;font-size:12px;color:#8a8aaa;line-height:1.8;">${f.s}</div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;padding:10px 18px 9px;">
       <span class="serif" style="font-size:16px;">Groupes disponibles</span>
-      <span style="font-size:10px;color:${AC};cursor:pointer;">Créer +</span>
+      <span style="font-size:10px;color:${MU};" id="groupes-count">${groupesFilm.length>0?groupesFilm.length+' groupe'+(groupesFilm.length>1?'s':''):'Aucun groupe'}</span>
     </div>
-    ${[{h:'20h15',n:5,cinema:'UGC Les Halles',tech:'IMAX',lbd:3},{h:'16h30',n:2,cinema:'Pathé Parnasse',tech:'Laser 4K',lbd:1}].map(g=>`
-      <div onclick="openGroup('${st.film}')" class="tap" style="margin:0 18px 8px;background:${S1};border:1px solid ${BD};border-radius:13px;padding:13px;cursor:pointer;display:flex;align-items:center;gap:11px;">
-        <div style="text-align:center;min-width:46px;"><div class="serif" style="font-size:19px;color:${GD};line-height:1;">${g.h}</div><div style="font-size:8px;color:${MU};margin-top:2px;">ce soir</div></div>
-        <div style="width:1px;height:34px;background:${BD};"></div>
-        <div style="flex:1;"><div style="font-size:12px;font-weight:500;margin-bottom:4px;">${g.cinema}</div><div style="display:flex;gap:5px;">${chip('👥 '+g.n+'/8','#ff8c42','rgba(255,140,66,0.13)','rgba(255,140,66,0.3)',9)}${chip('🎬 '+g.lbd+' LBD',LB,'rgba(0,192,48,0.1)','rgba(0,192,48,0.25)',9)}${chip(g.tech,TX,'rgba(255,255,255,0.06)',BD,9)}</div></div>
-        <div style="text-align:right;"><div style="font-size:12px;font-weight:600;color:${AC};">${g.n}/8</div><div style="width:32px;height:3px;background:${S2};border-radius:2px;margin-top:3px;"><div style="width:${Math.round(g.n/8*100)}%;height:100%;background:${AC};border-radius:2px;"></div></div></div>
-      </div>
-    `).join('')}
+    <div id="groupes-film-list" style="padding:0 18px;">
+      <div style="text-align:center;padding:20px 0;color:${MU};font-size:11px;">Chargement… ⏳</div>
+    </div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;padding:6px 18px 9px;">
       <span class="serif" style="font-size:16px;">Où voir ce film</span>
       <span style="font-size:10px;color:${MU};">${wf.length} cinémas</span>
     </div>
-    ${wf.slice(0,6).map(c=>{const sf=c.films.find(x=>x.id===st.film),next=sf.h.find(h=>!isPast(h))||sf.h[sf.h.length-1];return`<div style="margin:0 18px 6px;background:${S1};border:1px solid ${BD};border-radius:11px;padding:10px 12px;display:flex;align-items:center;gap:9px;cursor:pointer;"><span style="font-size:17px;">${c.icon}</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;margin-bottom:1px;">${c.name}</div><div style="font-size:9px;color:${MU};">${c.metro}</div></div><span style="background:${S2};border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;color:${GD};">${next}</span></div>`;}).join('')}
-    <div style="padding:12px 18px 22px;">
-      <button onclick="openGroup('${st.film}')" style="width:100%;background:${AC};border:none;color:#fff;border-radius:12px;padding:15px;font-size:13px;font-weight:600;">💬 Rejoindre le groupe ${f?f.t:''} →</button>
-    </div>
+    ${wf.slice(0,6).map(c=>{const sf=c.films.find(x=>x.id===st.film),next=sf.h.find(h=>!isPast(h))||sf.h[sf.h.length-1];return`<div style="margin:0 18px 6px;background:${S1};border:1px solid ${BD};border-radius:11px;padding:10px 12px;display:flex;align-items:center;gap:9px;"><span style="font-size:17px;">${c.icon}</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;margin-bottom:1px;">${c.name}</div><div style="font-size:9px;color:${MU};">${c.metro}</div></div><span style="background:${S2};border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;color:${GD};">${next}</span></div>`;}).join('')}
+    <div style="height:24px;"></div>
   </div>`;
 }
 
@@ -510,12 +592,15 @@ function sGroup(){
   const f=st.film&&FILMS[st.film]?FILMS[st.film]:null;
   const filmNom=f?f.t:'Groupe général';
   const filmIcon=f?f.e:'🎬';
+  // Nom du groupe actuel
+  const groupeActuel=mesGroupes.find(g=>g.id===st.groupe);
+  const groupeNom=groupeActuel?groupeActuel.nom:(f?f.t:'Groupe');
   const tabs=[['vote','Vote'],['membres','Membres'],['chat','Chat 💬']];
   let tc='';
   if(st.tab==='vote'){
     tc=`<div style="flex:1;overflow-y:auto;padding:15px 18px;">
       <div class="serif" style="font-size:16px;margin-bottom:4px;">Heure de rendez-vous ?</div>
-      <div style="font-size:10px;color:${MU};margin-bottom:13px;">Votez — les résultats se mettent à jour en direct</div>
+      <div style="font-size:10px;color:${MU};margin-bottom:13px;">Votez — résultats en direct 🔴</div>
       <div id="votes-list"><div style="text-align:center;padding:30px 0;color:${MU};font-size:11px;">Chargement… ⏳</div></div>
       <div id="vote-result" style="background:rgba(240,192,96,0.06);border:1px solid rgba(240,192,96,0.18);border-radius:11px;padding:11px;font-size:11px;margin-top:7px;"></div>
     </div>`;
@@ -546,17 +631,33 @@ function sGroup(){
       <button onclick="sendMsg()" style="width:36px;height:36px;background:${AC};border:none;border-radius:50%;font-size:14px;flex-shrink:0;">↑</button>
     </div>`;
   }
+
+  // Menu déroulant mes groupes
+  const menuGroupes = mesGroupes.length > 1 ? `
+  <div style="padding:0 18px 10px;flex-shrink:0;">
+    <div style="position:relative;">
+      <select onchange="switchGroupe(this.value)" style="width:100%;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 32px 8px 12px;font-size:11px;color:${TX};appearance:none;outline:none;cursor:pointer;">
+        ${mesGroupes.map(g=>{
+          const gf=FILMS[g.film_id];
+          return `<option value="${g.film_id}|||${g.id}" ${g.id===st.groupe?'selected':''}>${gf?gf.e+' ':''} ${g.nom}</option>`;
+        }).join('')}
+      </select>
+      <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:10px;color:${MU};">▾</span>
+    </div>
+  </div>` : '';
+
   return `
-  <div style="background:linear-gradient(to bottom,${S1},${BG});padding:50px 18px 14px;flex-shrink:0;">
-    <div style="display:flex;align-items:center;gap:9px;margin-bottom:13px;">
-      <button onclick="go('${st.filmSrc||'home'}')" style="width:34px;height:34px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;">←</button>
-      <div style="flex:1;background:${S2};border-radius:16px;padding:5px 11px;display:flex;align-items:center;gap:7px;font-size:12px;">
-        <span style="font-size:16px;">${filmIcon}</span>
-        <span style="font-weight:500;">${filmNom}</span>
-        <span style="margin-left:auto;font-size:9px;background:${AC}18;border:1px solid ${AC}35;color:${AC};border-radius:8px;padding:2px 7px;" id="membres-badge">${membresData.length} membre${membresData.length!==1?'s':''}</span>
+  <div style="background:linear-gradient(to bottom,${S1},${BG});padding:50px 18px 12px;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;">
+      <button onclick="openFilm('${st.film}','${st.filmSrc||'home'}')" style="width:34px;height:34px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;">←</button>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:10px;color:${MU};margin-bottom:1px;">${filmIcon} ${filmNom}</div>
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${groupeNom}</div>
       </div>
+      <span style="font-size:9px;background:${AC}18;border:1px solid ${AC}35;color:${AC};border-radius:8px;padding:2px 7px;flex-shrink:0;" id="membres-badge">${membresData.length} membre${membresData.length!==1?'s':''}</span>
     </div>
   </div>
+  ${menuGroupes}
   <div style="display:flex;border-bottom:1px solid ${BD};flex-shrink:0;">
     ${tabs.map(([id,lb])=>`<button onclick="setTab('${id}')" style="flex:1;padding:11px 0 9px;font-size:11px;font-weight:500;color:${st.tab===id?TX:MU};border:none;background:none;cursor:pointer;position:relative;">${lb}${st.tab===id?`<div style="position:absolute;bottom:-1px;left:15%;right:15%;height:2px;background:${AC};border-radius:2px;"></div>`:''}</button>`).join('')}
   </div>
@@ -636,7 +737,7 @@ setInterval(()=>{
 
 // INIT
 render();
-subscribeChat();
+if(st.pseudo) loadMesGroupes();
 </script>
 </body>
 </html>
