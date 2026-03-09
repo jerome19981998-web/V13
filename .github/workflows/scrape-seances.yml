@@ -3,7 +3,7 @@ name: 🎬 CinéMatch — Mise à jour séances
 on:
   # Tous les jours à 3h00 du matin (heure Paris = UTC+1/+2)
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 2,8,14,20 * * *'
   
   # Possibilité de lancer manuellement depuis GitHub
   workflow_dispatch:
