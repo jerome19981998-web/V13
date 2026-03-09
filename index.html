@@ -1013,23 +1013,27 @@ async function handleSession(session, force=false){
   }
 }
 
-// Supabase gere lui-meme la session depuis l'URL (detectSessionInUrl:true)
-// onAuthStateChange se declenche automatiquement apres le magic link
+// onAuthStateChange est la seule source de verite — il couvre magic link, Google, refresh
 supa.auth.onAuthStateChange(async(event,session)=>{
-  if(event==='SIGNED_IN'){
-    // Reset le mutex pour le vrai login
-    _sessionHandled=false;
+  if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){
+    _sessionHandled=false; // reset pour que handleSession s'execute
     await handleSession(session);
   } else if(event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
     await handleSession(session,true);
   } else if(event==='SIGNED_OUT'){
     _sessionHandled=false;
+    _handlingSession=false;
     st.userId=null;st.userEmail='';
     st.screen='auth';st.authStep='email';render();
-  } else if(event==='INITIAL_SESSION'){
-    await handleSession(session);
   }
 });
+
+// Timeout de secours : si apres 4s l'app est toujours sur loading → ecran auth
+setTimeout(()=>{
+  if(st.screen==='loading'){
+    st.screen='auth';st.authStep='email';render();
+  }
+},4000);
 
 // Écran de chargement initial
 function sLoading(){
