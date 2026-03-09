@@ -944,6 +944,10 @@ function go(sc){
 }
 function openFilm(id,src){st.film=id;st.filmSrc=src||'home';st.screen='film';render();}
 function openCinema(id){st.cinema=id;st.screen='cinema-detail';render();}
+async function selectGroupe(filmId,groupeId){
+  await openGroup(filmId,groupeId);
+}
+
 async function openGroup(filmId,groupeId){
   st.film=filmId;
   if(groupeId){
@@ -960,7 +964,7 @@ async function openGroup(filmId,groupeId){
       if(fresh&&fresh.length>0)st.groupe=fresh[0].id;
     }
   }
-  st.screen='group';st.tab='vote';st.voted=null;st.cinema=null;
+  st.screen='group';st.tab='chat';st.voted=null;st.cinema=null;
   render();
   rejoindreGroupe();
   loadMessages();
@@ -1669,169 +1673,193 @@ function sCreateSortie(){
   </div>`;
 }
 
-function sGroup(){
-  if(!st.groupe){
-    // Écran sélection groupe
-    return `<div style="padding:52px 18px 12px;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-        <div onclick="go('home')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
-        <div class="serif" style="font-size:20px;">Mes groupes</div>
-      </div>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
-      ${mesGroupes.length===0?`<div style="text-align:center;padding:50px 20px;color:${MU};"><div style="font-size:40px;margin-bottom:12px;">🎬</div><div style="font-size:14px;margin-bottom:16px;">Aucun groupe pour l'instant</div><button onclick="go('home')" style="background:${AC};border:none;color:#fff;border-radius:14px;padding:12px 24px;font-size:13px;cursor:pointer;">Voir les films →</button></div>`:
-      mesGroupes.map(g=>{
-        const gf=FILMS[g.film_id];
-        const hasConfirmed=g.confirmed_heure&&g.confirmed_date;
-        const borderCol=hasConfirmed?'rgba(0,192,48,0.3)':BD;
-        const bgCol=hasConfirmed?'rgba(0,192,48,0.04)':S1;
-        return `<div onclick="openGroup('${g.film_id}','${g.id}')" class="tap" style="background:${bgCol};border:1px solid ${borderCol};border-radius:14px;padding:12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;">
-          <div style="width:46px;height:68px;border-radius:9px;overflow:hidden;background:${gf?gf.bg:'#222'};display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;position:relative;">
-            ${posters[g.film_id]?'<img src="'+posters[g.film_id]+'" style="width:100%;height:100%;object-fit:cover;">':(gf?gf.e:'🎬')}
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div class="serif" style="font-size:14px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${gf?gf.t:g.film_id}</div>
-            ${hasConfirmed
-              ?`<div style="font-size:10px;color:#00c030;font-weight:600;">✅ ${g.confirmed_heure} · ${formatDate(g.confirmed_date)}</div>`
-              :`<div style="font-size:10px;color:${MU};">Groupe actif · Vote en cours</div>`
-            }
-          </div>
-          <span style="color:${MU};">›</span>
-        </div>`;
-      }).join('')}
-    </div>
-    <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
-      ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
-    </div>`;
-  }
 
-  // Écran chat/vote
-  const f=FILMS[st.film]||{};
-  const tabs=[['vote','🗳 Vote'],['chat','💬 Chat'],['membres','👥 Membres']];
-  return `<div style="padding:52px 18px 10px;flex-shrink:0;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      <div onclick="st.groupe=null;render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div>
-      <div style="flex:1;min-width:0;">
-        <div class="serif" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.t||'Groupe'}</div>
-      </div>
-      <span id="membres-badge" style="font-size:9px;background:${AC}18;border:1px solid ${AC}35;color:${AC};border-radius:8px;padding:2px 7px;flex-shrink:0;">${membresData.length} membre${membresData.length!==1?'s':''}</span>
-      <button onclick="shareGroupe()" style="width:30px;height:30px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">🔗</button>
-      <button onclick="quitterGroupe()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,63,91,0.08);border:1px solid rgba(255,63,91,0.3);color:${AC};font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;" title="Quitter le groupe">🚪</button>
-    </div>
-    <div style="display:flex;gap:6px;">
-      ${tabs.map(([id,lb])=>`<div onclick="st.tab='${id}';render();" style="flex:1;text-align:center;padding:6px;border-radius:10px;font-size:11px;cursor:pointer;background:${st.tab===id?AC:'rgba(255,255,255,0.03)'};border:1px solid ${st.tab===id?AC:BD};color:${st.tab===id?'#fff':MU};">${lb}</div>`).join('')}
-    </div>
-  </div>
-  ${st.tab==='vote'?`<div style="flex:1;overflow-y:auto;">
-    ${(()=>{
-      // Cinémas qui passent ce film
-      const cinemasFilm=CINEMAS.filter(c=>c.films.some(f=>f.id===st.film));
-      const CC_=CC; // closure
-      // Sélecteur cinéma
-      const cinemaSelector=`<div style="padding:12px 18px 0;">
-        <div style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Choisir le cinéma</div>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px;">
-          ${cinemasFilm.map(c=>{
-            const active=st.cinema===c.id;
-            const col=CC_[c.chain];
-            const votes_c=membresData.filter(m=>m.cinema_pref===c.id).length;
-            const pct=membresData.length>0?Math.round(votes_c/membresData.length*100):0;
-            return `<div onclick="voterCinema('${c.id}')" style="padding:9px 12px;border-radius:12px;cursor:pointer;background:${active?'rgba(255,255,255,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${active?col:BD};">
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:${votes_c>0?'7px':'0'};">
-                <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;"></div>
-                <div style="flex:1;font-size:12px;font-weight:${active?'600':'400'};color:${active?TX:MU};">${c.name}</div>
-                ${votes_c>0?`<div style="font-size:10px;color:${col};font-weight:600;">${votes_c} vote${votes_c>1?'s':''}</div>`:''}
-                ${active&&CINEMA_LINKS[c.id]?.maps?`<a href="${CINEMA_LINKS[c.id].maps}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:#4a9eff;text-decoration:none;">🗺</a>`:''}
-                ${active?`<div style="font-size:10px;color:${col};">✓</div>`:''}
+function sGroup(){
+  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
+    ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
+  </div>`;
+
+  // ─── LISTE DES GROUPES (pas de groupe sélectionné) ───
+  if(!st.groupe){
+    if(mesGroupes.length===0) return `
+      <div style="flex:1;display:flex;flex-direction:column;">
+        <div style="padding:52px 18px 16px;flex-shrink:0;">
+          <div class="serif" style="font-size:22px;">Mes groupes</div>
+          <div style="font-size:12px;color:${MU};margin-top:4px;">Tes conversations ciné</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;gap:12px;">
+          <div style="font-size:52px;">🎬</div>
+          <div class="serif" style="font-size:18px;">Aucun groupe</div>
+          <div style="font-size:12px;color:${MU};line-height:1.6;">Rejoins une sortie ou crée un groupe<br>depuis un film pour commencer</div>
+          <div onclick="go('home')" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;">Voir les sorties 🍿</div>
+        </div>
+        ${navbar}
+      </div>`;
+
+    return `
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:52px 18px 12px;flex-shrink:0;">
+          <div class="serif" style="font-size:22px;">Mes groupes</div>
+          <div style="font-size:12px;color:${MU};margin-top:2px;">${mesGroupes.length} conversation${mesGroupes.length>1?'s':''}</div>
+        </div>
+        <div style="flex:1;overflow-y:auto;">
+          ${mesGroupes.map(g=>{
+            const gf=FILMS[g.film_id]||{t:g.nom||'Film',e:'🎬',bg:'#222'};
+            const hasConfirmed=g.confirmed_cinema&&g.confirmed_heure&&g.confirmed_date;
+            const isActive=st.groupe===g.id;
+            return `<div onclick="selectGroupe('${g.film_id}','${g.id}')" class="tap" style="display:flex;align-items:center;gap:12px;padding:10px 18px;cursor:pointer;background:${isActive?'rgba(255,255,255,0.04)':'transparent'};border-bottom:1px solid ${BD};">
+              <div style="width:48px;height:48px;border-radius:12px;overflow:hidden;background:${gf.bg};flex-shrink:0;position:relative;">
+                ${posters[g.film_id]?`<img src="${posters[g.film_id]}" style="width:100%;height:100%;object-fit:cover;">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;">${gf.e}</span>`}
+                ${hasConfirmed?`<div style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#00c030;border:2px solid ${BG};"></div>`:''}
               </div>
-              ${votes_c>0?`<div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;">
-                <div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width 0.3s;"></div>
-              </div>`:''}
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px;">
+                  <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">${gf.t}</div>
+                  ${hasConfirmed?`<div style="font-size:9px;color:#00c030;font-weight:600;flex-shrink:0;margin-left:6px;">${formatDate(g.confirmed_date)}</div>`:''}
+                </div>
+                <div style="font-size:11px;color:${MU};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  ${hasConfirmed?`✅ ${g.confirmed_heure} · ${g.confirmed_cinema?CINEMAS.find(c=>c.id===g.confirmed_cinema)?.name||g.confirmed_cinema:''}`:'💬 Tapez pour rejoindre le chat'}
+                </div>
+              </div>
+              <div style="color:${MU};font-size:16px;flex-shrink:0;">›</div>
             </div>`;
           }).join('')}
         </div>
+        ${navbar}
       </div>`;
-          // Plan confirmé ?
-      const gc=groupeInfo;
-      const isConfirmed=gc.confirmed_cinema&&gc.confirmed_heure&&gc.confirmed_date;
-      const confirmedCinema=CINEMAS.find(c=>c.id===gc.confirmed_cinema);
-      const links=isConfirmed?CINEMA_LINKS[gc.confirmed_cinema]||{}:{};
-      const cd=isConfirmed?countdown(gc.confirmed_date,gc.confirmed_heure):'';
-      const seancePassed=isConfirmed&&cd===T('seancePassee');
+  }
 
-      // Bandeau plan confirmé
-      const confirmedBanner=isConfirmed?`<div style="margin:0 18px 12px;background:rgba(0,192,48,0.08);border:1px solid rgba(0,192,48,0.3);border-radius:14px;padding:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div>
-            <div style="font-size:10px;color:${LB};font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">✅ Plan confirmé</div>
-            <div style="font-size:13px;font-weight:600;">${confirmedCinema?.name||gc.confirmed_cinema}</div>
-            <div style="font-size:11px;color:${MU};">${formatDate(gc.confirmed_date)} · ${gc.confirmed_heure}</div>
+  // ─── VUE GROUPE SÉLECTIONNÉ ───
+  const f=FILMS[st.film]||{t:'Groupe',e:'🎬'};
+  const gc=groupeInfo||{};
+  const isConfirmed=gc.confirmed_cinema&&gc.confirmed_heure&&gc.confirmed_date;
+  const confirmedCinema=CINEMAS.find(c=>c.id===gc.confirmed_cinema);
+  const links=isConfirmed?CINEMA_LINKS[gc.confirmed_cinema]||{}:{};
+  const cd=isConfirmed?countdown(gc.confirmed_date,gc.confirmed_heure):'';
+  const seancePassed=isConfirmed&&cd===T('seancePassee');
+
+  const tabs=[['chat','💬 Chat'],['membres','👥 Membres'],['vote','🗳 Vote']];
+
+  const header=`
+    <div style="padding:52px 18px 0;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div onclick="st.groupe=null;st.tab='chat';render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:16px;">←</div>
+        <div style="width:36px;height:36px;border-radius:10px;overflow:hidden;background:${f.bg||'#222'};flex-shrink:0;">
+          ${posters[st.film]?`<img src="${posters[st.film]}" style="width:100%;height:100%;object-fit:cover;">`:`<span style="font-size:18px;">${f.e||'🎬'}</span>`}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.t||'Groupe'}</div>
+          <div style="font-size:10px;color:${isConfirmed?'#00c030':MU};">
+            ${isConfirmed?`✅ ${gc.confirmed_heure} · ${formatDate(gc.confirmed_date)}`:`${membresData.length} membre${membresData.length!==1?'s':''} · Vote en cours`}
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:14px;font-weight:700;color:${LB};">${cd}</div>
-            <div onclick="annulerConfirmation()" style="font-size:9px;color:${MU};cursor:pointer;margin-top:4px;">Annuler</div>
-          </div>
+        </div>
+        <button onclick="shareGroupe()" style="width:30px;height:30px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">🔗</button>
+        <button onclick="quitterGroupe()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,63,91,0.08);border:1px solid rgba(255,63,91,0.3);color:${AC};font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">🚪</button>
+      </div>
+      ${isConfirmed&&!seancePassed?`<div style="margin-bottom:10px;background:rgba(0,192,48,0.07);border:1px solid rgba(0,192,48,0.25);border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:10px;color:#00c030;font-weight:700;text-transform:uppercase;letter-spacing:1px;">✅ Plan confirmé</div>
+          <div style="font-size:12px;font-weight:600;margin-top:1px;">${confirmedCinema?.name||gc.confirmed_cinema} · ${gc.confirmed_heure}</div>
         </div>
         <div style="display:flex;gap:6px;">
-          ${links.maps?`<a href="${links.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:#4a9eff;text-decoration:none;">${T('yAller')}</a>`:''}
-          ${links.tickets?`<a href="${links.tickets}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${GD};text-decoration:none;">${T('reserver')}</a>`:''}
-          <div onclick="shareGroupe()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${TX};cursor:pointer;">${T('partager')}</div>
+          ${links.maps?`<a href="${links.maps}" target="_blank" style="padding:5px 10px;background:rgba(74,158,255,0.15);border:1px solid rgba(74,158,255,0.3);border-radius:8px;font-size:10px;font-weight:600;color:#4a9eff;text-decoration:none;">🗺 Y aller</a>`:''}
+          ${links.tickets?`<a href="${links.tickets}" target="_blank" style="padding:5px 10px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);border-radius:8px;font-size:10px;font-weight:600;color:${GD};text-decoration:none;">🎟 Billets</a>`:''}
         </div>
-      </div>`:'';
+      </div>`:''}
+      <div style="display:flex;gap:6px;margin-bottom:0;">
+        ${tabs.map(([id,lb])=>`<div onclick="st.tab='${id}';render();${id==='membres'?'renderMembresDOM();':id==='vote'?'renderVotesDOM();':id==='chat'?'loadMessages();':''}" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:11px;font-weight:500;cursor:pointer;background:${st.tab===id?AC:'rgba(255,255,255,0.03)'};border:1px solid ${st.tab===id?AC:BD};color:${st.tab===id?'#fff':MU};">${lb}</div>`).join('')}
+      </div>
+    </div>`;
 
-      // Post-séance: avis collectifs
-      const avisSection=seancePassed?`<div style="padding:0 18px 20px;">
-        <div style="font-size:10px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Vos avis sur le film</div>
-        ${(()=>{
-          const monAvis=membresData.find(m=>m.pseudo===st.pseudo&&m.avis);
-          const monAvisData=monAvis?JSON.parse(monAvis.avis||'{}'):null;
-          const avgNote=membresData.filter(m=>m.avis).map(m=>{try{return JSON.parse(m.avis).note||0;}catch{return 0;}}).filter(n=>n>0);
-          const avg=avgNote.length?Math.round(avgNote.reduce((a,b)=>a+b,0)/avgNote.length*10)/10:0;
-          const notePicker=monAvisData?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;margin-bottom:10px;text-align:center;">
-            <div style="font-size:10px;color:${LB};margin-bottom:4px;">Votre note : ${monAvisData.note}★</div>
-            ${monAvisData.commentaire?`<div style="font-size:11px;color:${MU};font-style:italic;">"${monAvisData.commentaire}"</div>`:''}
-          </div>`:`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;margin-bottom:10px;">
-            <div style="font-size:11px;color:${MU};margin-bottom:8px;">Votre note :</div>
-            <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;">
-              ${[1,2,3,4,5].map(n=>`<div onclick="document.getElementById('avis-stars').dataset.note='${n}';[...document.querySelectorAll('.star-btn')].forEach((s,i)=>s.style.opacity=i<${n}?'1':'0.3')" class="star-btn" style="font-size:28px;cursor:pointer;opacity:${n<=3?'1':'0.3'};transition:opacity 0.15s;">★</div>`).join('')}
+  if(st.tab==='chat') return `
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${header}
+      <div id="chat-area" style="flex:1;overflow-y:auto;padding:14px 18px;"></div>
+      <div style="padding:10px 18px 14px;background:${BG};border-top:1px solid ${BD};display:flex;gap:8px;flex-shrink:0;">
+        <input id="msg-input" placeholder="Message…" style="flex:1;background:${S1};border:1px solid ${BD};border-radius:20px;padding:9px 14px;font-size:13px;color:${TX};outline:none;" onkeydown="if(event.key==='Enter')sendMsg()">
+        <button onclick="sendMsg()" style="width:36px;height:36px;border-radius:50%;background:${AC};border:none;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;">↑</button>
+      </div>
+    </div>`;
+
+  if(st.tab==='membres') return `
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${header}
+      <div style="flex:1;overflow-y:auto;padding:12px 18px 20px;">
+        <div id="membres-list"></div>
+      </div>
+    </div>`;
+
+  // tab === 'vote'
+  const cinemasFilm=CINEMAS.filter(c=>c.films.some(fi=>fi.id===st.film));
+  const cinemaSelector=`<div style="padding:12px 18px 0;">
+    <div style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Choisir le cinéma</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px;">
+      ${cinemasFilm.map(c=>{
+        const active=st.cinema===c.id;
+        const col=CC[c.chain]||MU;
+        const votes_c=membresData.filter(m=>m.cinema_pref===c.id).length;
+        const pct=membresData.length>0?Math.round(votes_c/membresData.length*100):0;
+        return `<div onclick="voterCinema('${c.id}')" style="padding:9px 12px;border-radius:12px;cursor:pointer;background:${active?'rgba(255,255,255,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${active?col:BD};">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:${votes_c>0?'7px':'0'};">
+            <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;"></div>
+            <div style="flex:1;font-size:12px;font-weight:${active?'600':'400'};color:${active?TX:MU};">${c.name}</div>
+            ${votes_c>0?`<div style="font-size:10px;color:${col};font-weight:600;">${votes_c} vote${votes_c>1?'s':''}</div>`:''}
+            ${active?`<div style="font-size:10px;color:${col};">✓</div>`:''}
+          </div>
+          ${votes_c>0?`<div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width 0.3s;"></div></div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  const avisSection=seancePassed?`<div style="padding:0 18px 20px;">
+    <div style="font-size:10px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Vos avis sur le film</div>
+    ${(()=>{
+      const monAvis=membresData.find(m=>m.pseudo===st.pseudo&&m.avis);
+      const monAvisData=monAvis?JSON.parse(monAvis.avis||'{}'):null;
+      const avgNote=membresData.filter(m=>m.avis).map(m=>{try{return JSON.parse(m.avis).note||0;}catch{return 0;}}).filter(n=>n>0);
+      const avg=avgNote.length?Math.round(avgNote.reduce((a,b)=>a+b,0)/avgNote.length*10)/10:0;
+      const notePicker=monAvisData?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;margin-bottom:10px;text-align:center;">
+        <div style="font-size:10px;color:${LB};margin-bottom:4px;">Votre note : ${monAvisData.note}★</div>
+        ${monAvisData.commentaire?`<div style="font-size:11px;color:${MU};font-style:italic;">"${monAvisData.commentaire}"</div>`:''}
+      </div>`:`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;margin-bottom:10px;">
+        <div style="font-size:11px;color:${MU};margin-bottom:8px;">Votre note :</div>
+        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;">
+          ${[1,2,3,4,5].map(n=>`<div onclick="document.getElementById('avis-stars').dataset.note='${n}';[...document.querySelectorAll('.star-btn')].forEach((s,i)=>s.style.opacity=i<${n}?'1':'0.3')" class="star-btn" style="font-size:28px;cursor:pointer;opacity:${n<=3?'1':'0.3'};transition:opacity 0.15s;">★</div>`).join('')}
+        </div>
+        <div id="avis-stars" data-note="3"></div>
+        <input id="avis-input" placeholder="Un mot sur le film… (optionnel)" style="width:100%;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:12px;color:${TX};outline:none;margin-bottom:8px;box-sizing:border-box;">
+        <button onclick="postAvis(parseInt(document.getElementById('avis-stars').dataset.note||3))" style="width:100%;background:${AC};border:none;color:#fff;border-radius:10px;padding:9px;font-size:12px;font-weight:600;cursor:pointer;">Publier mon avis ✓</button>
+      </div>`;
+      const avisListe=membresData.filter(m=>m.avis).map(m=>{
+        try{const a=JSON.parse(m.avis);return`<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid ${BD};">
+          ${avatarEl(m.pseudo,32)}
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+              <span style="font-size:11px;font-weight:600;">${m.pseudo}</span>
+              <span style="font-size:12px;color:${GD};">${'★'.repeat(a.note||0)}<span style="color:${S2};">${'★'.repeat(5-(a.note||0))}</span></span>
             </div>
-            <div id="avis-stars" data-note="3"></div>
-            <input id="avis-input" placeholder="Un mot sur le film… (optionnel)" style="width:100%;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:12px;color:${TX};outline:none;margin-bottom:8px;box-sizing:border-box;">
-            <button onclick="postAvis(parseInt(document.getElementById('avis-stars').dataset.note||3))" style="width:100%;background:${AC};border:none;color:#fff;border-radius:10px;padding:9px;font-size:12px;font-weight:600;cursor:pointer;">Publier mon avis ✓</button>
-          </div>`;
-          const avisListe=membresData.filter(m=>m.avis).map(m=>{
-            try{const a=JSON.parse(m.avis);return`<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid ${BD};">
-              ${avatarEl(m.pseudo,32)}
-              <div style="flex:1;">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-                  <span style="font-size:11px;font-weight:600;">${m.pseudo}</span>
-                  <span style="font-size:12px;color:${GD};">${'★'.repeat(a.note||0)}<span style="color:${S2};">${'★'.repeat(5-(a.note||0))}</span></span>
-                </div>
-                ${a.commentaire?`<div style="font-size:11px;color:${MU};font-style:italic;">"${a.commentaire}"</div>`:''}
-              </div>
-            </div>`;}catch{return'';}
-          }).join('');
-          return (avg?`<div style="text-align:center;padding:12px;margin-bottom:10px;background:${S1};border:1px solid ${BD};border-radius:14px;">
-            <div style="font-size:32px;font-weight:700;color:${GD};">${avg}★</div>
-            <div style="font-size:10px;color:${MU};">Note moyenne du groupe</div>
-          </div>`:'')
-          +notePicker
-          +(avisListe?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;">${avisListe}</div>`:'');
-        })()}
-      </div>`:'' ;
-
-      if(seancePassed) return confirmedBanner+avisSection;
-      if(!st.cinema) return confirmedBanner+cinemaSelector+`<div style="text-align:center;padding:24px;color:${MU};font-size:11px;">← Choisissez un cinéma pour voir les séances</div>`;
-      return confirmedBanner+cinemaSelector+dayPicker()+`<div style="padding:0 18px 20px;"><div id="votes-container"></div></div>`;
+            ${a.commentaire?`<div style="font-size:11px;color:${MU};font-style:italic;">"${a.commentaire}"</div>`:''}
+          </div>
+        </div>`;}catch{return'';}
+      }).join('');
+      return (avg?`<div style="text-align:center;padding:12px;margin-bottom:10px;background:${S1};border:1px solid ${BD};border-radius:14px;">
+        <div style="font-size:32px;font-weight:700;color:${GD};">${avg}★</div>
+        <div style="font-size:10px;color:${MU};">Note moyenne du groupe</div>
+      </div>`:'')
+      +notePicker
+      +(avisListe?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;">${avisListe}</div>`:'');
     })()}
-  </div>`:''}
-  ${st.tab==='chat'?`<div id="chat-area" style="flex:1;overflow-y:auto;padding:14px 18px;"></div>
-  <div style="padding:10px 18px 14px;background:${BG};border-top:1px solid ${BD};display:flex;gap:8px;flex-shrink:0;">
-    <input id="msg-input" placeholder="Message…" style="flex:1;background:${S1};border:1px solid ${BD};border-radius:20px;padding:9px 14px;font-size:13px;color:${TX};outline:none;" onkeydown="if(event.key==='Enter')sendMsg()">
-    <button onclick="sendMsg()" style="width:36px;height:36px;border-radius:50%;background:${AC};border:none;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;">↑</button>
-  </div>`:''}
-  ${st.tab==='membres'?`<div style="flex:1;overflow-y:auto;padding:0 18px 20px;"><div id="membres-list"></div></div>`:''}`;
+  </div>`:'';
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    ${header}
+    <div style="flex:1;overflow-y:auto;">
+      ${seancePassed?avisSection:cinemaSelector+(st.cinema?dayPicker()+'<div style="padding:0 18px 20px;"><div id="votes-container"></div></div>':`<div style="text-align:center;padding:24px;color:${MU};font-size:11px;">← Choisissez un cinéma pour voir les séances</div>`)}
+    </div>
+  </div>`;
 }
+
 
 
 function sWantToSee(){
@@ -2032,7 +2060,7 @@ function render(){
   else if(st.screen==='cinemas')   inner.innerHTML=sCinemas();
   else if(st.screen==='cinema-detail') inner.innerHTML=sCinemaDetail();
   else if(st.screen==='film')      inner.innerHTML=sFilm();
-  else if(st.screen==='group')     {inner.innerHTML=sGroup(); if(st.groupe&&st.tab==='vote'){renderVotesDOM();} if(st.groupe&&st.tab==='membres')renderMembresDOM(); if(st.groupe&&st.tab==='chat')loadMessages();}
+  else if(st.screen==='group')     {inner.innerHTML=sGroup(); if(st.groupe&&st.tab==='vote'){renderVotesDOM();} else if(st.groupe&&st.tab==='membres')renderMembresDOM(); else if(st.groupe&&st.tab==='chat')loadMessages();}
   else if(st.screen==='profile')   inner.innerHTML=sProfile();
   else if(st.screen==='want-to-see') inner.innerHTML=sWantToSee();
   else if(st.screen==='member-profile') inner.innerHTML=sMemberProfile();
