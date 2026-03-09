@@ -71,6 +71,7 @@ const ANIMAL_EMOJIS = [
 let FILMS = {};
 let CINEMAS = [];
 let SEANCES = {};
+let AVAILABLE_DATES = [];
 let DATA_LOADED = false;
 
 const GENRE_EMOJI = {
@@ -105,44 +106,53 @@ function filmPalette(slug){
 const CHAIN_ICONS={ugc:'🎬',pathe:'🌟',gaumont:'🔵'};
 
 async function initDynamicData(dateStr){
-  dateStr=dateStr||todayStr();
+  const isFirstLoad=!DATA_LOADED;
   try{
-    const[filmsRes,cinemasRes,seancesRes]=await Promise.all([
-      supa.from('films_dyn').select('*').limit(200),
-      supa.from('cinemas_dyn').select('*'),
-      supa.from('seances_dyn').select('*').eq('date',dateStr),
-    ]);
-
-    // Films
-    FILMS={};
-    for(const f of(filmsRes.data||[])){
-      const[c,bg]=filmPalette(f.id);
-      FILMS[f.id]={
-        e:genreEmoji(f.genre),c,bg,
-        g:(f.genre||'DIVERS').toUpperCase(),
-        t:f.title,d:f.duration||'',dir:f.director||'',
-        s:f.synopsis||'',poster:f.poster_url||null,
-        tmdbNote:f.tmdb_note||null,trailerKey:f.trailer_key||null,
-        lbd:false,
-      };
+    if(isFirstLoad){
+      const[filmsRes,cinemasRes,datesRes]=await Promise.all([
+        supa.from('films_dyn').select('*').limit(200),
+        supa.from('cinemas_dyn').select('*'),
+        supa.from('seances_dyn').select('date').limit(1000),
+      ]);
+      // Dates disponibles uniques triées
+      const dateSet=new Set((datesRes.data||[]).map(r=>r.date));
+      AVAILABLE_DATES=[...dateSet].sort();
+      // Choisir la date : demandée si dispo, sinon première dispo
+      if(!dateStr||!AVAILABLE_DATES.includes(dateStr)){
+        dateStr=AVAILABLE_DATES[0]||todayStr();
+      }
+      st.date=dateStr;
+      // Films
+      FILMS={};
+      for(const f of(filmsRes.data||[])){
+        const[c,bg]=filmPalette(f.id);
+        FILMS[f.id]={
+          e:genreEmoji(f.genre),c,bg,
+          g:(f.genre||'DIVERS').toUpperCase(),
+          t:f.title,d:f.duration||'',dir:f.director||'',
+          s:f.synopsis||'',poster:f.poster_url||null,
+          tmdbNote:f.tmdb_note||null,trailerKey:f.trailer_key||null,
+          lbd:false,
+        };
+      }
+      // Cinémas (sans séances pour l'instant)
+      CINEMAS=(cinemasRes.data||[]).map(c=>({
+        id:c.id,lat:c.lat,lng:c.lng,chain:c.chain,
+        icon:CHAIN_ICONS[c.chain]||'🎬',name:c.name,
+        addr:c.addr||'',metro:c.metro||'',salles:null,tech:[],
+        films:[],
+      }));
     }
-
-    // Séances par cinéma/film
+    // Charger les séances pour la date
+    const targetDate=dateStr||st.date;
+    const seancesRes=await supa.from('seances_dyn').select('*').eq('date',targetDate);
     const sm={};
     for(const s of(seancesRes.data||[])){
       if(!sm[s.cinema_id])sm[s.cinema_id]={};
       sm[s.cinema_id][s.film_id]=s.heures||[];
     }
     SEANCES=sm;
-
-    // Cinémas
-    CINEMAS=(cinemasRes.data||[]).map(c=>({
-      id:c.id,lat:c.lat,lng:c.lng,chain:c.chain,
-      icon:CHAIN_ICONS[c.chain]||'🎬',name:c.name,
-      addr:c.addr||'',metro:c.metro||'',salles:null,tech:[],
-      films:Object.keys(sm[c.id]||{}).map(id=>({id})),
-    }));
-
+    CINEMAS=CINEMAS.map(c=>({...c,films:Object.keys(sm[c.id]||{}).map(id=>({id}))}));
     DATA_LOADED=true;
   }catch(e){console.error('initDynamicData:',e);}
 }
@@ -526,15 +536,20 @@ function isPast(heure){
   return t<now;
 }
 
+async function changeDate(ds){
+  st.date=ds;
+  await initDynamicData(ds);
+  render();
+}
 function dayPicker(){
   const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
   const months=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
   let html='<div style="display:flex;gap:6px;overflow-x:auto;padding:0 18px 12px;flex-shrink:0;">';
-  for(let i=0;i<7;i++){
-    const d=new Date();d.setDate(d.getDate()+i);
-    const ds=d.toISOString().slice(0,10);
+  const dates=AVAILABLE_DATES.length?AVAILABLE_DATES:[st.date];
+  for(const ds of dates){
+    const d=new Date(ds+'T12:00:00');
     const active=ds===st.date;
-    html+=`<div onclick="st.date='${ds}';render();" style="flex-shrink:0;width:44px;text-align:center;padding:7px 4px;border-radius:12px;cursor:pointer;background:${active?AC:'rgba(255,255,255,0.03)'};border:1px solid ${active?AC:BD};">
+    html+=`<div onclick="changeDate('${ds}')" style="flex-shrink:0;width:44px;text-align:center;padding:7px 4px;border-radius:12px;cursor:pointer;background:${active?AC:'rgba(255,255,255,0.03)'};border:1px solid ${active?AC:BD};">
       <div style="font-size:9px;color:${active?'#fff':MU};">${days[d.getDay()]}</div>
       <div style="font-size:15px;font-weight:600;color:${active?'#fff':TX};">${d.getDate()}</div>
       <div style="font-size:9px;color:${active?'rgba(255,255,255,0.7)':MU};">${months[d.getMonth()]}</div>
