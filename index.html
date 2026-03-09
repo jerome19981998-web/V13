@@ -1271,7 +1271,7 @@ function showSearchHistory(){
       <span style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">Recherches récentes</span>
       <span onclick="clearSearchHistory()" style="font-size:9px;color:${MU};cursor:pointer;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,0.06);">Effacer</span>
     </div>
-    ${hist.map(h=>`<div onmousedown="useSearch('${h.replace(/\/g,'\\').replace(/'/g,"\'")}')" style="padding:9px 12px;font-size:12px;color:${TX};cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background=''">
+    ${hist.map((h,i)=>`<div onmousedown="useSearch(getSearchHistory()[${i}])" style="padding:9px 12px;font-size:12px;color:${TX};cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background=''">
       <span style="font-size:11px;color:${MU};">🕐</span>${h}
     </div>`).join('')}
   </div>`;
