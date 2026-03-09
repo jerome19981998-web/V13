@@ -13,7 +13,7 @@ const cheerio = require('cheerio');
 const { createClient } = require('@supabase/supabase-js');
 
 const DRY_RUN = process.argv.includes('--dry-run');
-const DAYS    = 3;
+const DAYS    = 7;
 
 const SUPA_URL    = process.env.SUPABASE_URL    || 'https://alwfbminhdwinxcozjlj.supabase.co';
 const SUPA_KEY    = process.env.SUPABASE_SERVICE_KEY;
