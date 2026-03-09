@@ -1822,6 +1822,54 @@ function sGroup(){
   ${st.tab==='membres'?`<div style="flex:1;overflow-y:auto;padding:0 18px 20px;"><div id="membres-list"></div></div>`:''}`;
 }
 
+
+function sWantToSee(){
+  const list=getWantToSee();
+  const films=list.map(id=>({id,f:FILMS[id]})).filter(x=>x.f);
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:52px 18px 12px;flex-shrink:0;display:flex;align-items:center;gap:12px;">
+      <div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>
+      <div>
+        <div class="serif" style="font-size:22px;">❤️ Je veux voir</div>
+        <div style="font-size:11px;color:${MU};">${films.length} film${films.length!==1?'s':''}</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
+      ${films.length===0?`
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;gap:12px;">
+          <div style="font-size:52px;">🎬</div>
+          <div class="serif" style="font-size:18px;">Aucun film pour l'instant</div>
+          <div style="font-size:12px;color:${MU};line-height:1.6;">Explore les films et appuie sur<br>❤️ Je veux voir pour les retrouver ici</div>
+          <div onclick="st.homeTab='films';go('home')" style="margin-top:8px;padding:10px 24px;background:${AC};border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;">Parcourir les films</div>
+        </div>`:
+      `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        ${films.map(({id,f})=>{
+          const hasSortie=sortiesPubliques.some(s=>s.film_id===id);
+          return `<div style="background:${S1};border:1px solid ${BD};border-radius:14px;overflow:hidden;position:relative;">
+            <div onclick="openFilm('${id}','home')" class="tap" style="cursor:pointer;">
+              <div style="height:130px;position:relative;background:${f.bg};overflow:hidden;">
+                ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:58px;">${f.e}</span>`}
+                ${hasSortie?`<div style="position:absolute;bottom:6px;left:6px;background:${AC};border-radius:8px;padding:2px 7px;font-size:9px;font-weight:700;color:#fff;">🍿 Sortie dispo</div>`:''}
+              </div>
+              <div style="padding:8px;">
+                <div style="font-size:8px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;">${f.g}</div>
+                <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.t}</div>
+              </div>
+            </div>
+            <div style="padding:0 8px 8px;display:flex;gap:6px;">
+              ${hasSortie?
+                `<div onclick="st.homeTab='sorties';go('home')" style="flex:1;text-align:center;padding:6px;border-radius:10px;background:${AC};font-size:10px;font-weight:700;color:#fff;cursor:pointer;">Voir la sortie</div>`:
+                `<div onclick="createSortieScroll=0;st.newSortie={film:'${id}'};st.screen='create-sortie';render()" style="flex:1;text-align:center;padding:6px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid ${BD};font-size:10px;font-weight:600;color:${MU};cursor:pointer;">+ Créer sortie</div>`
+              }
+              <div onclick="event.stopPropagation();toggleWantToSee('${id}')" style="width:28px;height:28px;border-radius:8px;background:rgba(255,63,91,0.1);border:1px solid rgba(255,63,91,0.25);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;">❤️</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`}
+    </div>
+  </div>`;
+}
+
 function sProfile(){
   const vuCount=Object.keys(FILMS).filter(id=>isVu(id)).length;
   const wlCount=Object.keys(FILMS).filter(id=>isWatchlist(id)).length;
@@ -1865,6 +1913,7 @@ function sProfile(){
 
   const groupesActifs=mesGroupes.length;
   const groupesConfirmes=mesGroupes.filter(g=>g.confirmed_heure).length;
+  const wantCount=getWantToSee().filter(id=>FILMS[id]).length;
   return `<div style="padding:52px 18px 12px;flex-shrink:0;">
     <div class="serif" style="font-size:22px;margin-bottom:14px;">Mon profil</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
@@ -1894,6 +1943,16 @@ function sProfile(){
   </div>
   <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
     ${st.showAvatarPicker?buildPickerGrid():''}
+    <div onclick="go('want-to-see')" style="display:flex;align-items:center;justify-content:space-between;background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px 16px;margin-bottom:12px;cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:20px;">❤️</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;">Je veux voir</div>
+          <div style="font-size:10px;color:${MU};">${wantCount} film${wantCount!==1?'s':''} dans ta liste</div>
+        </div>
+      </div>
+      <div style="font-size:14px;color:${MU};">›</div>
+    </div>
     ${lbdBlock}
     ${changePseudoBlock}
     ${logoutBlock}
@@ -1964,6 +2023,7 @@ function render(){
   else if(st.screen==='film')      inner.innerHTML=sFilm();
   else if(st.screen==='group')     {inner.innerHTML=sGroup(); if(st.groupe&&st.tab==='vote'){renderVotesDOM();} if(st.groupe&&st.tab==='membres')renderMembresDOM(); if(st.groupe&&st.tab==='chat')loadMessages();}
   else if(st.screen==='profile')   inner.innerHTML=sProfile();
+  else if(st.screen==='want-to-see') inner.innerHTML=sWantToSee();
   else if(st.screen==='member-profile') inner.innerHTML=sMemberProfile();
   else if(st.screen==='create-sortie'){inner.innerHTML=sCreateSortie();const cs=document.getElementById('create-sortie-scroll');if(cs)requestAnimationFrame(()=>{cs.scrollTop=createSortieScroll;});}
 }
