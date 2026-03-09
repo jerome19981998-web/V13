@@ -189,22 +189,32 @@ async function scrapeCinema(cinemaId, cinema) {
 
     const seancesJour = parseAllocineHTML(html, dateISO);
 
-    // Vérification anti-doublon : si les horaires J+N sont identiques à J+(N-1),
-    // AlloCiné a renvoyé la page du jour précédent → on ignore
-    if (day > 0) {
-      const prevDateISO = getDateISO(day - 1);
-      const titresJour = new Set(seancesJour.map(s => s.title));
-      const titresPrev = new Set(Object.keys(result.seances).filter(t => result.seances[t][prevDateISO]));
-      // Si >80% des films sont identiques ET les horaires du premier film sont les mêmes → doublon
-      const overlap = [...titresJour].filter(t => titresPrev.has(t)).length;
-      const ratio = titresJour.size > 0 ? overlap / titresJour.size : 0;
-      if (ratio > 0.8 && seancesJour.length > 0) {
-        const firstTitle = seancesJour[0].title;
-        const hJour = seancesJour[0].heures.join(',');
-        const hPrev = (result.seances[firstTitle]?.[prevDateISO] || []).join(',');
-        if (hJour === hPrev) {
-          console.log(`    ⚠ Données identiques à J-1 (${prevDateISO}) → ignoré (AlloCiné n'a pas encore les données pour ${dateISO})`);
-          continue;
+    // Vérification anti-doublon : comparer avec le dernier jour effectivement stocké
+    if (day > 0 && seancesJour.length > 0) {
+      // Trouver le dernier jour réellement stocké (pas forcément day-1 s'il a été ignoré)
+      let lastStoredDate = null;
+      for (let d = day - 1; d >= 0; d--) {
+        const candidate = getDateISO(d);
+        const hasData = Object.values(result.seances).some(fd => fd[candidate]);
+        if (hasData) { lastStoredDate = candidate; break; }
+      }
+      if (lastStoredDate) {
+        const titresJour = new Set(seancesJour.map(s => s.title));
+        const titresPrev = new Set(Object.keys(result.seances).filter(t => result.seances[t][lastStoredDate]));
+        const overlap = [...titresJour].filter(t => titresPrev.has(t)).length;
+        const ratio = titresJour.size > 0 ? overlap / titresJour.size : 0;
+        if (ratio > 0.8) {
+          // Comparer les horaires de plusieurs films pour être sûr
+          const sampled = seancesJour.slice(0, 3);
+          const allSame = sampled.every(s => {
+            const hJour = s.heures.join(',');
+            const hPrev = (result.seances[s.title]?.[lastStoredDate] || []).join(',');
+            return hJour === hPrev;
+          });
+          if (allSame) {
+            console.log(`    ⚠ Données identiques à ${lastStoredDate} → ignoré (AlloCiné n'a pas encore les données pour ${dateISO})`);
+            continue;
+          }
         }
       }
     }
