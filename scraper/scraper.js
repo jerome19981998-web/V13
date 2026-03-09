@@ -189,35 +189,6 @@ async function scrapeCinema(cinemaId, cinema) {
 
     const seancesJour = parseAllocineHTML(html, dateISO);
 
-    // Vérification anti-doublon : comparer avec le dernier jour effectivement stocké
-    if (day > 0 && seancesJour.length > 0) {
-      // Trouver le dernier jour réellement stocké (pas forcément day-1 s'il a été ignoré)
-      let lastStoredDate = null;
-      for (let d = day - 1; d >= 0; d--) {
-        const candidate = getDateISO(d);
-        const hasData = Object.values(result.seances).some(fd => fd[candidate]);
-        if (hasData) { lastStoredDate = candidate; break; }
-      }
-      if (lastStoredDate) {
-        const titresJour = new Set(seancesJour.map(s => s.title));
-        const titresPrev = new Set(Object.keys(result.seances).filter(t => result.seances[t][lastStoredDate]));
-        const overlap = [...titresJour].filter(t => titresPrev.has(t)).length;
-        const ratio = titresJour.size > 0 ? overlap / titresJour.size : 0;
-        if (ratio > 0.8) {
-          // Comparer les horaires de plusieurs films pour être sûr
-          const sampled = seancesJour.slice(0, 3);
-          const allSame = sampled.every(s => {
-            const hJour = s.heures.join(',');
-            const hPrev = (result.seances[s.title]?.[lastStoredDate] || []).join(',');
-            return hJour === hPrev;
-          });
-          if (allSame) {
-            console.log(`    ⚠ Données identiques à ${lastStoredDate} → ignoré (AlloCiné n'a pas encore les données pour ${dateISO})`);
-            continue;
-          }
-        }
-      }
-    }
     
     for (const { title, director, duration, genre, heures } of seancesJour) {
       if (!result.films[title]) {
