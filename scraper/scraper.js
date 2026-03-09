@@ -177,10 +177,10 @@ async function scrapeCinema(cinemaId, cinema) {
   for (let day = 0; day < DAYS; day++) {
     const dateISO = getDateISO(day);
     
-    // URL AlloCiné: jour J = page de base, jours suivants = path /date-YYYY-MM-DD/
+    // URL AlloCiné: jour J = page de base, jours suivants = ?date=YYYY-MM-DD
     const url = day === 0
       ? `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html`
-      : `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}/date-${dateISO}/`;
+      : `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html?date=${dateISO}`;
 
     console.log(`  📅 ${dateISO} → ${url}`);
     
@@ -188,6 +188,26 @@ async function scrapeCinema(cinemaId, cinema) {
     if (!html) { console.log(`    ✗ Fetch échoué`); continue; }
 
     const seancesJour = parseAllocineHTML(html, dateISO);
+
+    // Vérification anti-doublon : si les horaires J+N sont identiques à J+(N-1),
+    // AlloCiné a renvoyé la page du jour précédent → on ignore
+    if (day > 0) {
+      const prevDateISO = getDateISO(day - 1);
+      const titresJour = new Set(seancesJour.map(s => s.title));
+      const titresPrev = new Set(Object.keys(result.seances).filter(t => result.seances[t][prevDateISO]));
+      // Si >80% des films sont identiques ET les horaires du premier film sont les mêmes → doublon
+      const overlap = [...titresJour].filter(t => titresPrev.has(t)).length;
+      const ratio = titresJour.size > 0 ? overlap / titresJour.size : 0;
+      if (ratio > 0.8 && seancesJour.length > 0) {
+        const firstTitle = seancesJour[0].title;
+        const hJour = seancesJour[0].heures.join(',');
+        const hPrev = (result.seances[firstTitle]?.[prevDateISO] || []).join(',');
+        if (hJour === hPrev) {
+          console.log(`    ⚠ Données identiques à J-1 (${prevDateISO}) → ignoré (AlloCiné n'a pas encore les données pour ${dateISO})`);
+          continue;
+        }
+      }
+    }
     
     for (const { title, director, duration, genre, heures } of seancesJour) {
       if (!result.films[title]) {
@@ -200,7 +220,6 @@ async function scrapeCinema(cinemaId, cinema) {
     const total = Object.values(result.seances).reduce((s, fd) => s + (fd[dateISO]||[]).length, 0);
     console.log(`    ✓ ${seancesJour.length} films, ${total} horaires`);
     
-    // Log un exemple pour debug
     if (seancesJour.length > 0) {
       const ex = seancesJour[0];
       console.log(`    Ex: "${ex.title}" → ${ex.heures.join(', ')}`);
