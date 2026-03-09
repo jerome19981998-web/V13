@@ -957,47 +957,77 @@ async function loadProfile(userId){
 }
 
 // Écouteur principal — appelé dès le démarrage et à chaque changement de session
-// Fonction centrale de gestion de session
-async function handleSession(session){
-  if(session?.user){
-    st.userId=session.user.id;
-    st.userEmail=session.user.email||'';
-    const hasProfile=await loadProfile(st.userId);
-    if(hasProfile){
-      if(st.screen==='loading'||st.screen==='auth'||st.screen==='pseudo'){
-        st.screen='home';
-        if(window.location.hash&&window.location.hash.includes('access_token')){
-          history.replaceState({},'',window.location.pathname);
+// Mutex pour eviter la double execution de handleSession
+let _sessionHandled=false;
+let _handlingSession=false;
+
+async function handleSession(session, force=false){
+  // Eviter les appels paralleles (cause les "Lock stolen" errors)
+  if(_handlingSession)return;
+  if(_sessionHandled&&!force)return;
+  _handlingSession=true;
+
+  try{
+    if(session?.user){
+      st.userId=session.user.id;
+      st.userEmail=session.user.email||'';
+
+      // Nettoyer le hash de l'URL (access_token visible dans la barre d'adresse)
+      if(window.location.hash&&window.location.hash.includes('access_token')){
+        history.replaceState({},'',window.location.pathname);
+      }
+
+      let hasProfile=await loadProfile(st.userId);
+
+      // Si pas de profil en base mais pseudo en localStorage → auto-creer le profil
+      if(!hasProfile&&st.pseudo){
+        const{error}=await supa.from('profiles').upsert({
+          id:st.userId,pseudo:st.pseudo,avatar:st.avatar||'🎬',lang:st.lang||'fr'
+        },{onConflict:'id'});
+        if(!error)hasProfile=true;
+      }
+
+      if(hasProfile){
+        if(st.screen==='loading'||st.screen==='auth'||st.screen==='pseudo'){
+          st.screen='home';
+          render();
+          loadMesGroupes();loadSorties();
+          if(st.lbdPseudo)loadLbd(st.lbdPseudo);
+          if(st._inviteGroupe&&st._inviteFilm){
+            const gid=st._inviteGroupe,fid=st._inviteFilm;
+            st._inviteGroupe=null;st._inviteFilm=null;
+            openGroup(fid,gid);
+          }
         }
-        render();
-        loadMesGroupes();loadSorties();
-        if(st.lbdPseudo)loadLbd(st.lbdPseudo);
-        if(st._inviteGroupe&&st._inviteFilm){
-          const gid=st._inviteGroupe,fid=st._inviteFilm;
-          st._inviteGroupe=null;st._inviteFilm=null;
-          openGroup(fid,gid);
-        }
+      }else{
+        // Nouveau user sans pseudo — ecran de choix du pseudo
+        st.screen='pseudo';st.pseudoInput='';render();
       }
     }else{
-      st.screen='pseudo';st.pseudoInput='';
-      if(window.location.hash)history.replaceState({},'',window.location.pathname);
-      render();
+      st.userId=null;st.userEmail='';
+      if(st.screen!=='auth'){st.screen='auth';st.authStep='email';render();}
     }
-  }else{
-    st.userId=null;st.userEmail='';
-    st.screen='auth';st.authStep='email';render();
+  }finally{
+    _sessionHandled=true;
+    _handlingSession=false;
   }
 }
 
-// 1. Verifier immediatement s'il y a une session (gere le retour du magic link)
-supa.auth.getSession().then(({data:{session}})=>handleSession(session));
-
-// 2. Ecouter les changements de session (login / logout / refresh)
+// Supabase gere lui-meme la session depuis l'URL (detectSessionInUrl:true)
+// onAuthStateChange se declenche automatiquement apres le magic link
 supa.auth.onAuthStateChange(async(event,session)=>{
-  if(['SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event)){
+  if(event==='SIGNED_IN'){
+    // Reset le mutex pour le vrai login
+    _sessionHandled=false;
     await handleSession(session);
+  } else if(event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
+    await handleSession(session,true);
   } else if(event==='SIGNED_OUT'){
-    await handleSession(null);
+    _sessionHandled=false;
+    st.userId=null;st.userEmail='';
+    st.screen='auth';st.authStep='email';render();
+  } else if(event==='INITIAL_SESSION'){
+    await handleSession(session);
   }
 });
 
