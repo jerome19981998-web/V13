@@ -324,7 +324,7 @@ function requestGeoLoc(){
   if(!navigator.geolocation)return;
   navigator.geolocation.getCurrentPosition(p=>{
     userPos={lat:p.coords.latitude,lng:p.coords.longitude};
-    if(['cinemas','cinema-detail'].includes(st.screen))render();
+    if(['cinemas','cinema-detail','home'].includes(st.screen))render();
   },()=>{},{timeout:8000});
 }
 function sortedCinemas(chain){
@@ -526,6 +526,8 @@ async function loadMesGroupes(){
 }
 
 async function loadSorties(){
+  // Demander la géoloc si pas encore disponible
+  if(!userPos)requestGeoLoc();
   try{
     const today=todayStr();
     const{data}=await supa.from('groupes')
@@ -1205,6 +1207,8 @@ function sHome(){
     const film=FILMS[s.film_id]||{t:s.nom,e:'🎬',g:'',d:'',bg:'#111'};
     const cinema=CINEMAS.find(c=>c.id===s.confirmed_cinema);
     const chainColor=CC[cinema?.chain]||MU;
+    const dist=(userPos&&cinema?.lat&&cinema?.lng)?getDistance(userPos.lat,userPos.lng,cinema.lat,cinema.lng):null;
+    const distStr=dist!==null?distLabel(dist):null;
     const nb=s._nb||0;
     const max=s.max_membres||8;
     const pct=Math.round((nb/max)*100);
@@ -1219,7 +1223,10 @@ function sHome(){
         </div>
         <div style="flex:1;min-width:0;">
           <div class="serif" style="font-size:15px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${film.t}</div>
-          <div style="font-size:10px;color:${chainColor};font-weight:600;margin-bottom:4px;">${cinema?.name||s.confirmed_cinema||'Cinéma'}</div>
+          <div style="font-size:10px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="color:${chainColor};">${cinema?.name||s.confirmed_cinema||'Cinéma'}</span>
+            ${distStr?`<span style="color:${MU};font-weight:400;font-size:9px;">📍 ${distStr}</span>`:''}
+          </div>
           <div style="font-size:13px;font-weight:700;margin-bottom:6px;">${s.confirmed_heure} · <span style="font-weight:400;color:${MU};font-size:11px;">${formatDate(s.confirmed_date)}</span></div>
           <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:3px 6px;display:flex;align-items:center;gap:6px;">
             <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;">
