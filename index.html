@@ -419,7 +419,13 @@ function applyGenre(id, genre){
 const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
 const _s1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2'),_s2=atob('SW1Gc2QyWmliV2x1YUdSM2FXNTRZMjk2YW14cUlpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpJNU9EQTFO'),_s3=atob('VFlzSW1WNGNDSTZNakE0T0RVMU5qVTFObjAuT1RyOGx5RHBSUXNtWFVDUEtzbTF3dk5QWWZDQTMyVUJRU2hSaWJJX2JEZw==');
 const SUPA_KEY=_s1+_s2+_s3;
-const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+let supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+function refreshSupaHeaders(){
+  // Recréer le client avec le pseudo à jour pour que RLS fonctionne
+  supa=supabase.createClient(SUPA_URL,SUPA_KEY,{
+    global:{headers:{'x-pseudo':(typeof st!=='undefined'?st.pseudo:'')||''}}
+  });
+}
 
 // ═══════════ STATE ═══════════
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
@@ -1126,6 +1132,7 @@ function confirmPseudo(){
   const val=(inp?inp.value:st.pseudoInput).trim();
   if(!val)return;
   st.pseudo=val;save();
+  refreshSupaHeaders();
   if(st._inviteGroupe&&st._inviteFilm){
     const gid=st._inviteGroupe,fid=st._inviteFilm;
     st._inviteGroupe=null;st._inviteFilm=null;
