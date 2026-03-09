@@ -177,12 +177,12 @@ async function scrapeCinema(cinemaId, cinema) {
   for (let day = 0; day < DAYS; day++) {
     const dateISO = getDateISO(day);
     
-    // URL AlloCiné: jour J = page de base, jours suivants = paramètre ?date=
+    // URL AlloCiné: jour J = page de base, jours suivants = path /date-YYYY-MM-DD/
     const url = day === 0
       ? `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html`
-      : `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html?date=${dateISO}`;
+      : `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}/date-${dateISO}/`;
 
-    console.log(`  📅 ${dateISO} → ${url.split('?')[0].split('/').pop()}${day > 0 ? '?date='+dateISO : ''}`);
+    console.log(`  📅 ${dateISO} → ${url}`);
     
     const html = await fetchPage(url);
     if (!html) { console.log(`    ✗ Fetch échoué`); continue; }
