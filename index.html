@@ -922,7 +922,7 @@ function sHome(){
       </div>
       <div style="display:flex;gap:0;background:${S1};border:1px solid ${BD};border-radius:14px;padding:3px;margin-bottom:2px;">
         <div onclick="st.homeTab='sorties';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='sorties'?AC:'transparent'};color:${tab==='sorties'?'#fff':MU};transition:all .2s;">🍿 Sorties</div>
-        <div onclick="st.homeTab='films';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='films'?S2:'transparent'};color:${tab==='films'?TX:MU};transition:all .2s;">🎬 Films</div>
+        <div onclick="st.homeTab='films';st.search='';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='films'?S2:'transparent'};color:${tab==='films'?TX:MU};transition:all .2s;">🎬 Films</div>
       </div>
     </div>`;
 
@@ -931,7 +931,7 @@ function sHome(){
     const filmGenre=id=>{const f=FILMS[id];return f?norm(f.g):'';};
     const searchQ=norm(st.search||'');
     const cards=Object.entries(FILMS).filter(([id,f])=>{
-      const genreOk=st.genre==='tous'||filmGenre(id).includes(norm(st.genre==='comedie'?'comedie':st.genre));
+      const gn=norm(st.genre);const genreOk=st.genre==='tous'||filmGenre(id).includes(gn)||filmGenre(id).includes(gn.replace('comedie','comedi'));
       const searchOk=!searchQ||norm(f.t).includes(searchQ)||norm(f.dir||'').includes(searchQ)||norm(f.g).includes(searchQ)||norm(f.s||'').includes(searchQ);
       return genreOk&&searchOk;
     });
@@ -1183,9 +1183,8 @@ function sCreateSortie(){
   const dateS=ns.date||st.date;
   const maxM=ns.max||6;
 
-  // Films disponibles (avec séances)
-  const availFilms=[...new Set(Object.values(SEANCES).flatMap(c=>Object.keys(c)))]
-    .map(id=>FILMS[id]).filter(Boolean).sort((a,b)=>a.t.localeCompare(b.t));
+  // Films disponibles (tous les films en salle)
+  const availFilms=Object.entries(FILMS).map(([id,f])=>({...f,_id:id})).sort((a,b)=>a.t.localeCompare(b.t));
 
   // Cinémas pour ce film
   const cinForFilm=filmId?CINEMAS.filter(c=>Object.keys(SEANCES[c.id]||{}).includes(filmId)):[];
@@ -1206,20 +1205,20 @@ function sCreateSortie(){
   const canCreate=filmId&&cinemaId&&heure&&selectedDate;
 
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="padding:50px 18px 16px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${BD};">
+    <div style="padding:50px 18px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${BD};">
       <div onclick="st.screen='home';st.newSortie=null;render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>
       <div>
         <div style="font-size:16px;font-weight:700;">Créer une sortie</div>
         <div style="font-size:11px;color:${MU};">Partage ton plan ciné avec d'autres</div>
       </div>
     </div>
-    <div style="flex:1;overflow-y:auto;padding:16px 18px 20px;">
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 24px;">
 
       <div style="margin-bottom:16px;">
         <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">1 · Choisis un film</div>
         <div style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
           ${availFilms.map(f=>{
-            const fid=Object.keys(FILMS).find(k=>FILMS[k]===f);
+            const fid=f._id;
             const sel=filmId===fid;
             return `<div onclick="st.newSortie={...(st.newSortie||{}),film:'${fid}',cinema:null,heure:null};render()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;cursor:pointer;background:${sel?'rgba(255,63,91,0.12)':S1};border:1px solid ${sel?AC:BD};">
               ${posters[fid]?`<img src="${posters[fid]}" style="width:32px;height:44px;object-fit:cover;border-radius:6px;">`:
