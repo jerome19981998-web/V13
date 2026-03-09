@@ -107,6 +107,149 @@ function filmPalette(slug){
 }
 const CHAIN_ICONS={ugc:'🎬',pathe:'🌟',gaumont:'🔵'};
 
+
+// ═══════════ TRADUCTIONS ═══════════
+const LANGS = {
+  fr: {
+    appTagline: 'Trouve des gens pour aller au ciné avec toi',
+    enterPseudo: 'Ton pseudo…',
+    enterApp: 'Entrer dans CinéMatch →',
+    pseudoVisible: 'Ton pseudo est visible de tous',
+    chooseLanguage: 'Langue / Language',
+    sorties: '🍿 Sorties',
+    films: '🎬 Films',
+    cinemas: '🏛 Cinémas',
+    groupes: '👥 Groupes',
+    profil: '👤 Profil',
+    sorties_publiques: T('sorties_publiques'),
+    creer: '+ Créer',
+    creerSortie: 'Créer une sortie',
+    creerSortieDesc: '${T('creerSortieDesc')}',
+    rejoindre: '+ Rejoindre',
+    complet: '${T('complet')}',
+    taSortie: '${T('taSortie')}',
+    jeParticipe: '${T('jeParticipe')}',
+    aucuneSortie: '${T('aucuneSortie')}',
+    aucuneSortieDesc: 'Sois le premier à créer une sortie
+et invite des gens à te rejoindre !',
+    choisisFilm: '1 · Choisis un film',
+    choisisCinema: '2 · Choisis un cinéma',
+    choisisSeance: '3 · Choisis une séance',
+    combienPersonnes: '4 · Combien de personnes max ?',
+    personnesInclus: '${T('personnesInclus')}',
+    creerSortieBtn: '🍿 Créer la sortie publique',
+    aucunFilmDispo: 'Aucun cinéma disponible pour ce film',
+    aucuneSeance: '${T('aucuneSeance')}',
+    bonsoir: 'Bonsoir',
+    rechercher: '${T('rechercher')}',
+    aucunFilmTrouve: '${T('aucunFilmTrouve')}',
+    genres: [['tous','Tous'],['drame','Drame'],['horreur','Horreur'],['romance','Romance'],['thriller','Thriller'],['comedie','Comédie'],['animation','Anim.'],['polar','Polar']],
+    seancesPassee: 'passée',
+    votes: (n) => n===1?'1 vote':`${n} votes`,
+    cestDecide: '✅ C'est décidé !',
+    confirmer: (h,n) => `Confirmer ${h} · ${n} vote${n>1?'s':''}`,
+    aucuneSeanceJour: 'Aucune séance ce jour',
+    misAJour: 'Mis à jour',
+    aLinstant: 'à l'instant',
+    synchro: 'Synchro…',
+    yAller: '${T('yAller')}',
+    reserver: '${T('reserver')}',
+    membres: (n) => `${n} membre${n!==1?'s':''}`,
+    presence: 'Votre présence',
+    jeViens: 'Je viens',
+    peutEtre: 'Peut-être',
+    jePeuxPas: 'Je peux pas',
+    vote_tab: 'Vote',
+    membres_tab: 'Membres',
+    chat_tab: 'Chat',
+    inviterAmi: '👥 Inviter',
+    partager: '🔗 Partager',
+    confirmePlan: '🎬 Plan confirmé',
+    annuler: 'Annuler',
+    countdown: (d,h,m) => d>0?`dans ${d}j ${h}h`:h>0?`dans ${h}h ${m}min`:`dans ${m}min`,
+    seancePassee: '✓ Séance passée',
+    monProfil: 'Mon Profil',
+    deconnexion: 'Se déconnecter',
+    letterboxd: 'Letterboxd',
+    letterboxdDesc: 'Synchronise ton historique',
+    watchlist: 'Watchlist',
+    filmsVus: 'Films vus',
+    enVoici: 'En voici',
+  },
+  en: {
+    appTagline: 'Find people to go to the movies with',
+    enterPseudo: 'Your username…',
+    enterApp: 'Enter CinéMatch →',
+    pseudoVisible: 'Your username is visible to everyone',
+    chooseLanguage: 'Langue / Language',
+    sorties: '🍿 Events',
+    films: '🎬 Films',
+    cinemas: '🏛 Cinemas',
+    groupes: '👥 Groups',
+    profil: '👤 Profile',
+    sorties_publiques: 'Public events',
+    creer: '+ Create',
+    creerSortie: 'Create an event',
+    creerSortieDesc: 'Share your cinema plan with others',
+    rejoindre: '+ Join',
+    complet: 'Full',
+    taSortie: '👑 Your event',
+    jeParticipe: '✓ Joined',
+    aucuneSortie: 'No events yet',
+    aucuneSortieDesc: 'Be the first to create an event
+and invite others to join!',
+    choisisFilm: '1 · Choose a film',
+    choisisCinema: '2 · Choose a cinema',
+    choisisSeance: '3 · Choose a showtime',
+    combienPersonnes: '4 · Max number of people?',
+    personnesInclus: 'people (including you)',
+    creerSortieBtn: '🍿 Create public event',
+    aucunFilmDispo: 'No cinema available for this film',
+    aucuneSeance: 'No showtime for this film at this cinema',
+    bonsoir: 'Good evening',
+    rechercher: '🔍  Search a film…',
+    aucunFilmTrouve: 'No film found',
+    genres: [['tous','All'],['drame','Drama'],['horreur','Horror'],['romance','Romance'],['thriller','Thriller'],['comedie','Comedy'],['animation','Anim.'],['polar','Thriller']],
+    seancesPassee: 'past',
+    votes: (n) => n===1?'1 vote':`${n} votes`,
+    cestDecide: '✅ It's decided!',
+    confirmer: (h,n) => `Confirm ${h} · ${n} vote${n>1?'s':''}`,
+    aucuneSeanceJour: 'No showtime today',
+    misAJour: 'Updated',
+    aLinstant: 'just now',
+    synchro: 'Syncing…',
+    yAller: '🗺 Directions',
+    reserver: '🎟 Book',
+    membres: (n) => `${n} member${n!==1?'s':''}`,
+    presence: 'Your attendance',
+    jeViens: 'I'm in',
+    peutEtre: 'Maybe',
+    jePeuxPas: 'Can't make it',
+    vote_tab: 'Vote',
+    membres_tab: 'Members',
+    chat_tab: 'Chat',
+    inviterAmi: '👥 Invite',
+    partager: '🔗 Share',
+    confirmePlan: '🎬 Plan confirmed',
+    annuler: 'Cancel',
+    countdown: (d,h,m) => d>0?`in ${d}d ${h}h`:h>0?`in ${h}h ${m}min`:`in ${m}min`,
+    seancePassee: '✓ Past showtime',
+    monProfil: 'My Profile',
+    deconnexion: 'Sign out',
+    letterboxd: 'Letterboxd',
+    letterboxdDesc: 'Sync your watch history',
+    watchlist: 'Watchlist',
+    filmsVus: 'Films seen',
+    enVoici: 'Here are',
+  }
+};
+function T(key,...args){
+  const d=LANGS[st.lang||'fr']||LANGS.fr;
+  const v=d[key];
+  if(typeof v==='function')return v(...args);
+  return v||key;
+}
+
 async function initDynamicData(dateStr){
   const isFirstLoad=!DATA_LOADED;
   try{
@@ -218,6 +361,7 @@ const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
 let st={
   screen:_saved.pseudo?'home':'pseudo',
+  lang:_saved.lang||'fr',
   pseudo:_saved.pseudo||'',
   pseudoInput:_saved.pseudo||'',
   avatar:_saved.avatar||'🎬',
@@ -229,7 +373,7 @@ let st={
   viewedMember:null,showAvatarPicker:false,
   _inviteGroupe:null,_inviteFilm:null,_changingPseudo:false,
 };
-function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar}))}catch(e){}}
+function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang}))}catch(e){}}
 
 function todayStr(){
   const d=new Date();
@@ -820,14 +964,14 @@ function renderVotesDOM(){
     });
   });
   allSeances.sort();
-  if(!allSeances.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:12px;">Aucune séance ce jour</div>`;return;}
+  if(!allSeances.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:12px;">${T('aucuneSeanceJour')}</div>`;return;}
 
   // Trouver l'horaire avec le plus de votes (pour "C'est décidé !")
   let maxVotes=0,bestHeure=null;
   allSeances.forEach(h=>{const k=st.date+' '+h;const n=(votesData[k]||[]).length;if(n>maxVotes){maxVotes=n;bestHeure=h;}});
   const majority=membresData.length>0&&maxVotes>=Math.ceil(membresData.length/2);
   const confirmBtn=(majority&&bestHeure&&!groupeInfo.confirmed_heure)?`<div onclick="confirmerPlan('${st.cinema}','${bestHeure}','${st.date}')" style="margin-bottom:12px;padding:12px 14px;border-radius:14px;background:rgba(0,192,48,0.12);border:1px solid rgba(0,192,48,0.4);cursor:pointer;text-align:center;">
-    <div style="font-size:13px;font-weight:700;color:${LB};">✅ C'est décidé !</div>
+    <div style="font-size:13px;font-weight:700;color:${LB};">${T('cestDecide')}</div>
     <div style="font-size:10px;color:${MU};margin-top:2px;">Confirmer ${bestHeure} · ${maxVotes} vote${maxVotes>1?'s':''}</div>
   </div>`:'';
 
@@ -872,12 +1016,23 @@ function msgHTML(m){
 
 // ═══════════ SCREENS ═══════════
 function sPseudo(){
+  const lang=st.lang||'fr';
   return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
-    <div style="font-size:64px;margin-bottom:24px;">🎬</div>
-    <div class="serif" style="font-size:30px;margin-bottom:8px;">CinéMatch</div>
-    <div style="font-size:12px;color:${MU};margin-bottom:24px;line-height:1.7;">Le chat en direct avec tous les cinéphiles<br>qui ont le lien. Entrez un pseudo pour commencer.</div>
+    <div style="font-size:64px;margin-bottom:16px;">🎬</div>
+    <div class="serif" style="font-size:30px;margin-bottom:6px;">CinéMatch</div>
+    <div style="font-size:12px;color:${MU};margin-bottom:20px;line-height:1.7;">${T('appTagline')}</div>
+
+    <div style="display:flex;gap:8px;margin-bottom:24px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:4px;">
+      <div onclick="st.lang='fr';save();render()" style="flex:1;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;background:${lang==='fr'?AC:'transparent'};color:${lang==='fr'?'#fff':MU};transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;">
+        🇫🇷 Français
+      </div>
+      <div onclick="st.lang='en';save();render()" style="flex:1;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;background:${lang==='en'?AC:'transparent'};color:${lang==='en'?'#fff':MU};transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;">
+        🇬🇧 English
+      </div>
+    </div>
+
     <div style="width:100%;margin-bottom:12px;">
-      <input id="pseudoInput" type="text" placeholder="Votre pseudo…" maxlength="20"
+      <input id="pseudoInput" type="text" placeholder="${T('enterPseudo')}" maxlength="20"
         style="width:100%;background:${S2};border:1px solid ${BD};border-radius:14px;padding:14px 18px;font-size:14px;color:${TX};outline:none;text-align:center;"
         onkeydown="if(event.key==='Enter')confirmPseudo()"
         oninput="st.pseudoInput=this.value"
@@ -886,8 +1041,8 @@ function sPseudo(){
     <div id="avatar-picker-wrap" style="width:100%;margin-bottom:12px;">
       ${st.showAvatarPicker?buildPickerGrid():buildAvatarBtn()}
     </div>
-    <button onclick="confirmPseudo()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;">Entrer dans CinéMatch →</button>
-    <div style="margin-top:20px;font-size:10px;color:${MU};">Votre pseudo est visible dans le chat par tous</div>
+    <button onclick="confirmPseudo()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;">${T('enterApp')}</button>
+    <div style="margin-top:20px;font-size:10px;color:${MU};">${T('pseudoVisible')}</div>
   </div>`;
 }
 
@@ -913,7 +1068,7 @@ function sHome(){
     <div style="padding:50px 18px 0;flex-shrink:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div>
-          <div style="font-size:11px;color:${MU};letter-spacing:2px;text-transform:uppercase;">Bonsoir</div>
+          <div style="font-size:11px;color:${MU};letter-spacing:2px;text-transform:uppercase;">${T('bonsoir')}</div>
           <div class="serif" style="font-size:22px;">${st.pseudo} <span style="color:${AC}">👋</span></div>
         </div>
         <div onclick="go('profile')" style="display:flex;align-items:center;gap:7px;background:${S1};border:1px solid ${BD};border-radius:18px;padding:5px 10px 5px 5px;cursor:pointer;">
@@ -922,13 +1077,13 @@ function sHome(){
         </div>
       </div>
       <div style="display:flex;gap:0;background:${S1};border:1px solid ${BD};border-radius:14px;padding:3px;margin-bottom:2px;">
-        <div onclick="st.homeTab='sorties';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='sorties'?AC:'transparent'};color:${tab==='sorties'?'#fff':MU};transition:all .2s;">🍿 Sorties</div>
-        <div onclick="st.homeTab='films';st.search='';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='films'?S2:'transparent'};color:${tab==='films'?TX:MU};transition:all .2s;">🎬 Films</div>
+        <div onclick="st.homeTab='sorties';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='sorties'?AC:'transparent'};color:${tab==='sorties'?'#fff':MU};transition:all .2s;">${T('sorties')}</div>
+        <div onclick="st.homeTab='films';st.search='';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='films'?S2:'transparent'};color:${tab==='films'?TX:MU};transition:all .2s;">${T('films')}</div>
       </div>
     </div>`;
 
   if(tab==='films'){
-    const genres=[['tous','Tous'],['drame','Drame'],['horreur','Horreur'],['romance','Romance'],['thriller','Thriller'],['comedie','Comédie'],['animation','Anim.'],['polar','Polar']];
+    const genres=T('genres');
     const filmGenre=id=>{const f=FILMS[id];return f?norm(f.g):'';};
     const searchQ=norm(st.search||'');
     const cards=Object.entries(FILMS).filter(([id,f])=>{
@@ -942,14 +1097,14 @@ function sHome(){
           ${genres.map(([id,lb])=>`<div onclick="setGenre('${id}')" style="border-radius:20px;padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid ${st.genre===id?AC:BD};background:${st.genre===id?AC:'rgba(255,255,255,0.03)'};color:${st.genre===id?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join('')}
         </div>
         <div style="position:relative;">
-          <input id="search-input" placeholder="🔍  Rechercher un film…" value="${st.search||''}"
+          <input id="search-input" placeholder="${T('rechercher')}" value="${st.search||''}"
             oninput="st.search=this.value;render()"
             style="width:100%;background:${S1};border:1px solid ${BD};border-radius:12px;padding:9px 14px;font-size:12px;color:${TX};outline:none;">
           ${(st.search||'')?`<span onclick="st.search='';render();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:${MU};cursor:pointer;">✕</span>`:''}
         </div>
       </div>
       <div style="flex:1;overflow-y:auto;">
-        ${cards.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:36px;margin-bottom:10px;">🔍</div><div style="font-size:13px;">Aucun film trouvé</div></div>`:''}
+        ${cards.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:36px;margin-bottom:10px;">🔍</div><div style="font-size:13px;">${T('aucunFilmTrouve')}</div></div>`:''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px 20px;">
           ${cards.map(([id,f])=>`
           <div onclick="openFilm('${id}','home')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;overflow:hidden;cursor:pointer;">
@@ -965,7 +1120,7 @@ function sHome(){
         </div>
       </div>
       <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
-        ${[['home','🍿','Sorties'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
+        ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
       </div>`;
   }
 
@@ -1001,31 +1156,31 @@ function sHome(){
         </div>
       </div>
       <div style="padding:0 12px 12px;display:flex;gap:8px;align-items:center;">
-        ${isCreator?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(240,192,96,0.1);border:1px solid rgba(240,192,96,0.3);font-size:11px;color:${GD};font-weight:600;">👑 Ta sortie</div>`:''}
-        ${isMine&&!isCreator?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(0,192,48,0.1);border:1px solid rgba(0,192,48,0.3);font-size:11px;color:${LB};font-weight:600;">✓ Je participe</div>`:''}
-        ${!isMine&&!isFull?`<div onclick="event.stopPropagation();rejoindreSortie('${s.id}','${s.film_id}')" style="flex:1;text-align:center;padding:8px;border-radius:12px;background:${AC};font-size:12px;font-weight:700;color:#fff;">+ Rejoindre</div>`:''}
-        ${!isMine&&isFull?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid ${BD};font-size:11px;color:${MU};">Complet</div>`:''}
+        ${isCreator?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(240,192,96,0.1);border:1px solid rgba(240,192,96,0.3);font-size:11px;color:${GD};font-weight:600;">${T('taSortie')}</div>`:''}
+        ${isMine&&!isCreator?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(0,192,48,0.1);border:1px solid rgba(0,192,48,0.3);font-size:11px;color:${LB};font-weight:600;">${T('jeParticipe')}</div>`:''}
+        ${!isMine&&!isFull?`<div onclick="event.stopPropagation();rejoindreSortie('${s.id}','${s.film_id}')" style="flex:1;text-align:center;padding:8px;border-radius:12px;background:${AC};font-size:12px;font-weight:700;color:#fff;">${T('rejoindre')}</div>`:''}
+        ${!isMine&&isFull?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid ${BD};font-size:11px;color:${MU};">${T('complet')}</div>`:''}
       </div>
     </div>`;
   };
 
   const emptySorties=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;gap:12px;">
     <div style="font-size:48px;">🍿</div>
-    <div class="serif" style="font-size:18px;">Aucune sortie pour l'instant</div>
+    <div class="serif" style="font-size:18px;">${T('aucuneSortie')}</div>
     <div style="font-size:12px;color:${MU};line-height:1.5;">Sois le premier à créer une sortie<br>et invite des gens à te rejoindre !</div>
-    <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;">+ Créer une sortie</div>
+    <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;">${T('creerSortieBtn').replace('🍿 ','+ ')}</div>
   </div>`;
 
   return header+`
     <div style="flex:1;overflow-y:auto;padding-top:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:12px;">
         <div style="font-size:11px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">Sorties publiques</div>
-        <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="display:flex;align-items:center;gap:5px;background:${AC};border-radius:20px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:700;color:#fff;">+ Créer</div>
+        <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="display:flex;align-items:center;gap:5px;background:${AC};border-radius:20px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:700;color:#fff;">${T('creer')}</div>
       </div>
       ${sortiesPubliques.length===0?emptySorties:sortiesPubliques.map(sortieCard).join('')}
     </div>
     <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
-      ${[['home','🍿','Sorties'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
+      ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
     </div>`;
 }
 
@@ -1076,7 +1231,7 @@ function sCinemas(){
     }).join('')}
   </div>
   <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
-    ${[['home','🍿','Sorties'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
+    ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 }
 
@@ -1095,8 +1250,8 @@ function sCinemaDetail(){
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:2px;">
-      ${links_.maps?`<a href="${links_.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.25);border-radius:10px;padding:8px;font-size:11px;font-weight:600;color:#4a9eff;text-decoration:none;">🗺 Y aller</a>`:''}
-      ${links_.tickets?`<a href="${links_.tickets}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(240,192,96,0.1);border:1px solid rgba(240,192,96,0.25);border-radius:10px;padding:8px;font-size:11px;font-weight:600;color:${GD};text-decoration:none;">🎟 Réserver</a>`:''}
+      ${links_.maps?`<a href="${links_.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.25);border-radius:10px;padding:8px;font-size:11px;font-weight:600;color:#4a9eff;text-decoration:none;">${T('yAller')}</a>`:''}
+      ${links_.tickets?`<a href="${links_.tickets}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(240,192,96,0.1);border:1px solid rgba(240,192,96,0.25);border-radius:10px;padding:8px;font-size:11px;font-weight:600;color:${GD};text-decoration:none;">${T('reserver')}</a>`:''}
       <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:11px;color:${MU};">${cinema.salles} 🎬</div>
       ${cinema.tech.slice(0,2).map(t=>`<div style="background:${col}10;border:1px solid ${col}25;border-radius:10px;padding:8px 10px;font-size:10px;font-weight:600;color:${col};">${t}</div>`).join('')}
     </div>
@@ -1159,7 +1314,7 @@ function sFilm(){
           const s=(SEANCES[c.id]||{})[st.film]||[];
           return{cinema:c,seances:s.filter(h=>!isPast(h))};
         }).filter(x=>x.seances.length);
-        if(!seancesJour.length) return `<div style="text-align:center;padding:20px 0;color:${MU};font-size:12px;">Aucune séance disponible ce jour</div>`;
+        if(!seancesJour.length) return `<div style="text-align:center;padding:20px 0;color:${MU};font-size:12px;">${T('aucuneSeanceJour')}</div>`;
         return `<div style="margin-bottom:18px;">
           <div style="font-size:10px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances</div>
           ${seancesJour.map(({cinema:c,seances})=>`
@@ -1209,14 +1364,14 @@ function sCreateSortie(){
     <div style="padding:50px 18px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${BD};">
       <div onclick="createSortieScroll=0;st.screen='home';st.newSortie=null;render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>
       <div>
-        <div style="font-size:16px;font-weight:700;">Créer une sortie</div>
-        <div style="font-size:11px;color:${MU};">Partage ton plan ciné avec d'autres</div>
+        <div style="font-size:16px;font-weight:700;">${T('creerSortie')}</div>
+        <div style="font-size:11px;color:${MU};">${T('creerSortieDesc')}</div>
       </div>
     </div>
     <div id="create-sortie-scroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 24px;" onscroll="createSortieScroll=this.scrollTop">
 
       <div style="margin-bottom:16px;">
-        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">1 · Choisis un film</div>
+        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisFilm')}</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           ${availFilms.map(f=>{
             const fid=f._id;
@@ -1235,8 +1390,8 @@ function sCreateSortie(){
       </div>
 
       ${filmId?`<div style="margin-bottom:16px;">
-        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">2 · Choisis un cinéma</div>
-        ${cinForFilm.length===0?`<div style="font-size:12px;color:${MU};padding:10px;">Aucun cinéma disponible pour ce film aujourd'hui</div>`:''}
+        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisCinema')}</div>
+        ${cinForFilm.length===0?`<div style="font-size:12px;color:${MU};padding:10px;">${T('aucunFilmDispo')}</div>`:''}
         <div style="display:flex;flex-direction:column;gap:6px;">
           ${cinForFilm.map(c=>{
             const sel=cinemaId===c.id;
@@ -1252,7 +1407,7 @@ function sCreateSortie(){
       </div>`:''}
 
       ${filmId&&cinemaId?`<div style="margin-bottom:16px;">
-        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">3 · Choisis une séance</div>
+        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisSeance')}</div>
         ${AVAILABLE_DATES.length>1?`<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;">
           ${AVAILABLE_DATES.map(d=>{
             const dd=new Date(d+'T12:00:00');
@@ -1266,23 +1421,23 @@ function sCreateSortie(){
             </div>`;
           }).join('')}
         </div>`:''}
-        ${heuresForDate.length===0?`<div style="font-size:12px;color:${MU};padding:10px;">Aucune séance ce jour pour ce film dans ce cinéma</div>`:''}
+        ${heuresForDate.length===0?`<div style="font-size:12px;color:${MU};padding:10px;">${T('aucuneSeance')}</div>`:''}
         <div style="display:flex;flex-wrap:wrap;gap:8px;">
           ${heuresForDate.map(h=>`<div onclick="st.newSortie={...(st.newSortie||{}),heure:'${h}'};render()" style="padding:8px 14px;border-radius:12px;cursor:pointer;background:${heure===h?AC:'rgba(255,255,255,0.05)'};border:1px solid ${heure===h?AC:BD};font-size:13px;font-weight:600;color:${heure===h?'#fff':TX};">${h}</div>`).join('')}
         </div>
       </div>`:''}
 
       ${filmId&&cinemaId&&heure?`<div style="margin-bottom:20px;">
-        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">4 · Combien de personnes max ?</div>
+        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('combienPersonnes')}</div>
         <div style="display:flex;align-items:center;gap:16px;">
           <div onclick="st.newSortie={...(st.newSortie||{}),max:Math.max(2,(st.newSortie?.max||6)-1)};render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;">−</div>
           <div style="font-size:22px;font-weight:700;min-width:32px;text-align:center;">${maxM}</div>
           <div onclick="st.newSortie={...(st.newSortie||{}),max:Math.min(12,(st.newSortie?.max||6)+1)};render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;">+</div>
-          <div style="font-size:11px;color:${MU};">personnes (toi inclus)</div>
+          <div style="font-size:11px;color:${MU};">${T('personnesInclus')}</div>
         </div>
       </div>`:''}
 
-      ${canCreate?`<div onclick="creerSortie('${filmId}','${cinemaId}','${heure}','${selectedDate}',${maxM})" style="padding:14px;background:${AC};border-radius:16px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;color:#fff;">🍿 Créer la sortie publique</div>`:''}
+      ${canCreate?`<div onclick="creerSortie('${filmId}','${cinemaId}','${heure}','${selectedDate}',${maxM})" style="padding:14px;background:${AC};border-radius:16px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;color:#fff;">${T('creerSortieBtn')}</div>`:''}
     </div>
   </div>`;
 }
@@ -1319,7 +1474,7 @@ function sGroup(){
       }).join('')}
     </div>
     <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
-      ${[['home','🍿','Sorties'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
+      ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
     </div>`;
   }
 
@@ -1391,8 +1546,8 @@ function sGroup(){
           </div>
         </div>
         <div style="display:flex;gap:6px;">
-          ${links.maps?`<a href="${links.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:#4a9eff;text-decoration:none;">🗺 Y aller</a>`:''}
-          ${links.tickets?`<a href="${links.tickets}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${GD};text-decoration:none;">🎟 Réserver</a>`:''}
+          ${links.maps?`<a href="${links.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:#4a9eff;text-decoration:none;">${T('yAller')}</a>`:''}
+          ${links.tickets?`<a href="${links.tickets}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${GD};text-decoration:none;">${T('reserver')}</a>`:''}
           <div onclick="shareGroupe()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${TX};cursor:pointer;">📤 Partager</div>
         </div>
       </div>`:'';
@@ -1528,7 +1683,7 @@ function sProfile(){
     ${logoutBlock}
   </div>
   <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
-    ${[['home','🍿','Sorties'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
+    ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 }
 
@@ -1627,4 +1782,14 @@ setInterval(()=>{
 },30*1000);
 </script>
 </body>
-</html>
+</html>      <div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">${T('chooseLanguage')}</div>
+        <div style="display:flex;gap:8px;">
+          <div onclick="st.lang='fr';save();render()" style="flex:1;padding:9px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;background:${st.lang==='fr'?AC:'rgba(255,255,255,0.04)'};border:1px solid ${st.lang==='fr'?AC:BD};color:${st.lang==='fr'?'#fff':MU};text-align:center;">
+            🇫🇷 Français
+          </div>
+          <div onclick="st.lang='en';save();render()" style="flex:1;padding:9px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;background:${st.lang==='en'?AC:'rgba(255,255,255,0.04)'};border:1px solid ${st.lang==='en'?AC:BD};color:${st.lang==='en'?'#fff':MU};text-align:center;">
+            🇬🇧 English
+          </div>
+        </div>
+      </div>
