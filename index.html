@@ -419,25 +419,28 @@ function applyGenre(id, genre){
 const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
 const _s1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2'),_s2=atob('SW1Gc2QyWmliV2x1YUdSM2FXNTRZMjk2YW14cUlpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpJNU9EQTFO'),_s3=atob('VFlzSW1WNGNDSTZNakE0T0RVMU5qVTFObjAuT1RyOGx5RHBSUXNtWFVDUEtzbTF3dk5QWWZDQTMyVUJRU2hSaWJJX2JEZw==');
 const SUPA_KEY=_s1+_s2+_s3;
-let supa=supabase.createClient(SUPA_URL,SUPA_KEY);
-function refreshSupaHeaders(){
-  // Recréer le client avec le pseudo à jour pour que RLS fonctionne
-  supa=supabase.createClient(SUPA_URL,SUPA_KEY,{
-    global:{headers:{'x-pseudo':(typeof st!=='undefined'?st.pseudo:'')||''}}
-  });
-}
+const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{
+  auth:{
+    autoRefreshToken:true,
+    persistSession:true,
+    detectSessionInUrl:true   // capture le magic link depuis l'URL
+  }
+});
 
 // ═══════════ STATE ═══════════
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
 let st={
-  screen:_saved.pseudo?'home':'pseudo',
+  screen:'loading',  // géré par onAuthStateChange
   lang:_saved.lang||'fr',
   pseudo:_saved.pseudo||'',
-  pseudoInput:_saved.pseudo||'',
+  pseudoInput:'',
   avatar:_saved.avatar||'🎬',
+  userId:null,       // auth.uid() — source de vérité sécurité
+  userEmail:'',
+  authStep:'email',  // 'email' | 'sent' — étapes du magic link
   cinema:null,film:null,filmSrc:'home',groupe:null,search:'',
   genre:'tous',cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',
-  tab:'vote',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',
+  tab:'chat',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',
   msgs:[],date:todayStr(),
   lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',
   viewedMember:null,showAvatarPicker:false,
@@ -568,12 +571,12 @@ async function creerSortie(filmId,cinemaId,heure,date,maxM){
   if(!filmId||!cinemaId||!heure||!date){toast('Remplis tous les champs','error');return;}
   const film=FILMS[filmId];
   const{data,error}=await supa.from('groupes').insert({
-    film_id:filmId,nom:film?.t||filmId,createur:st.pseudo,
+    film_id:filmId,nom:film?.t||filmId,createur:st.pseudo,user_id:st.userId,
     is_public:true,max_membres:maxM||8,
     confirmed_cinema:cinemaId,confirmed_heure:heure,confirmed_date:date,
   }).select('id').single();
   if(error){toast('Erreur création','error');console.error(error);return;}
-  await supa.from('groupe_membres').upsert({groupe:data.id,pseudo:st.pseudo,avatar:st.avatar},{onConflict:'groupe,pseudo'});
+  await supa.from('groupe_membres').upsert({groupe:data.id,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});
   toast('Sortie créée ! 🎉','success');
   st.newSortie=null;
   await loadSorties();
@@ -582,7 +585,7 @@ async function creerSortie(filmId,cinemaId,heure,date,maxM){
 }
 
 async function rejoindreSortie(groupId,filmId){
-  await supa.from('groupe_membres').upsert({groupe:groupId,pseudo:st.pseudo,avatar:st.avatar},{onConflict:'groupe,pseudo'});
+  await supa.from('groupe_membres').upsert({groupe:groupId,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});
   toast('Tu rejoins la sortie ! 🍿','success');
   await loadSorties();
   openGroup(filmId,groupId);
@@ -590,7 +593,7 @@ async function rejoindreSortie(groupId,filmId){
 
 async function rejoindreGroupe(){
   const g=st.groupe||'general';
-  await supa.from('groupe_membres').upsert({groupe:g,pseudo:st.pseudo,avatar:st.avatar},{onConflict:'groupe,pseudo'});
+  await supa.from('groupe_membres').upsert({groupe:g,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});
   await loadMembres();
 }
 
@@ -620,7 +623,7 @@ async function sendMsg(){
   if(!txt)return;
   inp.value='';
   const g=st.groupe||'general';
-  await supa.from('messages').insert({groupe:g,pseudo:st.pseudo,texte:txt,reactions:[]});
+  await supa.from('messages').insert({groupe:g,pseudo:st.pseudo,texte:txt,reactions:[],user_id:st.userId});
 }
 
 async function loadVotes(){
@@ -655,7 +658,7 @@ async function voter(heure){
   // Toujours supprimer le vote existant d'abord
   await supa.from('votes').delete().eq('groupe',g).eq('pseudo',st.pseudo);
   if(!dejàVoté){
-    await supa.from('votes').insert({groupe:g,pseudo:st.pseudo,heure,date:st.date});
+    await supa.from('votes').insert({groupe:g,pseudo:st.pseudo,heure,date:st.date,user_id:st.userId});
     st.voted=k;
     toast('Vote enregistré pour '+heure+' ✓','success',1800);
   }else{
@@ -866,6 +869,7 @@ function buildAvatarBtn(){
 function pickAvatar(el){
   const e=el.dataset.emoji;if(!e)return;
   st.avatar=e;st.showAvatarPicker=false;save();
+  if(st.userId&&st.pseudo)supa.from('profiles').update({avatar:e}).eq('id',st.userId);
   if(st.screen==='pseudo'){
     const wrap=document.getElementById('avatar-picker-wrap');
     if(wrap)wrap.innerHTML=buildAvatarBtn();
@@ -929,12 +933,65 @@ async function quitterGroupe(){
   render();
 }
 
-function logoutApp(){
+async function logoutApp(){
   if(!confirm(T('deconnexion')+' ?'))return;
+  await supa.auth.signOut();
   try{localStorage.removeItem('cm2');}catch(e){}
-  st.pseudo='';st.pseudoInput='';st.lbdPseudo='';st.avatar='🎬';
+  st.pseudo='';st.userId=null;st.userEmail='';
+  st.lbdPseudo='';st.avatar='🎬';
   lbdSeen=new Set();lbdWatchlist=new Set();
-  go('pseudo');
+  st.screen='auth';st.authStep='email';render();
+}
+
+// ═══════════ AUTH STATE CHANGE ═══════════
+async function loadProfile(userId){
+  const{data}=await supa.from('profiles').select('*').eq('id',userId).single();
+  if(data){
+    st.pseudo=data.pseudo||'';
+    st.avatar=data.avatar||'🎬';
+    st.lang=data.lang||st.lang;
+    save();
+    return true; // profil complet
+  }
+  return false; // nouveau user, doit choisir un pseudo
+}
+
+// Écouteur principal — appelé dès le démarrage et à chaque changement de session
+supa.auth.onAuthStateChange(async(event,session)=>{
+  if(session?.user){
+    st.userId=session.user.id;
+    st.userEmail=session.user.email||'';
+    const hasProfile=await loadProfile(st.userId);
+    if(hasProfile){
+      if(st.screen==='loading'||st.screen==='auth'||st.screen==='pseudo'){
+        st.screen=st._inviteGroupe?'group':'home';
+        render();
+        loadMesGroupes();loadSorties();
+        if(st.lbdPseudo)loadLbd(st.lbdPseudo);
+        if(st._inviteGroupe&&st._inviteFilm){
+          const gid=st._inviteGroupe,fid=st._inviteFilm;
+          st._inviteGroupe=null;st._inviteFilm=null;
+          openGroup(fid,gid);
+        }
+      }
+    }else{
+      // Nouveau user — choisir un pseudo
+      st.screen='pseudo';st.pseudoInput='';render();
+    }
+  }else{
+    // Pas de session → écran auth
+    st.userId=null;st.userEmail='';
+    st.screen='auth';st.authStep='email';render();
+  }
+});
+
+// Écran de chargement initial
+function sLoading(){
+  return `<div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+    <div style="font-size:48px;">🎬</div>
+    <div class="serif" style="font-size:24px;">CinéMatch</div>
+    <div style="width:32px;height:3px;background:${AC};border-radius:2px;animation:pulse 1.2s ease-in-out infinite;"></div>
+  </div>`;
 }
 
 // ═══════════ NAVIGATION ═══════════
@@ -959,7 +1016,7 @@ async function openGroup(filmId,groupeId){
       st.groupe=existing[0].id;
     }else{
       // Créer le groupe puis le récupérer
-      await supa.from('groupes').insert({film_id:filmId,nom:FILMS[filmId]?.t||filmId,createur:st.pseudo});
+      await supa.from('groupes').insert({film_id:filmId,nom:FILMS[filmId]?.t||filmId,createur:st.pseudo,user_id:st.userId});
       const{data:fresh}=await supa.from('groupes').select('id').eq('film_id',filmId).limit(1);
       if(fresh&&fresh.length>0)st.groupe=fresh[0].id;
     }
@@ -1100,6 +1157,76 @@ function msgHTML(m){
 
 // ═══════════ SCREENS ═══════════
 
+
+// ═══════════ AUTH — MAGIC LINK + GOOGLE ═══════════
+function sAuth(){
+  const lang=st.lang||'fr';
+  const sent=st.authStep==='sent';
+  return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
+    <div style="position:absolute;top:16px;right:16px;">
+      <select onchange="st.lang=this.value;save();render()" style="background:${S1};border:1px solid ${BD};border-radius:10px;padding:6px 10px;font-size:12px;color:${TX};cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;padding-right:24px;">
+        <option value="fr" ${lang==='fr'?'selected':''}>🇫🇷 FR</option>
+        <option value="en" ${lang==='en'?'selected':''}>🇬🇧 EN</option>
+      </select>
+    </div>
+    <div style="font-size:64px;margin-bottom:16px;">${sent?'📬':'🎬'}</div>
+    <div class="serif" style="font-size:30px;margin-bottom:6px;">CinéMatch</div>
+    ${sent?`
+      <div style="font-size:13px;color:${MU};margin-bottom:8px;line-height:1.7;">${lang==='fr'?'Lien envoyé à':'Link sent to'}</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:24px;">${st.userEmail}</div>
+      <div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:18px;margin-bottom:20px;font-size:12px;color:${MU};line-height:1.8;">
+        ${lang==='fr'?'📧 Ouvre ton email et clique sur le lien magique.<br>Tu seras connecté automatiquement.':'📧 Check your email and click the magic link.<br>You will be logged in automatically.'}
+      </div>
+      <div onclick="st.authStep='email';render()" style="font-size:11px;color:${MU};cursor:pointer;text-decoration:underline;">${lang==='fr'?"Changer d'adresse":'Change address'}</div>
+    `:`
+      <div style="font-size:12px;color:${MU};margin-bottom:28px;line-height:1.7;">${lang==='fr'?'Ton espace ciné, en sécurité.<br>Connexion sans mot de passe.':'Your cinema space, secured.<br>Passwordless login.'}</div>
+      <div style="width:100%;margin-bottom:10px;">
+        <input id="authEmail" type="email" placeholder="${lang==='fr'?'ton@email.fr':'your@email.com'}"
+          style="width:100%;background:${S2};border:1px solid ${BD};border-radius:14px;padding:14px 18px;font-size:14px;color:${TX};outline:none;text-align:center;box-sizing:border-box;"
+          onkeydown="if(event.key==='Enter')sendMagicLink()">
+      </div>
+      <div id="auth-err" style="font-size:11px;color:${AC};margin-bottom:8px;opacity:0;transition:opacity .3s;">Adresse invalide</div>
+      <button onclick="sendMagicLink()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:14px;">
+        ${lang==='fr'?'Recevoir le lien magique ✉️':'Send magic link ✉️'}
+      </button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="flex:1;height:1px;background:${BD};"></div>
+        <div style="font-size:10px;color:${MU};">ou</div>
+        <div style="flex:1;height:1px;background:${BD};"></div>
+      </div>
+      <button onclick="signInWithGoogle()" style="width:100%;background:${S1};border:1px solid ${BD};color:${TX};border-radius:14px;padding:14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        ${lang==='fr'?'Continuer avec Google':'Continue with Google'}
+      </button>
+    `}
+  </div>`;
+}
+
+async function sendMagicLink(){
+  const inp=document.getElementById('authEmail');
+  const email=(inp?inp.value:'').trim();
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    const err=document.getElementById('auth-err');
+    if(err){err.style.opacity='1';setTimeout(()=>{if(err)err.style.opacity='0';},2500);}
+    return;
+  }
+  st.userEmail=email;
+  const {error}=await supa.auth.signInWithOtp({
+    email,
+    options:{emailRedirectTo:window.location.origin}
+  });
+  if(!error){st.authStep='sent';render();}
+  else{alert('Erreur : '+error.message);}
+}
+
+async function signInWithGoogle(){
+  const {error}=await supa.auth.signInWithOAuth({
+    provider:'google',
+    options:{redirectTo:window.location.origin}
+  });
+  if(error)alert('Erreur Google : '+error.message);
+}
+
 function sPseudo(){
   const lang=st.lang||'fr';
   return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
@@ -1126,17 +1253,27 @@ function sPseudo(){
     <div id="avatar-picker-wrap" style="width:100%;margin-bottom:12px;">
       ${st.showAvatarPicker?buildPickerGrid():buildAvatarBtn()}
     </div>
+    <div id="pseudo-err" style="font-size:11px;color:${AC};margin-bottom:8px;opacity:0;transition:opacity .3s;"></div>
     <button onclick="confirmPseudo()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;">${T('enterApp')}</button>
     <div style="margin-top:20px;font-size:10px;color:${MU};">${T('pseudoVisible')}</div>
   </div>`;
 }
 
-function confirmPseudo(){
+async function confirmPseudo(){
   const inp=document.getElementById('pseudoInput');
   const val=(inp?inp.value:st.pseudoInput).trim();
-  if(!val)return;
+  if(!val||!st.userId)return;
+  // Vérifier que le pseudo n'est pas déjà pris
+  const{data:existing}=await supa.from('profiles').select('id').eq('pseudo',val).neq('id',st.userId).limit(1);
+  if(existing&&existing.length>0){
+    const err=document.getElementById('pseudo-err');
+    if(err){err.textContent='Ce pseudo est déjà pris ❌';err.style.opacity='1';}
+    return;
+  }
+  // Sauvegarder le profil dans Supabase
+  const{error}=await supa.from('profiles').upsert({id:st.userId,pseudo:val,avatar:st.avatar,lang:st.lang},{onConflict:'id'});
+  if(error){alert('Erreur : '+error.message);return;}
   st.pseudo=val;save();
-  refreshSupaHeaders();
   if(st._inviteGroupe&&st._inviteFilm){
     const gid=st._inviteGroupe,fid=st._inviteFilm;
     st._inviteGroupe=null;st._inviteFilm=null;
@@ -2055,7 +2192,10 @@ function render(){
     const cs=document.getElementById('create-sortie-scroll');
     if(cs)createSortieScroll=cs.scrollTop;
   }
-  if(st.screen==='pseudo')         inner.innerHTML=sPseudo();
+  if(st.screen==='loading')         inner.innerHTML=sLoading();
+  else if(st.screen==='auth')      inner.innerHTML=sAuth();
+  else if(!st.userId){st.screen='auth';inner.innerHTML=sAuth();}  // guard sécurité
+  else if(st.screen==='pseudo')    inner.innerHTML=sPseudo();
   else if(st.screen==='home')      inner.innerHTML=sHome();
   else if(st.screen==='cinemas')   inner.innerHTML=sCinemas();
   else if(st.screen==='cinema-detail') inner.innerHTML=sCinemaDetail();
