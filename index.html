@@ -443,7 +443,7 @@ function countdown(date,heure){
   const target=new Date(date+'T'+h+':00');
   const now=new Date();
   const diff=target-now;
-  if(diff<=0)return'✓ Séance passée';
+  if(diff<=0)return T('seancePassee');
   const days=Math.floor(diff/86400000);
   const hrs=Math.floor((diff%86400000)/3600000);
   const mins=Math.floor((diff%3600000)/60000);
@@ -848,7 +848,7 @@ async function quitterGroupe(){
 }
 
 function logoutApp(){
-  if(!confirm('Se déconnecter de CinéMatch ?\nVous devrez entrer un pseudo pour revenir.'))return;
+  if(!confirm(T('deconnexion')+' ?'))return;
   try{localStorage.removeItem('cm2');}catch(e){}
   st.pseudo='';st.pseudoInput='';st.lbdPseudo='';st.avatar='🎬';
   lbdSeen=new Set();lbdWatchlist=new Set();
@@ -905,7 +905,7 @@ async function doSync(){
 function renderMembresDOM(){
   const el=document.getElementById('membres-list');
   if(!el)return;
-  const STATUTS={yes:{e:'✅',l:'Je viens',c:'rgba(0,192,48,0.15)',b:'rgba(0,192,48,0.4)'},maybe:{e:'❓',l:'Peut-être',c:'rgba(255,200,0,0.1)',b:'rgba(255,200,0,0.3)'},no:{e:'❌',l:'Je peux pas',c:'rgba(255,63,91,0.08)',b:'rgba(255,63,91,0.25)'}};
+  const STATUTS={yes:{e:'✅',l:T('jeViens'),c:'rgba(0,192,48,0.15)',b:'rgba(0,192,48,0.4)'},maybe:{e:'❓',l:T('peutEtre'),c:'rgba(255,200,0,0.1)',b:'rgba(255,200,0,0.3)'},no:{e:'❌',l:T('jePeuxPas'),c:'rgba(255,63,91,0.08)',b:'rgba(255,63,91,0.25)'}};
   const oui=membresData.filter(m=>m.statut==='yes').length;
   const peut=membresData.filter(m=>m.statut==='maybe'||!m.statut).length;
   const non=membresData.filter(m=>m.statut==='no').length;
@@ -913,7 +913,7 @@ function renderMembresDOM(){
   const moi=membresData.find(m=>m.pseudo===st.pseudo);
   const monStatut=moi?.statut||'maybe';
   const statutPicker=`<div style="margin-bottom:14px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;">
-    <div style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Votre présence</div>
+    <div style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">${T('presence')}</div>
     <div style="display:flex;gap:6px;">
       ${Object.entries(STATUTS).map(([k,v])=>`<div onclick="setStatut('${k}')" style="flex:1;text-align:center;padding:8px 4px;border-radius:10px;cursor:pointer;background:${monStatut===k?v.c:'rgba(255,255,255,0.02)'};border:1px solid ${monStatut===k?v.b:BD};">
         <div style="font-size:16px;">${v.e}</div>
@@ -980,7 +980,7 @@ function renderVotesDOM(){
     const voted=voters.some(v=>v.pseudo===st.pseudo);
     return `<div onclick="${past?'':"voter('"+ h +"')"}" class="${past?'':'tap'}" style="opacity:${past?'0.4':'1'};background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:${past?'default':'pointer'};display:flex;align-items:center;gap:10px;">
       <div style="flex:1;">
-        <div style="font-size:18px;font-weight:600;color:${voted?AC:past?MU:TX};">${h}${past?' <span style="font-size:9px;">passée</span>':''}</div>
+        <div style="font-size:18px;font-weight:600;color:${voted?AC:past?MU:TX};">${h}${past?`<span style="font-size:9px;">${T('seancesPassee')}</span>`:''}</div>
         <div style="font-size:10px;color:${MU};margin-top:2px;">${voters.length} vote${voters.length!==1?'s':''}</div>
       </div>
       <div style="display:flex;">${voters.slice(0,5).map(v=>`<div style="width:22px;height:22px;border-radius:50%;background:${pseudoColor(v.pseudo)};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:-4px;">${v.pseudo===st.pseudo?st.avatar:pseudoInitial(v.pseudo)}</div>`).join('')}</div>
@@ -1174,14 +1174,14 @@ function sHome(){
   const emptySorties=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;gap:12px;">
     <div style="font-size:48px;">🍿</div>
     <div class="serif" style="font-size:18px;">${T('aucuneSortie')}</div>
-    <div style="font-size:12px;color:${MU};line-height:1.5;">Sois le premier à créer une sortie<br>et invite des gens à te rejoindre !</div>
+    <div style="font-size:12px;color:${MU};line-height:1.5;">${T('aucuneSortieDesc').replace('\\n','<br>')}</div>
     <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;">${T('creerSortieBtn').replace('🍿 ','+ ')}</div>
   </div>`;
 
   return header+`
     <div style="flex:1;overflow-y:auto;padding-top:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:12px;">
-        <div style="font-size:11px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">Sorties publiques</div>
+        <div style="font-size:11px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">${T('sorties_publiques')}</div>
         <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="display:flex;align-items:center;gap:5px;background:${AC};border-radius:20px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:700;color:#fff;">${T('creer')}</div>
       </div>
       ${sortiesPubliques.length===0?emptySorties:sortiesPubliques.map(sortieCard).join('')}
@@ -1205,7 +1205,7 @@ function sCinemas(){
         ${userPos?`<span style="font-size:9px;color:${LB};">📍 Activée</span>`:`<button onclick="requestGeoLoc()" style="font-size:9px;color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:3px 8px;cursor:pointer;">📍 Proximité</button>`}
         <div onclick="doSync()" style="display:flex;align-items:center;gap:5px;font-size:10px;color:${st.syncing?'#ff8c42':LB};cursor:pointer;">
           <span>${st.syncing?'⟳':'✓'}</span>
-          <span>${st.syncing?'Synchro…':(st.syncLabel?'Mis à jour '+st.syncLabel:'Mis à jour')}</span>
+          <span>${st.syncing?T('synchro'):(st.syncLabel?T('misAJour')+' '+st.syncLabel:T('misAJour'))}</span>
         </div>
       </div>
     </div>
@@ -1537,7 +1537,7 @@ function sGroup(){
       const confirmedCinema=CINEMAS.find(c=>c.id===gc.confirmed_cinema);
       const links=isConfirmed?CINEMA_LINKS[gc.confirmed_cinema]||{}:{};
       const cd=isConfirmed?countdown(gc.confirmed_date,gc.confirmed_heure):'';
-      const seancePassed=isConfirmed&&cd==='✓ Séance passée';
+      const seancePassed=isConfirmed&&cd===T('seancePassee');
 
       // Bandeau plan confirmé
       const confirmedBanner=isConfirmed?`<div style="margin:0 18px 12px;background:rgba(0,192,48,0.08);border:1px solid rgba(0,192,48,0.3);border-radius:14px;padding:12px;">
@@ -1555,7 +1555,7 @@ function sGroup(){
         <div style="display:flex;gap:6px;">
           ${links.maps?`<a href="${links.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:#4a9eff;text-decoration:none;">${T('yAller')}</a>`:''}
           ${links.tickets?`<a href="${links.tickets}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${GD};text-decoration:none;">${T('reserver')}</a>`:''}
-          <div onclick="shareGroupe()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${TX};cursor:pointer;">📤 Partager</div>
+          <div onclick="shareGroupe()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${TX};cursor:pointer;">${T('partager')}</div>
         </div>
       </div>`:'';
 
@@ -1651,7 +1651,7 @@ function sProfile(){
 
   // Bouton déconnexion app
   const logoutBlock=`<button onclick="logoutApp()" style="width:100%;background:rgba(255,63,91,0.06);border:1px solid rgba(255,63,91,0.25);border-radius:14px;padding:12px;font-size:12px;color:${AC};cursor:pointer;text-align:left;margin-top:4px;">
-    🚪 &nbsp;Se déconnecter de CinéMatch
+    🚪 &nbsp;${T('deconnexion')}
   </button>`;
 
   const groupesActifs=mesGroupes.length;
@@ -1718,7 +1718,7 @@ function sMemberProfile(){
     ${(()=>{
       const moi=membresData.find(m=>m.pseudo===pseudo);
       const statut=moi?.statut||'maybe';
-      const STATUTS={yes:{e:'✅',l:'Vient'},maybe:{e:'❓',l:'Peut-être'},no:{e:'❌',l:'Pas dispo'}};
+      const STATUTS={yes:{e:'✅',l:T('jeViens')},maybe:{e:'❓',l:T('peutEtre')},no:{e:'❌',l:T('jePeuxPas')}};
       const s=STATUTS[statut];
       const cinema_pref=moi?.cinema_pref?CINEMAS.find(c=>c.id===moi.cinema_pref)?.name:'';
       return `<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:14px;">
@@ -1789,14 +1789,4 @@ setInterval(()=>{
 },30*1000);
 </script>
 </body>
-</html>      <div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:12px;color:${MU};">${T('chooseLanguage')}</div>
-        <div style="position:relative;">
-          <select onchange="st.lang=this.value;save();render()"
-            style="background:${S2};border:1px solid ${BD};border-radius:10px;padding:7px 28px 7px 10px;font-size:13px;color:${TX};cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;">
-            <option value="fr" ${st.lang==='fr'?'selected':''}>🇫🇷 Français</option>
-            <option value="en" ${st.lang==='en'?'selected':''}>🇬🇧 English</option>
-          </select>
-          <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:8px;color:${MU};pointer-events:none;">▼</div>
-        </div>
-      </div>
+</html>
