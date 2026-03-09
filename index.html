@@ -957,14 +957,18 @@ async function loadProfile(userId){
 }
 
 // Écouteur principal — appelé dès le démarrage et à chaque changement de session
-supa.auth.onAuthStateChange(async(event,session)=>{
+// Fonction centrale de gestion de session
+async function handleSession(session){
   if(session?.user){
     st.userId=session.user.id;
     st.userEmail=session.user.email||'';
     const hasProfile=await loadProfile(st.userId);
     if(hasProfile){
       if(st.screen==='loading'||st.screen==='auth'||st.screen==='pseudo'){
-        st.screen=st._inviteGroupe?'group':'home';
+        st.screen='home';
+        if(window.location.hash&&window.location.hash.includes('access_token')){
+          history.replaceState({},'',window.location.pathname);
+        }
         render();
         loadMesGroupes();loadSorties();
         if(st.lbdPseudo)loadLbd(st.lbdPseudo);
@@ -975,13 +979,25 @@ supa.auth.onAuthStateChange(async(event,session)=>{
         }
       }
     }else{
-      // Nouveau user — choisir un pseudo
-      st.screen='pseudo';st.pseudoInput='';render();
+      st.screen='pseudo';st.pseudoInput='';
+      if(window.location.hash)history.replaceState({},'',window.location.pathname);
+      render();
     }
   }else{
-    // Pas de session → écran auth
     st.userId=null;st.userEmail='';
     st.screen='auth';st.authStep='email';render();
+  }
+}
+
+// 1. Verifier immediatement s'il y a une session (gere le retour du magic link)
+supa.auth.getSession().then(({data:{session}})=>handleSession(session));
+
+// 2. Ecouter les changements de session (login / logout / refresh)
+supa.auth.onAuthStateChange(async(event,session)=>{
+  if(['SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event)){
+    await handleSession(session);
+  } else if(event==='SIGNED_OUT'){
+    await handleSession(null);
   }
 });
 
