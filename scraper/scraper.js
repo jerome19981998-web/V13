@@ -110,116 +110,173 @@ async function scrapeCinema(cinemaId, allocineId) {
   console.log(`\n📍 Scraping ${cinemaId} (AlloCiné: ${allocineId})...`);
   
   const result = {
-    films: {},  // { filmTitle: { title, director, duration, genre, synopsis, tmdbId } }
-    seances: {} // { filmTitle: { 'YYYY-MM-DD': ['14h30', '17h00', ...] } }
+    films: {},
+    seances: {}
   };
 
-  // Scraper 7 jours
-  // Format AlloCiné: aujourd'hui = /salle_gen_csalle=P0647.html
-  // Jours suivants = /salle_gen_csalle=P0647/date-2026-03-10/
+  // Scraper 7 jours via la page HTML du jour J
+  // + API interne AlloCiné pour les jours suivants
   for (let day = 0; day < 7; day++) {
     const dateObj = new Date();
     dateObj.setDate(dateObj.getDate() + day);
-    const dateISO = dateObj.toISOString().slice(0, 10); // "2026-03-09"
-    const url = day === 0
-      ? `https://www.allocine.fr/seance/salle_gen_csalle=${allocineId}.html`
-      : `https://www.allocine.fr/seance/salle_gen_csalle=${allocineId}/date-${dateISO}/`;
-    
-    const html = await fetchPage(url);
-    if (!html) { console.log(`  ⚠ Jour ${day} ignoré (fetch échoué)`); continue; }
-    
-    const $ = cheerio.load(html);
-    
-    // Date déjà calculée depuis dateISO
+    const dateISO = dateObj.toISOString().slice(0, 10);
     const dateStr = dateISO;
+
+    let html = null;
+
+    if (day === 0) {
+      // Jour J: page HTML classique
+      html = await fetchPage(
+        `https://www.allocine.fr/seance/salle_gen_csalle=${allocineId}.html`
+      );
+    } else {
+      // Jours suivants: API interne AlloCiné (utilisée par leur site en XHR)
+      // Format découvert en inspectant les requêtes réseau du site
+      const apiUrl = `https://www.allocine.fr/_/showtimes/theater-${allocineId}/d-${dateISO}/`;
+      html = await fetchPage(apiUrl);
+      
+      // Fallback: essayer d'autres formats connus
+      if (!html) {
+        html = await fetchPage(
+          `https://www.allocine.fr/seance/salle_gen_csalle=${allocineId}.html?semaine=1#${dateISO}`
+        );
+      }
+    }
+
+    if (!html) { 
+      console.log(`  ⚠ Jour ${day} (${dateISO}) ignoré`); 
+      continue; 
+    }
 
     console.log(`  📅 Jour ${day}: ${dateStr}`);
 
-    // Parcourir chaque film affiché
-    // Structure AlloCiné: .card.entity-card pour chaque film + .showtimes-list pour les horaires
-    let filmsFound = 0;
+    // Essayer le parsing JSON d'abord (réponse API)
+    let parsedFromJSON = false;
+    try {
+      const json = JSON.parse(html);
+      // Structure API AlloCiné: { results: [ { movie: {title,...}, showtimes: [...] } ] }
+      const results = json.results || json.data || json.movies || [];
+      if (Array.isArray(results) && results.length > 0) {
+        results.forEach(item => {
+          const movie = item.movie || item.film || item;
+          const title = movie.title || movie.titre;
+          if (!title) return;
 
-    // Sélecteurs AlloCiné (peuvent changer - on essaie plusieurs)
-    const filmSections = $('.showtimes-movie-card, .movie-card-showtimes, [class*="movie"][class*="card"]');
-    
-    filmSections.each((_, section) => {
-      const $s = $(section);
-      
-      // Titre du film
-      let title = $s.find('.meta-title-link, .movie-card-title, h2 a, .title a').first().text().trim();
-      if (!title) title = $s.find('a[href*="/film/"]').first().text().trim();
-      if (!title) return;
+          if (!result.films[title]) {
+            result.films[title] = {
+              title,
+              director: (movie.directors||[]).map(d=>d.name||d.nom||d).join(', '),
+              duration: movie.runtime ? `${Math.floor(movie.runtime/60)}h${String(movie.runtime%60).padStart(2,'0')}` : '',
+              genre: (movie.genres||[]).map(g=>g.name||g).join(', '),
+              synopsis: movie.synopsis || '',
+            };
+          }
+          if (!result.seances[title]) result.seances[title] = {};
+          if (!result.seances[title][dateStr]) result.seances[title][dateStr] = [];
 
-      // Infos film
-      const director = $s.find('.meta-director, [class*="director"]').first().text().trim().replace(/^de\s+/i, '');
-      const durationRaw = $s.find('.meta-duration, [class*="duration"]').first().text().trim();
-      const duration = durationRaw.replace(/\s+/g, '').replace('h', 'h').replace('min', '');
-      const genre = $s.find('.meta-genre, [class*="genre"]').first().text().trim();
-
-      if (!result.films[title]) {
-        result.films[title] = { title, director, duration, genre };
+          const showtimes = item.showtimes || item.seances || [];
+          showtimes.forEach(s => {
+            const time = s.startsAt || s.heure || s.time || s;
+            if (!time) return;
+            const h = normalizeHeure(String(time).slice(11,16) || String(time));
+            if (h && /^\d{1,2}h\d{2}$/.test(h) && !result.seances[title][dateStr].includes(h)) {
+              result.seances[title][dateStr].push(h);
+            }
+          });
+        });
+        parsedFromJSON = results.length > 0;
       }
-      if (!result.seances[title]) result.seances[title] = {};
-      if (!result.seances[title][dateStr]) result.seances[title][dateStr] = [];
+    } catch(e) { /* pas du JSON, on parse HTML */ }
 
-      // Horaires
-      $s.find('.showtimes-version-runtime button, .showtimes-day button, [data-showtime-ue-element] span, .showtime-button, .showtimes button').each((_, btn) => {
-        const timeText = $(btn).text().trim();
-        const h = normalizeHeure(timeText);
-        if (h && /^\d{1,2}h\d{2}$/.test(h) && !result.seances[title][dateStr].includes(h)) {
-          result.seances[title][dateStr].push(h);
+    // Parsing HTML si JSON n'a pas marché
+    if (!parsedFromJSON) {
+      const $ = cheerio.load(html);
+      
+      // Sélecteurs AlloCiné (multiples car le site change régulièrement)
+      const FILM_SELECTORS = [
+        '.card.entity-card',
+        '.showtimes-movie-card', 
+        '[class*="MovieCard"]',
+        '[class*="movie-card"]',
+        '.item',
+      ];
+      const TIME_SELECTORS = [
+        'button[class*="showtime"]',
+        '[class*="Showtime"] button',
+        '.showtimes button',
+        'button[data-utime]',
+        '.hours button',
+        'time',
+      ];
+
+      let filmSections = $();
+      for (const sel of FILM_SELECTORS) {
+        filmSections = $(sel);
+        if (filmSections.length > 0) break;
+      }
+
+      filmSections.each((_, section) => {
+        const $s = $(section);
+        
+        let title = $s.find('a[href*="/film/"]').first().text().trim();
+        if (!title) title = $s.find('h2, h3, .title, [class*="title"]').first().text().trim();
+        if (!title || title.length > 100) return;
+
+        const director = $s.find('[class*="director"], [class*="Director"]').first().text().trim().replace(/^de\s+/i, '');
+        const durationText = $s.find('[class*="duration"], [class*="Duration"], [class*="runtime"]').first().text().trim();
+        const genre = $s.find('[class*="genre"], [class*="Genre"]').first().text().trim();
+
+        if (!result.films[title]) {
+          result.films[title] = { title, director, duration: durationText, genre };
+        }
+        if (!result.seances[title]) result.seances[title] = {};
+        if (!result.seances[title][dateStr]) result.seances[title][dateStr] = [];
+
+        // Chercher les horaires
+        let found = false;
+        for (const tsel of TIME_SELECTORS) {
+          $s.find(tsel).each((_, btn) => {
+            const txt = $(btn).attr('data-utime') || $(btn).text().trim();
+            const h = normalizeHeure(txt);
+            if (h && /^\d{1,2}h\d{2}$/.test(h) && !result.seances[title][dateStr].includes(h)) {
+              result.seances[title][dateStr].push(h);
+              found = true;
+            }
+          });
+          if (found) break;
+        }
+
+        // Dernier recours: regex sur le texte brut
+        if (!found) {
+          const times = $s.text().match(/\b(\d{1,2})h(\d{2})\b/g) || [];
+          times.forEach(t => {
+            if (!result.seances[title][dateStr].includes(t)) {
+              result.seances[title][dateStr].push(t);
+            }
+          });
         }
       });
 
-      // Fallback: chercher les heures dans le texte avec regex
-      if (result.seances[title][dateStr].length === 0) {
-        const text = $s.text();
-        const matches = text.match(/\b(\d{1,2})[h:](\d{2})\b/g) || [];
-        matches.forEach(m => {
-          const h = normalizeHeure(m);
-          if (h && !result.seances[title][dateStr].includes(h)) {
-            result.seances[title][dateStr].push(h);
-          }
-        });
+      // Super fallback: parser tout le HTML avec regex si 0 films
+      if (Object.keys(result.films).length === 0 && day === 0) {
+        console.log('  ⚠ Sélecteurs CSS ne matchent pas, fallback regex...');
+        const times = html.match(/\b(\d{1,2})h(\d{2})\b/g) || [];
+        if (times.length > 0) {
+          result.films['__unknown__'] = { title: '__unknown__' };
+          result.seances['__unknown__'] = { [dateStr]: [...new Set(times)].sort() };
+        }
       }
-
-      if (result.seances[title][dateStr].length > 0) filmsFound++;
-    });
-
-    // Fallback général si les sélecteurs ne matchent pas
-    if (filmsFound === 0) {
-      // Essayer une approche plus large
-      $('[class*="showtime"]').each((_, el) => {
-        const text = $(el).text();
-        const timeMatches = text.match(/\b(\d{1,2})[h:](\d{2})\b/g) || [];
-        // Chercher le titre le plus proche dans le DOM parent
-        let title = $(el).closest('[class*="movie"], [class*="film"]').find('a, h2, h3').first().text().trim();
-        if (!title || timeMatches.length === 0) return;
-        
-        if (!result.films[title]) result.films[title] = { title };
-        if (!result.seances[title]) result.seances[title] = {};
-        if (!result.seances[title][dateStr]) result.seances[title][dateStr] = [];
-        
-        timeMatches.forEach(m => {
-          const h = normalizeHeure(m);
-          if (h && !result.seances[title][dateStr].includes(h)) {
-            result.seances[title][dateStr].push(h);
-          }
-        });
-      });
     }
 
-    // Trier les séances
-    Object.values(result.seances).forEach(filmDates => {
-      if (filmDates[dateStr]) filmDates[dateStr].sort();
+    // Trier
+    Object.values(result.seances).forEach(fd => {
+      if (fd[dateStr]) fd[dateStr].sort();
     });
 
-    const totalSeances = Object.values(result.seances).reduce((sum, fd) => 
-      sum + (fd[dateStr] ? fd[dateStr].length : 0), 0);
-    console.log(`  ✓ ${Object.keys(result.films).length} films, ${totalSeances} séances trouvées`);
+    const total = Object.values(result.seances).reduce((s, fd) => s + (fd[dateStr]||[]).length, 0);
+    console.log(`  ✓ ${Object.keys(result.films).length} films, ${total} séances`);
 
-    // Pause pour ne pas surcharger AlloCiné
-    await sleep(800);
+    await sleep(600);
   }
 
   return result;
