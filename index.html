@@ -1216,7 +1216,7 @@ function sCreateSortie(){
 
       <div style="margin-bottom:16px;">
         <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">1 · Choisis un film</div>
-        <div style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;flex-direction:column;gap:6px;">
           ${availFilms.map(f=>{
             const fid=f._id;
             const sel=filmId===fid;
@@ -1225,7 +1225,7 @@ function sCreateSortie(){
               `<span style="font-size:24px;width:32px;text-align:center;">${f.e}</span>`}
               <div style="flex:1;min-width:0;">
                 <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.t}</div>
-                <div style="font-size:10px;color:${MU};">${f.g}${f.tmdbNote?` · ★ ${f.tmdbNote}`:''}</div>
+                <div style="font-size:10px;color:${MU};">${f.g?f.g.charAt(0)+f.g.slice(1).toLowerCase():''} ${f.tmdbNote?`· ★ ${f.tmdbNote}`:''}</div>
               </div>
               ${sel?`<span style="color:${AC};font-size:14px;">✓</span>`:''}
             </div>`;
