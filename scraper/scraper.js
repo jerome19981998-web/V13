@@ -114,32 +114,24 @@ async function scrapeCinema(cinemaId, allocineId) {
     seances: {} // { filmTitle: { 'YYYY-MM-DD': ['14h30', '17h00', ...] } }
   };
 
-  // Scraper 7 jours (AlloCiné pagine par jour: sans suffixe = aujourd'hui, /date_1 = demain, etc.)
+  // Scraper 7 jours
+  // Format AlloCiné: aujourd'hui = /salle_gen_csalle=P0647.html
+  // Jours suivants = /salle_gen_csalle=P0647/date-2026-03-10/
   for (let day = 0; day < 7; day++) {
-    const url = `https://www.allocine.fr/seance/salle_gen_csalle=${allocineId}.html${day > 0 ? `/date_${day}` : ''}`;
+    const dateObj = new Date();
+    dateObj.setDate(dateObj.getDate() + day);
+    const dateISO = dateObj.toISOString().slice(0, 10); // "2026-03-09"
+    const url = day === 0
+      ? `https://www.allocine.fr/seance/salle_gen_csalle=${allocineId}.html`
+      : `https://www.allocine.fr/seance/salle_gen_csalle=${allocineId}/date-${dateISO}/`;
     
     const html = await fetchPage(url);
     if (!html) { console.log(`  ⚠ Jour ${day} ignoré (fetch échoué)`); continue; }
     
     const $ = cheerio.load(html);
     
-    // Détecter la date du jour
-    // AlloCiné affiche la date active dans .datepicker-item-active ou dans le titre de page
-    let dateStr = null;
-    $('.showtimes-day-tab.is-active, .datepicker-item.is-active, [data-date]').first().each((_, el) => {
-      dateStr = $(el).attr('data-date') || $(el).text().trim();
-    });
-    // Fallback: calculer depuis aujourd'hui + day
-    if (!dateStr || !dateStr.match(/\d{4}-\d{2}-\d{2}/)) {
-      const d = new Date();
-      d.setDate(d.getDate() + day);
-      dateStr = d.toISOString().slice(0, 10);
-    } else if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      dateStr = normalizeDate(dateStr) || (() => {
-        const d = new Date(); d.setDate(d.getDate() + day);
-        return d.toISOString().slice(0, 10);
-      })();
-    }
+    // Date déjà calculée depuis dateISO
+    const dateStr = dateISO;
 
     console.log(`  📅 Jour ${day}: ${dateStr}`);
 
