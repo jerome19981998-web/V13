@@ -428,7 +428,7 @@ let st={
   avatar:_saved.avatar||'🎬',
   cinema:null,film:null,filmSrc:'home',groupe:null,search:'',
   genre:'tous',cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',
-  tab:'vote',voted:null,homeTab:'sorties',newSortie:null,
+  tab:'vote',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,
   msgs:[],date:todayStr(),
   lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',
   viewedMember:null,showAvatarPicker:false,
@@ -1162,16 +1162,20 @@ function sHome(){
       return genreOk&&searchOk;
     });
     return header+`
-      <div style="padding:8px 18px 8px;flex-shrink:0;display:flex;align-items:center;gap:8px;">
-        <div style="display:flex;gap:6px;overflow-x:auto;flex:1;padding-bottom:0;scrollbar-width:none;">
+      <div style="padding:8px 18px 0;flex-shrink:0;">
+        <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;">
           ${genres.map(([id,lb])=>`<div onclick="setGenre('${id}')" style="border-radius:20px;padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid ${st.genre===id?AC:BD};background:${st.genre===id?AC:'rgba(255,255,255,0.03)'};color:${st.genre===id?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join('')}
         </div>
-        <div style="position:relative;width:130px;flex-shrink:0;">
-          <input id="search-input" placeholder="🔍 …" value="${st.search||''}"
-            oninput="st.search=this.value;render()"
-            style="width:100%;background:${S1};border:1px solid ${BD};border-radius:20px;padding:5px 10px;font-size:11px;color:${TX};outline:none;">
-          ${(st.search||'')?`<span onclick="st.search='';render();" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:${MU};cursor:pointer;">✕</span>`:''}
-        </div>
+        <div style="position:relative;margin-bottom:8px;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;">🔍</span>
+          <input id="search-input" placeholder="${T('rechercher').slice(3)}" value="${st.search||''}"
+            oninput="st.search=this.value;st.showSearchHistory=!this.value;render()"
+            onfocus="st.showSearchHistory=!st.search;render()"
+            onblur="setTimeout(()=>{if(st.search)saveSearch(st.search);st.showSearchHistory=false;render();},200)"
+            onkeydown="if(event.key==='Enter'&&st.search){saveSearch(st.search);st.showSearchHistory=false;render();}"
+            style="width:100%;background:${S1};border:1px solid ${BD};border-radius:20px;padding:7px 14px 7px 32px;font-size:12px;color:${TX};outline:none;box-sizing:border-box;">
+          ${(st.search||'')?`<span onclick="st.search='';st.showSearchHistory=false;render();" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;color:${MU};cursor:pointer;">✕</span>`:''}
+          <div id="search-history-dropdown" style="position:relative;"></div>        </div>
       </div>
       <div style="flex:1;overflow-y:auto;">
         ${cards.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:36px;margin-bottom:10px;">🔍</div><div style="font-size:13px;">${T('aucunFilmTrouve')}</div></div>`:''}
@@ -1255,7 +1259,61 @@ function sHome(){
 }
 
 
-function setGenre(g){st.genre=g;st.search='';render();}
+
+// ═══════════ HISTORIQUE RECHERCHES ═══════════
+function renderSearchHint(){
+  // Mettre à jour les résultats de film sans recréer tout le DOM
+  const inp=document.getElementById('search-input');
+  if(inp&&inp.value!==st.search){
+    // Sync minimal
+  }
+  const drop=document.getElementById('search-history-dropdown');
+  if(!drop)return render();
+  if(!st.showSearchHistory){drop.innerHTML='';return;}
+  const hist=getSearchHistory();
+  if(!hist.length){drop.innerHTML='';return;}
+  const BD2=BD,MU2=MU,TX2=TX;
+  drop.innerHTML=`<div style="position:absolute;top:6px;left:0;right:0;background:#16162a;border:1px solid ${BD};border-radius:14px;overflow:hidden;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 6px;border-bottom:1px solid ${BD};">
+      <span style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;">Recherches récentes</span>
+      <span onclick="clearSearchHistory()" style="font-size:9px;color:${MU};cursor:pointer;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,0.06);">Effacer</span>
+    </div>
+    ${hist.map(h=>`<div onclick="useSearch('${h.replace(/'/g,String.fromCharCode(39))}')" style="padding:9px 12px;font-size:12px;color:${TX};cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background=''">
+      <span style="font-size:11px;color:${MU};">🕐</span>${h}
+    </div>`).join('')}
+  </div>`;
+}
+
+
+function getSearchHistory(){
+  try{
+    const key='cm_searches_'+(st.pseudo||'_');
+    return JSON.parse(localStorage.getItem(key)||'[]');
+  }catch(e){return[];}
+}
+function saveSearch(q){
+  if(!q||q.trim().length<2)return;
+  q=q.trim();
+  try{
+    const key='cm_searches_'+(st.pseudo||'_');
+    let hist=getSearchHistory();
+    hist=hist.filter(h=>h!==q); // dédoublonner
+    hist.unshift(q);
+    hist=hist.slice(0,8); // max 8
+    localStorage.setItem(key,JSON.stringify(hist));
+  }catch(e){}
+}
+function clearSearchHistory(){
+  try{localStorage.removeItem('cm_searches_'+(st.pseudo||'_'));}catch(e){}
+  st.search='';render();
+}
+function useSearch(q){
+  st.search=q;
+  st.showSearchHistory=false;
+  render();
+}
+
+function setGenre(g){st.genre=g;st.search='';st.showSearchHistory=false;render();}
 
 function sCinemas(){
   const chains=['ugc','pathe','gaumont'];
