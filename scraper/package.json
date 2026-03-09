@@ -1,0 +1,15 @@
+{
+  "name": "cinematch-scraper",
+  "version": "1.0.0",
+  "description": "Scraper AlloCiné pour CinéMatch",
+  "main": "scraper.js",
+  "scripts": {
+    "scrape": "node scraper.js",
+    "test": "node scraper.js --dry-run"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "node-fetch": "^2.7.0",
+    "@supabase/supabase-js": "^2.0.0"
+  }
+}
