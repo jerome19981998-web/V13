@@ -350,6 +350,69 @@ function loadPosters(){
   if(['home','cinemas','cinema-detail','film'].includes(st.screen))render();
 }
 
+
+// ═══════════ TMDB GENRES ═══════════
+const TMDB_GENRE_MAP = {
+  28:'action', 12:'aventure', 16:'animation', 35:'comedie', 80:'polar',
+  99:'documentaire', 18:'drame', 10751:'comedie', 14:'fantastique',
+  36:'biopic', 27:'horreur', 10402:'comedie', 9648:'thriller',
+  10749:'romance', 878:'sci-fi', 10770:'drame', 53:'thriller',
+  10752:'guerre', 37:'aventure'
+};
+
+const tmdbGenreCache = JSON.parse(localStorage.getItem('cm_genres')||'{}');
+
+async function enrichGenresFromTMDB(){
+  // Ne traiter que les films sans genre ou avec "DIVERS"
+  const toFetch = Object.entries(FILMS).filter(([id,f])=>
+    !f.genre_enriched && (!f.g || f.g==='DIVERS' || f.g==='')
+  );
+  if(toFetch.length===0) return;
+
+  // Traiter par batch de 5 en parallèle
+  for(let i=0;i<toFetch.length;i+=5){
+    const batch = toFetch.slice(i,i+5);
+    await Promise.all(batch.map(async([id,f])=>{
+      // Vérifier le cache d'abord
+      if(tmdbGenreCache[id]){
+        applyGenre(id, tmdbGenreCache[id]);
+        return;
+      }
+      try{
+        const q = encodeURIComponent(f.t);
+        const r = await fetch(`https://api.themoviedb.org/3/search/movie?query=${q}&language=fr-FR&page=1`,{
+          headers:{Authorization:'Bearer '+TMDB_TOKEN}
+        });
+        const data = await r.json();
+        const movie = data.results?.[0];
+        if(movie?.genre_ids?.length){
+          const genre = TMDB_GENRE_MAP[movie.genre_ids[0]] || 'divers';
+          tmdbGenreCache[id] = genre;
+          applyGenre(id, genre);
+          // Sauvegarder poster si manquant
+          if(!posters[id] && movie.poster_path){
+            posters[id] = TMDB_IMG + movie.poster_path;
+          }
+          if(!ratings[id] && movie.vote_average>0){
+            ratings[id] = {note: movie.vote_average.toFixed(1)};
+          }
+        }
+      }catch(e){}
+    }));
+  }
+  // Sauvegarder le cache
+  try{ localStorage.setItem('cm_genres', JSON.stringify(tmdbGenreCache)); }catch(e){}
+  // Re-render si on est sur home/films
+  if(['home','film'].includes(st.screen)) render();
+}
+
+function applyGenre(id, genre){
+  if(!FILMS[id]) return;
+  FILMS[id].g = genre.charAt(0).toUpperCase() + genre.slice(1);
+  FILMS[id].e = genreEmoji(genre);
+  FILMS[id].genre_enriched = true;
+}
+
 // ═══════════ SUPABASE ═══════════
 const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsd2ZibWluaGR3aW54Y296amxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODA1NTYsImV4cCI6MjA4ODU1NjU1Nn0.OTr8lyDpRQsmXUCPKsm1wvNPYfCA32UBQShRibI_bDg';
@@ -1777,6 +1840,7 @@ function render(){
   render();
   if(st.pseudo){loadMesGroupes();loadSorties();if(st.lbdPseudo)loadLbd(st.lbdPseudo);}
   loadPosters();
+  enrichGenresFromTMDB();
 })();
 
 setInterval(()=>{
