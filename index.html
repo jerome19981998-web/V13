@@ -1015,18 +1015,18 @@ function msgHTML(m){
 // ═══════════ SCREENS ═══════════
 function sPseudo(){
   const lang=st.lang||'fr';
-  return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
+  return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
     <div style="font-size:64px;margin-bottom:16px;">🎬</div>
     <div class="serif" style="font-size:30px;margin-bottom:6px;">CinéMatch</div>
     <div style="font-size:12px;color:${MU};margin-bottom:20px;line-height:1.7;">${T('appTagline')}</div>
 
-    <div style="display:flex;gap:8px;margin-bottom:24px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:4px;">
-      <div onclick="st.lang='fr';save();render()" style="flex:1;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;background:${lang==='fr'?AC:'transparent'};color:${lang==='fr'?'#fff':MU};transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;">
-        🇫🇷 Français
-      </div>
-      <div onclick="st.lang='en';save();render()" style="flex:1;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;background:${lang==='en'?AC:'transparent'};color:${lang==='en'?'#fff':MU};transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;">
-        🇬🇧 English
-      </div>
+    <div style="position:absolute;top:16px;right:16px;">
+      <select onchange="st.lang=this.value;save();render()"
+        style="background:${S1};border:1px solid ${BD};border-radius:10px;padding:6px 10px;font-size:12px;color:${TX};cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;padding-right:24px;">
+        <option value="fr" ${lang==='fr'?'selected':''}>🇫🇷 FR</option>
+        <option value="en" ${lang==='en'?'selected':''}>🇬🇧 EN</option>
+      </select>
+      <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:8px;color:${MU};pointer-events:none;">▼</div>
     </div>
 
     <div style="width:100%;margin-bottom:12px;">
@@ -1067,7 +1067,16 @@ function sHome(){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div>
           <div style="font-size:11px;color:${MU};letter-spacing:2px;text-transform:uppercase;">${T('bonsoir')}</div>
-          <div class="serif" style="font-size:22px;">${st.pseudo} <span style="color:${AC}">👋</span></div>
+          <div class="serif" style="font-size:22px;display:flex;align-items:center;gap:8px;">${st.pseudo} <span style="color:${AC}">👋</span>
+            <div style="position:relative;display:inline-flex;align-items:center;">
+              <select onchange="st.lang=this.value;save();render()"
+                style="background:${S1};border:1px solid ${BD};border-radius:8px;padding:3px 20px 3px 6px;font-size:11px;color:${TX};cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;font-family:inherit;">
+                <option value="fr" ${st.lang==='fr'?'selected':''}>🇫🇷</option>
+                <option value="en" ${st.lang==='en'?'selected':''}>🇬🇧</option>
+              </select>
+              <div style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:7px;color:${MU};pointer-events:none;">▼</div>
+            </div>
+          </div>
         </div>
         <div onclick="go('profile')" style="display:flex;align-items:center;gap:7px;background:${S1};border:1px solid ${BD};border-radius:18px;padding:5px 10px 5px 5px;cursor:pointer;">
           ${avatarEl(st.pseudo,26)}
@@ -1780,14 +1789,14 @@ setInterval(()=>{
 },30*1000);
 </script>
 </body>
-</html>      <div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px 16px;margin-bottom:12px;">
-        <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">${T('chooseLanguage')}</div>
-        <div style="display:flex;gap:8px;">
-          <div onclick="st.lang='fr';save();render()" style="flex:1;padding:9px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;background:${st.lang==='fr'?AC:'rgba(255,255,255,0.04)'};border:1px solid ${st.lang==='fr'?AC:BD};color:${st.lang==='fr'?'#fff':MU};text-align:center;">
-            🇫🇷 Français
-          </div>
-          <div onclick="st.lang='en';save();render()" style="flex:1;padding:9px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;background:${st.lang==='en'?AC:'rgba(255,255,255,0.04)'};border:1px solid ${st.lang==='en'?AC:BD};color:${st.lang==='en'?'#fff':MU};text-align:center;">
-            🇬🇧 English
-          </div>
+</html>      <div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:12px;color:${MU};">${T('chooseLanguage')}</div>
+        <div style="position:relative;">
+          <select onchange="st.lang=this.value;save();render()"
+            style="background:${S2};border:1px solid ${BD};border-radius:10px;padding:7px 28px 7px 10px;font-size:13px;color:${TX};cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;">
+            <option value="fr" ${st.lang==='fr'?'selected':''}>🇫🇷 Français</option>
+            <option value="en" ${st.lang==='en'?'selected':''}>🇬🇧 English</option>
+          </select>
+          <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:8px;color:${MU};pointer-events:none;">▼</div>
         </div>
       </div>
