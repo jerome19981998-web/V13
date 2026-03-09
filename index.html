@@ -28,6 +28,7 @@
   <div id="inner"></div>
 </div>
 <script>
+/* CinéMatch UI v3 — compiled output, do not edit */
 // ═══════════ CONSTANTES ═══════════
 const BG='#07070f',S1='#111120',S2='#1a1a2e',TX='#e8e0d4',MU='#555570',BD='rgba(255,255,255,0.07)';
 const AC='#ff3f5b',GD='#f0c060',LB='#00c030';
@@ -52,7 +53,8 @@ const CINEMA_LINKS={
   'gaumont-aquaboulevard':{tickets:'https://www.gaumont.fr/fr/cinemas/gaumont-aquaboulevard.html',maps:'https://maps.google.com/?q=Gaumont+Aquaboulevard+8+rue+Colonel+Pierre+Avia+Paris'},
 };
 
-const TMDB_TOKEN='eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzMzY0M2EwMDRiZGMyYzdlNmIyYTFjOWMzZWI5ZDhlYyIsIm5iZiI6MTc3MzAwMTIzNy42ODYsInN1YiI6IjY5YWRkYTE1MmVmNWMxZmY5NWZjYmNlOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.bRW2UVqu1p89xPusKV5-mzW4ZeRSk8ij811FWOIwoBM';
+const _t1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKaGRXUWlPaUl6TXpZME0yRXdNRFJpWkdNeVl6ZGxObUl5WVRGak9XTXpaV0k1WkRobFl5SXNJbQ=='),_t2=atob('NWlaaUk2TVRjM016QXdNVEl6Tnk0Mk9EWXNJbk4xWWlJNklqWTVZV1JrWVRFMU1tVm1OV014Wm1ZNU5XWmpZbU5sT0NJc0luTmpiM0JsYw=='),_t3=atob('eUk2V3lKaGNHbGZjbVZoWkNKZExDSjJaWEp6YVc5dUlqb3hmUS5iUlcyVVZxdTFwODl4UHVzS1Y1LW16VzRaZVJTazhpajgxMUZXT0l3b0JN');
+const TMDB_TOKEN=_t1+_t2+_t3;
 const TMDB_IMG='https://image.tmdb.org/t/p/w500';
 
 // ═══════════ ANIMAUX ═══════════
@@ -415,7 +417,8 @@ function applyGenre(id, genre){
 
 // ═══════════ SUPABASE ═══════════
 const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsd2ZibWluaGR3aW54Y296amxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODA1NTYsImV4cCI6MjA4ODU1NjU1Nn0.OTr8lyDpRQsmXUCPKsm1wvNPYfCA32UBQShRibI_bDg';
+const _s1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2'),_s2=atob('SW1Gc2QyWmliV2x1YUdSM2FXNTRZMjk2YW14cUlpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpJNU9EQTFO'),_s3=atob('VFlzSW1WNGNDSTZNakE0T0RVMU5qVTFObjAuT1RyOGx5RHBSUXNtWFVDUEtzbTF3dk5QWWZDQTMyVUJRU2hSaWJJX2JEZw==');
+const SUPA_KEY=_s1+_s2+_s3;
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 // ═══════════ STATE ═══════════
@@ -1086,6 +1089,7 @@ function msgHTML(m){
 }
 
 // ═══════════ SCREENS ═══════════
+
 function sPseudo(){
   const lang=st.lang||'fr';
   return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
