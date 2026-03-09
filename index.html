@@ -1169,10 +1169,10 @@ function sHome(){
         <div style="position:relative;margin-bottom:8px;">
           <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;">🔍</span>
           <input id="search-input" placeholder="${T('rechercher').slice(3)}" value="${st.search||''}"
-            oninput="st.search=this.value;st.showSearchHistory=!this.value;render()"
-            onfocus="st.showSearchHistory=!st.search;render()"
-            onblur="setTimeout(()=>{if(st.search)saveSearch(st.search);st.showSearchHistory=false;render();},200)"
-            onkeydown="if(event.key==='Enter'&&st.search){saveSearch(st.search);st.showSearchHistory=false;render();}"
+            oninput="st.search=this.value;renderSearchResults()"
+            onfocus="showSearchHistory()"
+            onblur="setTimeout(hideSearchHistory,200)"
+            onkeydown="if(event.key==='Enter'){saveSearch(st.search);hideSearchHistory();}"
             style="width:100%;background:${S1};border:1px solid ${BD};border-radius:20px;padding:7px 14px 7px 32px;font-size:12px;color:${TX};outline:none;box-sizing:border-box;">
           ${(st.search||'')?`<span onclick="st.search='';st.showSearchHistory=false;render();" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;color:${MU};cursor:pointer;">✕</span>`:''}
           <div id="search-history-dropdown" style="position:relative;"></div>        </div>
@@ -1261,27 +1261,38 @@ function sHome(){
 
 
 // ═══════════ HISTORIQUE RECHERCHES ═══════════
-function renderSearchHint(){
-  // Mettre à jour les résultats de film sans recréer tout le DOM
-  const inp=document.getElementById('search-input');
-  if(inp&&inp.value!==st.search){
-    // Sync minimal
-  }
-  const drop=document.getElementById('search-history-dropdown');
-  if(!drop)return render();
-  if(!st.showSearchHistory){drop.innerHTML='';return;}
+function showSearchHistory(){
   const hist=getSearchHistory();
-  if(!hist.length){drop.innerHTML='';return;}
-  const BD2=BD,MU2=MU,TX2=TX;
-  drop.innerHTML=`<div style="position:absolute;top:6px;left:0;right:0;background:#16162a;border:1px solid ${BD};border-radius:14px;overflow:hidden;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+  if(!hist.length||st.search)return;
+  const drop=document.getElementById('search-history-dropdown');
+  if(!drop)return;
+  drop.innerHTML=`<div style="position:absolute;top:4px;left:0;right:0;background:#16162a;border:1px solid ${BD};border-radius:14px;overflow:hidden;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.5);">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 6px;border-bottom:1px solid ${BD};">
-      <span style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;">Recherches récentes</span>
+      <span style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">Recherches récentes</span>
       <span onclick="clearSearchHistory()" style="font-size:9px;color:${MU};cursor:pointer;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,0.06);">Effacer</span>
     </div>
-    ${hist.map(h=>`<div onclick="useSearch('${h.replace(/'/g,String.fromCharCode(39))}')" style="padding:9px 12px;font-size:12px;color:${TX};cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background=''">
+    ${hist.map(h=>`<div onmousedown="useSearch('${h.replace(/\/g,'\\').replace(/'/g,"\'")}')" style="padding:9px 12px;font-size:12px;color:${TX};cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background=''">
       <span style="font-size:11px;color:${MU};">🕐</span>${h}
     </div>`).join('')}
   </div>`;
+}
+
+function hideSearchHistory(){
+  const drop=document.getElementById('search-history-dropdown');
+  if(drop)drop.innerHTML='';
+}
+
+// Mettre à jour les cartes films sans recréer tout le DOM
+function renderSearchResults(){
+  // Re-render complet mais on restaure le focus
+  const inp=document.getElementById('search-input');
+  const val=inp?inp.value:'';
+  const pos=inp?inp.selectionStart:0;
+  render();
+  requestAnimationFrame(()=>{
+    const el=document.getElementById('search-input');
+    if(el){el.focus();try{el.setSelectionRange(pos,pos);}catch(e){}}
+  });
 }
 
 
