@@ -74,6 +74,7 @@ let SEANCES = {};
 let AVAILABLE_DATES = [];
 let DATA_LOADED = false;
 let sortiesPubliques = [];
+let createSortieScroll = 0;
 
 const GENRE_EMOJI = {
   'drame':'🎭','comedie':'😂','comédie':'😂','horreur':'👻','thriller':'🔪',
@@ -1012,14 +1013,14 @@ function sHome(){
     <div style="font-size:48px;">🍿</div>
     <div class="serif" style="font-size:18px;">Aucune sortie pour l'instant</div>
     <div style="font-size:12px;color:${MU};line-height:1.5;">Sois le premier à créer une sortie<br>et invite des gens à te rejoindre !</div>
-    <div onclick="st.screen='create-sortie';render()" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;">+ Créer une sortie</div>
+    <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;">+ Créer une sortie</div>
   </div>`;
 
   return header+`
     <div style="flex:1;overflow-y:auto;padding-top:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:12px;">
         <div style="font-size:11px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">Sorties publiques</div>
-        <div onclick="st.screen='create-sortie';render()" style="display:flex;align-items:center;gap:5px;background:${AC};border-radius:20px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:700;color:#fff;">+ Créer</div>
+        <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="display:flex;align-items:center;gap:5px;background:${AC};border-radius:20px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:700;color:#fff;">+ Créer</div>
       </div>
       ${sortiesPubliques.length===0?emptySorties:sortiesPubliques.map(sortieCard).join('')}
     </div>
@@ -1206,13 +1207,13 @@ function sCreateSortie(){
 
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <div style="padding:50px 18px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${BD};">
-      <div onclick="st.screen='home';st.newSortie=null;render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>
+      <div onclick="createSortieScroll=0;st.screen='home';st.newSortie=null;render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>
       <div>
         <div style="font-size:16px;font-weight:700;">Créer une sortie</div>
         <div style="font-size:11px;color:${MU};">Partage ton plan ciné avec d'autres</div>
       </div>
     </div>
-    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 24px;">
+    <div id="create-sortie-scroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 24px;" onscroll="createSortieScroll=this.scrollTop">
 
       <div style="margin-bottom:16px;">
         <div style="font-size:10px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">1 · Choisis un film</div>
@@ -1580,6 +1581,11 @@ function sMemberProfile(){
 function render(){
   const inner=document.getElementById('inner');
   if(!inner)return;
+  // Sauvegarder scroll de create-sortie
+  if(st.screen==='create-sortie'){
+    const cs=document.getElementById('create-sortie-scroll');
+    if(cs)createSortieScroll=cs.scrollTop;
+  }
   if(st.screen==='pseudo')         inner.innerHTML=sPseudo();
   else if(st.screen==='home')      inner.innerHTML=sHome();
   else if(st.screen==='cinemas')   inner.innerHTML=sCinemas();
@@ -1588,7 +1594,7 @@ function render(){
   else if(st.screen==='group')     {inner.innerHTML=sGroup(); if(st.groupe&&st.tab==='vote'){renderVotesDOM();} if(st.groupe&&st.tab==='membres')renderMembresDOM(); if(st.groupe&&st.tab==='chat')loadMessages();}
   else if(st.screen==='profile')   inner.innerHTML=sProfile();
   else if(st.screen==='member-profile') inner.innerHTML=sMemberProfile();
-  else if(st.screen==='create-sortie') inner.innerHTML=sCreateSortie();
+  else if(st.screen==='create-sortie'){inner.innerHTML=sCreateSortie();const cs=document.getElementById('create-sortie-scroll');if(cs)requestAnimationFrame(()=>{cs.scrollTop=createSortieScroll;});}
 }
 
 // ═══════════ INIT ═══════════
