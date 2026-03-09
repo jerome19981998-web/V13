@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
@@ -52,346 +53,357 @@ const CINEMA_LINKS={
   'gaumont-aquaboulevard':{tickets:'https://www.gaumont.fr/fr/cinemas/gaumont-aquaboulevard.html',maps:'https://maps.google.com/?q=Gaumont+Aquaboulevard+8+rue+Colonel+Pierre+Avia+Paris'},
 };
 
-const TMDB_TOKEN='eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzMzY0M2EwMDRiZGMyYzdlNmIyYTFjOWMzZWI5ZDhlYyIsIm5iZiI6MTc3MzAwMTIzNy42ODYsInN1YiI6IjY5YWRkYTE1MmVmNWMxZmY5NWZjYmNlOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.bRW2UVqu1p89xPusKV5-mzW4ZeRSk8ij811FWOIwoBM';
-const TMDB_IMG='https://image.tmdb.org/t/p/w500';
+const TMDB_TOKEN=‘eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzMzY0M2EwMDRiZGMyYzdlNmIyYTFjOWMzZWI5ZDhlYyIsIm5iZiI6MTc3MzAwMTIzNy42ODYsInN1YiI6IjY5YWRkYTE1MmVmNWMxZmY5NWZjYmNlOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.bRW2UVqu1p89xPusKV5-mzW4ZeRSk8ij811FWOIwoBM’;
+const TMDB_IMG=‘https://image.tmdb.org/t/p/w500’;
 
 // ═══════════ ANIMAUX ═══════════
 const ANIMAL_EMOJIS = [
-  '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊',
-  '🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟',
-  '🦖','🦕','🐢','🐍','🦎','🦏','🦛','🐙','🦑','🦐','🦞','🦀','🐡','🐟','🐠','🐬','🐳','🐋',
-  '🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦣','🦏','🦛','🦒','🦘','🦬','🐃','🐂','🐄','🐎',
-  '🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐕‍🦺','🐈','🐈‍⬛','🪶','🐓','🦃',
-  '🦤','🦚','🦜','🦢','🦩','🕊','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿','🦔',
-  '🐾','🐉','🐲','🪸',
+‘🐶’,‘🐱’,‘🐭’,‘🐹’,‘🐰’,‘🦊’,‘🐻’,‘🐼’,‘🐨’,‘🐯’,‘🦁’,‘🐮’,‘🐷’,‘🐸’,‘🐵’,‘🙈’,‘🙉’,‘🙊’,
+‘🐔’,‘🐧’,‘🐦’,‘🦆’,‘🦅’,‘🦉’,‘🦇’,‘🐺’,‘🐗’,‘🐴’,‘🦄’,‘🐝’,‘🐛’,‘🦋’,‘🐌’,‘🐞’,‘🐜’,‘🦟’,
+‘🦖’,‘🦕’,‘🐢’,‘🐍’,‘🦎’,‘🦏’,‘🦛’,‘🐙’,‘🦑’,‘🦐’,‘🦞’,‘🦀’,‘🐡’,‘🐟’,‘🐠’,‘🐬’,‘🐳’,‘🐋’,
+‘🦈’,‘🐊’,‘🐅’,‘🐆’,‘🦓’,‘🦍’,‘🦧’,‘🐘’,‘🦣’,‘🦏’,‘🦛’,‘🦒’,‘🦘’,‘🦬’,‘🐃’,‘🐂’,‘🐄’,‘🐎’,
+‘🐖’,‘🐏’,‘🐑’,‘🦙’,‘🐐’,‘🦌’,‘🐕’,‘🐩’,‘🦮’,‘🐕‍🦺’,‘🐈’,‘🐈‍⬛’,‘🪶’,‘🐓’,‘🦃’,
+‘🦤’,‘🦚’,‘🦜’,‘🦢’,‘🦩’,‘🕊’,‘🐇’,‘🦝’,‘🦨’,‘🦡’,‘🦫’,‘🦦’,‘🦥’,‘🐁’,‘🐀’,‘🐿’,‘🦔’,
+‘🐾’,‘🐉’,‘🐲’,‘🪸’,
 ];
 
 // ═══════════ FILMS ═══════════
 const FILMS = {
-  marty:      {e:'🎾',c:'#1a0a08',bg:'linear-gradient(135deg,#0d0805,#2a1008)',         g:'DRAME',     t:'Marty Supreme',                 d:'2h30',dir:'Josh Safdie',        s:"New York, 1952. Marty Mauser rêve de devenir champion mondial de tennis de table. Avec Timothée Chalamet, Gwyneth Paltrow.",lbd:false,alt:['Marty']},
-  reve:       {e:'🏀',c:'#1a1a08',bg:'linear-gradient(135deg,#0d0d05,#2a2808)',         g:'COMEDIE',   t:'Le Rêve américain',              d:'2h01',dir:'Anthony Marciano',   s:"Deux outsiders français sans contacts ni argent deviennent des agents stars en NBA. Inspiré d'une histoire vraie.",lbd:false},
-  maison:     {e:'🏥',c:'#0a1a10',bg:'linear-gradient(135deg,#050d08,#0f2518)',         g:'DRAME',     t:'La Maison des femmes',           d:'1h50',dir:'Mélisa Godet',       s:"À la Maison des femmes, une équipe se bat chaque jour pour accompagner les femmes victimes de violences. Avec Karin Viard.",lbd:false},
-  jumpers:    {e:'🦘',c:'#1e5a30',bg:'linear-gradient(135deg,#0a1a0a,#1e5a30)',         g:'ANIMATION', t:'Jumpers',                        d:'1h45',dir:'Daniel Chong',       s:"Avec Mallory Wanecque, Piper Curda, Artus. Une aventure animée familiale franco-américaine pleine d'énergie.",lbd:false,alt:['Hoppers','Hopper']},
-  alter:      {e:'🪞',c:'#1a0a1a',bg:'linear-gradient(135deg,#100810,#241224)',         g:'COMEDIE',   t:'Alter Ego',                      d:'1h39',dir:'Nicolas Charlet, Bruno Lavaine', s:"Alex voit arriver son sosie parfait, plus charismatique et accompli. Il sombre dans la paranoïa. Avec Laurent Lafitte, Olga Kurylenko.",lbd:false},
-  scream7:    {e:'🔪',c:'#0a0a1a',bg:'linear-gradient(135deg,#050508,#10101e)',         g:'HORREUR',   t:'Scream 7',                       d:'1h54',dir:'Kevin Williamson',   s:"Ghostface resurgit dans la ville où Sidney Prescott a reconstruit sa vie. Sa fille devient la prochaine cible.",lbd:false},
-  bride:      {e:'⚡',c:'#1a1508',bg:'linear-gradient(135deg,#100d05,#1e1a08)',         g:'THRILLER',  t:'The Bride!',                     d:'2h07',dir:'Maggie Gyllenhaal',  s:"Rongé par la solitude, Frank ressuscite une jeune femme assassinée dans le Chicago des années 1930. Avec Jessie Buckley, Christian Bale.",lbd:false},
-  hurlevent:  {e:'🌩',c:'#0a0a20',bg:'linear-gradient(135deg,#06060f,#0f0f28)',         g:'ROMANCE',   t:'"Hurlevent"',                     d:'2h16',dir:'Emerald Fennell',    s:"Vision moderne de la passion absolue unissant Heathcliff et Catherine. Une romance légendaire qui défie le temps.",lbd:false},
-  lol2:       {e:'😂',c:'#200a10',bg:'linear-gradient(135deg,#140508,#2a0f14)',         g:'COMEDIE',   t:'LOL 2.0',                        d:'1h45',dir:'Lisa Azuelos',       s:"La suite de LOL. Une nouvelle génération, les mêmes galères du lycée et des premières amours.",lbd:false},
-  marsupilami:{e:'🐆',c:'#c8a820',bg:'linear-gradient(135deg,#1a1405,#3a2c08)',         g:'COMEDIE',   t:'Marsupilami',                    d:'1h39',dir:'Philippe Lacheau',   s:"Le marsupilami débarque à Paris. Chaos et tendresse dans une comédie familiale signée Philippe Lacheau.",lbd:false},
-  hamnet:     {e:'📜',c:'#2a1a08',bg:'linear-gradient(135deg,#150d04,#2a1a08)',         g:'DRAME',     t:'Hamnet',                         d:'2h05',dir:'Chloé Zhao',         s:"Angleterre, 1580. Will Shakespeare fait la connaissance d'Agnes. Quand leur fils Hamnet meurt à 11 ans, naît l'idée d'Hamlet.",lbd:false},
-  maigret:    {e:'🕵️',c:'#1a1020',bg:'linear-gradient(135deg,#0d0a14,#1e1428)',         g:'POLAR',     t:'Maigret et le mort amoureux',    d:'1h20',dir:'Pascal Bonitzer',    s:"Maigret est appelé au Quai d'Orsay : un ancien ambassadeur a été assassiné. Il découvre une correspondance secrète de 50 ans.",lbd:false},
-  coutures:   {e:'🧵',c:'#200a0a',bg:'linear-gradient(135deg,#120505,#200a0a)',         g:'DRAME',     t:'Coutures',                       d:'1h47',dir:'Alice Winocour',     s:"À la Fashion Week parisienne, trois femmes aux horizons différents tissent une solidarité insoupçonnée.",lbd:false},
-  chers:      {e:'👨‍👩‍👧',c:'#0a1520',bg:'linear-gradient(135deg,#050a14,#0a1828)',       g:'COMEDIE',   t:'Chers parents',                  d:'1h26',dir:'Emmanuel Patron',   s:"Une comédie tendre et drôle sur les relations parents-enfants d'aujourd'hui.",lbd:false},
-  malaga:     {e:'🌊',c:'#0a1520',bg:'linear-gradient(135deg,#050a14,#0a2028)',         g:'DRAME',     t:'Rue Málaga',                     d:'1h57',dir:'Maryam Touzani',     s:"Maria Angeles, Espagnole de 79 ans vivant seule à Tanger, voit sa vie basculer quand sa fille arrive pour vendre l'appartement.",lbd:false},
+marty:      {e:‘🎾’,c:’#1a0a08’,bg:‘linear-gradient(135deg,#0d0805,#2a1008)’,         g:‘DRAME’,     t:‘Marty Supreme’,                 d:‘2h30’,dir:‘Josh Safdie’,        s:“New York, 1952. Marty Mauser rêve de devenir champion mondial de tennis de table. Avec Timothée Chalamet, Gwyneth Paltrow.”,lbd:false,alt:[‘Marty’]},
+reve:       {e:‘🏀’,c:’#1a1a08’,bg:‘linear-gradient(135deg,#0d0d05,#2a2808)’,         g:‘COMEDIE’,   t:‘Le Rêve américain’,              d:‘2h01’,dir:‘Anthony Marciano’,   s:“Deux outsiders français sans contacts ni argent deviennent des agents stars en NBA. Inspiré d’une histoire vraie.”,lbd:false},
+maison:     {e:‘🏥’,c:’#0a1a10’,bg:‘linear-gradient(135deg,#050d08,#0f2518)’,         g:‘DRAME’,     t:‘La Maison des femmes’,           d:‘1h50’,dir:‘Mélisa Godet’,       s:“À la Maison des femmes, une équipe se bat chaque jour pour accompagner les femmes victimes de violences. Avec Karin Viard.”,lbd:false},
+jumpers:    {e:‘🦘’,c:’#1e5a30’,bg:‘linear-gradient(135deg,#0a1a0a,#1e5a30)’,         g:‘ANIMATION’, t:‘Jumpers’,                        d:‘1h45’,dir:‘Daniel Chong’,       s:“Avec Mallory Wanecque, Piper Curda, Artus. Une aventure animée familiale franco-américaine pleine d’énergie.”,lbd:false,alt:[‘Hoppers’,‘Hopper’]},
+alter:      {e:‘🪞’,c:’#1a0a1a’,bg:‘linear-gradient(135deg,#100810,#241224)’,         g:‘COMEDIE’,   t:‘Alter Ego’,                      d:‘1h39’,dir:‘Nicolas Charlet, Bruno Lavaine’, s:“Alex voit arriver son sosie parfait, plus charismatique et accompli. Il sombre dans la paranoïa. Avec Laurent Lafitte, Olga Kurylenko.”,lbd:false},
+scream7:    {e:‘🔪’,c:’#0a0a1a’,bg:‘linear-gradient(135deg,#050508,#10101e)’,         g:‘HORREUR’,   t:‘Scream 7’,                       d:‘1h54’,dir:‘Kevin Williamson’,   s:“Ghostface resurgit dans la ville où Sidney Prescott a reconstruit sa vie. Sa fille devient la prochaine cible.”,lbd:false},
+bride:      {e:‘⚡’,c:’#1a1508’,bg:‘linear-gradient(135deg,#100d05,#1e1a08)’,         g:‘THRILLER’,  t:‘The Bride!’,                     d:‘2h07’,dir:‘Maggie Gyllenhaal’,  s:“Rongé par la solitude, Frank ressuscite une jeune femme assassinée dans le Chicago des années 1930. Avec Jessie Buckley, Christian Bale.”,lbd:false},
+hurlevent:  {e:‘🌩’,c:’#0a0a20’,bg:‘linear-gradient(135deg,#06060f,#0f0f28)’,         g:‘ROMANCE’,   t:’“Hurlevent”’,                     d:‘2h16’,dir:‘Emerald Fennell’,    s:“Vision moderne de la passion absolue unissant Heathcliff et Catherine. Une romance légendaire qui défie le temps.”,lbd:false},
+lol2:       {e:‘😂’,c:’#200a10’,bg:‘linear-gradient(135deg,#140508,#2a0f14)’,         g:‘COMEDIE’,   t:‘LOL 2.0’,                        d:‘1h45’,dir:‘Lisa Azuelos’,       s:“La suite de LOL. Une nouvelle génération, les mêmes galères du lycée et des premières amours.”,lbd:false},
+marsupilami:{e:‘🐆’,c:’#c8a820’,bg:‘linear-gradient(135deg,#1a1405,#3a2c08)’,         g:‘COMEDIE’,   t:‘Marsupilami’,                    d:‘1h39’,dir:‘Philippe Lacheau’,   s:“Le marsupilami débarque à Paris. Chaos et tendresse dans une comédie familiale signée Philippe Lacheau.”,lbd:false},
+hamnet:     {e:‘📜’,c:’#2a1a08’,bg:‘linear-gradient(135deg,#150d04,#2a1a08)’,         g:‘DRAME’,     t:‘Hamnet’,                         d:‘2h05’,dir:‘Chloé Zhao’,         s:“Angleterre, 1580. Will Shakespeare fait la connaissance d’Agnes. Quand leur fils Hamnet meurt à 11 ans, naît l’idée d’Hamlet.”,lbd:false},
+maigret:    {e:‘🕵️’,c:’#1a1020’,bg:‘linear-gradient(135deg,#0d0a14,#1e1428)’,         g:‘POLAR’,     t:‘Maigret et le mort amoureux’,    d:‘1h20’,dir:‘Pascal Bonitzer’,    s:“Maigret est appelé au Quai d’Orsay : un ancien ambassadeur a été assassiné. Il découvre une correspondance secrète de 50 ans.”,lbd:false},
+coutures:   {e:‘🧵’,c:’#200a0a’,bg:‘linear-gradient(135deg,#120505,#200a0a)’,         g:‘DRAME’,     t:‘Coutures’,                       d:‘1h47’,dir:‘Alice Winocour’,     s:“À la Fashion Week parisienne, trois femmes aux horizons différents tissent une solidarité insoupçonnée.”,lbd:false},
+chers:      {e:‘👨‍👩‍👧’,c:’#0a1520’,bg:‘linear-gradient(135deg,#050a14,#0a1828)’,       g:‘COMEDIE’,   t:‘Chers parents’,                  d:‘1h26’,dir:‘Emmanuel Patron’,   s:“Une comédie tendre et drôle sur les relations parents-enfants d’aujourd’hui.”,lbd:false},
+malaga:     {e:‘🌊’,c:’#0a1520’,bg:‘linear-gradient(135deg,#050a14,#0a2028)’,         g:‘DRAME’,     t:‘Rue Málaga’,                     d:‘1h57’,dir:‘Maryam Touzani’,     s:“Maria Angeles, Espagnole de 79 ans vivant seule à Tanger, voit sa vie basculer quand sa fille arrive pour vendre l’appartement.”,lbd:false},
 };
 
 // ═══════════ CINÉMAS ═══════════
 const CINEMAS = [
-  // UGC
-  {id:'ugc-halles',       lat:48.8609,lng:2.3474,  chain:'ugc',    icon:'🎬',name:'UGC Ciné Cité Les Halles', addr:'7 pl. de la Rotonde',        metro:'Les Halles',      salles:27,tech:['Dolby','4DX','ICE'], films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'alter'},{id:'scream7'},{id:'bride'},{id:'hurlevent'},{id:'lol2'},{id:'marsupilami'},{id:'hamnet'},{id:'maigret'},{id:'coutures'},{id:'chers'}]},
-  {id:'ugc-bercy',        lat:48.8302,lng:2.3789,  chain:'ugc',    icon:'🎬',name:'UGC Ciné Cité Bercy',      addr:'2 cour Saint-Émilion',       metro:'Cour St-Émilion', salles:18,tech:['Dolby','ICE'],      films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'alter'},{id:'scream7'},{id:'bride'},{id:'hurlevent'},{id:'lol2'},{id:'marsupilami'},{id:'maigret'},{id:'chers'}]},
-  {id:'ugc-paris19',      lat:48.8866,lng:2.3780,  chain:'ugc',    icon:'🎬',name:'UGC Ciné Cité Paris 19',  addr:'1 rue du Bassin',            metro:'Corentin Cariou', salles:14,tech:['Dolby','ICE'],      films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'alter'},{id:'scream7'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
-  {id:'ugc-maillot',      lat:48.8794,lng:2.2830,  chain:'ugc',    icon:'🎬',name:'UGC Maillot',             addr:'2 pl. de la Porte Maillot',  metro:'Porte Maillot',   salles:12,tech:['Dolby'],            films:[{id:'marty'},{id:'reve'},{id:'hurlevent'},{id:'alter'},{id:'scream7'},{id:'maigret'}]},
-  {id:'ugc-opera',        lat:48.8719,lng:2.3387,  chain:'ugc',    icon:'🎬',name:'UGC Opéra',               addr:'34 bd des Italiens',         metro:'Opéra',           salles:4, tech:['Dolby'],            films:[{id:'marty'},{id:'reve'},{id:'hurlevent'},{id:'alter'},{id:'lol2'}]},
-  {id:'ugc-danton',       lat:48.8527,lng:2.3411,  chain:'ugc',    icon:'🎬',name:'UGC Danton',              addr:'99 bd du Montparnasse',      metro:'Vavin',           salles:4, tech:[],                   films:[{id:'marty'},{id:'alter'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
-  {id:'ugc-montparnasse', lat:48.8424,lng:2.3244,  chain:'ugc',    icon:'🎬',name:'UGC Montparnasse',        addr:'103 bd du Montparnasse',     metro:'Vavin',           salles:3, tech:[],                   films:[{id:'marty'},{id:'hurlevent'},{id:'lol2'},{id:'chers'}]},
-  {id:'ugc-lyon',         lat:48.8448,lng:2.3731,  chain:'ugc',    icon:'🎬',name:'UGC Lyon-Bastille',       addr:'12 rue de Lyon',             metro:'Gare de Lyon',    salles:7, tech:['Dolby'],            films:[{id:'marty'},{id:'scream7'},{id:'jumpers'},{id:'marsupilami'},{id:'chers'}]},
-  // Pathé
-  {id:'pathe-beaugrenelle',lat:48.8473,lng:2.2894, chain:'pathe',  icon:'🌟',name:'Pathé Beaugrenelle',      addr:'7 rue Linois',               metro:'Charles Michels', salles:10,tech:['Dolby','4DX','ScreenX'],films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'jumpers'},{id:'bride'},{id:'scream7'},{id:'hurlevent'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
-  {id:'pathe-convention',  lat:48.8394,lng:2.2988, chain:'pathe',  icon:'🌟',name:'Pathé Convention',        addr:'27 rue Alain-Chartier',      metro:'Convention',      salles:9, tech:['Dolby'],             films:[{id:'marty'},{id:'maison'},{id:'malaga'},{id:'alter'},{id:'coutures'},{id:'maigret'},{id:'marsupilami'},{id:'hamnet'}]},
-  {id:'pathe-parnasse',    lat:48.8352,lng:2.3243, chain:'pathe',  icon:'🌟',name:'Pathé Parnasse',          addr:'3 rue du Départ',            metro:'Montparnasse',    salles:12,tech:['Dolby','4DX'],      films:[{id:'marty'},{id:'reve'},{id:'scream7'},{id:'bride'},{id:'alter'},{id:'lol2'},{id:'marsupilami'},{id:'hurlevent'},{id:'chers'}]},
-  {id:'pathe-wepler',      lat:48.8835,lng:2.3263, chain:'pathe',  icon:'🌟',name:'Pathé Wepler',            addr:'14 pl. de Clichy',           metro:'Place de Clichy', salles:12,tech:['Dolby'],             films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'alter'},{id:'scream7'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
-  {id:'pathe-alesia',      lat:48.8287,lng:2.3243, chain:'pathe',  icon:'🌟',name:'Pathé Alésia',            addr:'73 av. du Gén. Leclerc',     metro:'Alésia',          salles:8, tech:['Dolby'],             films:[{id:'marty'},{id:'hurlevent'},{id:'reve'},{id:'alter'},{id:'maigret'}]},
-  {id:'pathe-batignolles', lat:48.8854,lng:2.3181, chain:'pathe',  icon:'🌟',name:'Les 7 Batignolles',       addr:'17 rue du Dr Heulin',        metro:'Brochant',        salles:7, tech:['Dolby'],             films:[{id:'scream7'},{id:'jumpers'},{id:'marsupilami'},{id:'lol2'},{id:'chers'}]},
-  // Gaumont / Pathé Opéra
-  {id:'gaumont-opera',     lat:48.8708,lng:2.3327, chain:'gaumont',icon:'🔵',name:'Pathé Opéra Premier',     addr:'35 bd des Capucines',        metro:'Opéra',           salles:8, tech:['Dolby','4DX'],      films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'coutures'},{id:'lol2'},{id:'chers'}]},
-  {id:'gaumont-convention',lat:48.8394,lng:2.2988, chain:'gaumont',icon:'🔵',name:'Gaumont Convention',      addr:'27 rue Alain-Chartier',      metro:'Convention',      salles:9, tech:['Dolby'],             films:[{id:'marty'},{id:'reve'},{id:'maison'},{id:'alter'},{id:'lol2'},{id:'marsupilami'},{id:'maigret'},{id:'chers'}]},
-  {id:'gaumont-aquaboulevard',lat:48.8306,lng:2.2867,chain:'gaumont',icon:'🔵',name:'Gaumont Aquaboulevard', addr:'15 rue Gaston-de-Caillavet', metro:'Balard',          salles:14,tech:['Dolby'],             films:[{id:'marty'},{id:'scream7'},{id:'jumpers'},{id:'lol2'},{id:'marsupilami'},{id:'chers'}]},
+// UGC
+{id:‘ugc-halles’,       lat:48.8609,lng:2.3474,  chain:‘ugc’,    icon:‘🎬’,name:‘UGC Ciné Cité Les Halles’, addr:‘7 pl. de la Rotonde’,        metro:‘Les Halles’,      salles:27,tech:[‘Dolby’,‘4DX’,‘ICE’], films:[{id:‘marty’},{id:‘reve’},{id:‘maison’},{id:‘jumpers’},{id:‘alter’},{id:‘scream7’},{id:‘bride’},{id:‘hurlevent’},{id:‘lol2’},{id:‘marsupilami’},{id:‘hamnet’},{id:‘maigret’},{id:‘coutures’},{id:‘chers’}]},
+{id:‘ugc-bercy’,        lat:48.8302,lng:2.3789,  chain:‘ugc’,    icon:‘🎬’,name:‘UGC Ciné Cité Bercy’,      addr:‘2 cour Saint-Émilion’,       metro:‘Cour St-Émilion’, salles:18,tech:[‘Dolby’,‘ICE’],      films:[{id:‘marty’},{id:‘reve’},{id:‘maison’},{id:‘jumpers’},{id:‘alter’},{id:‘scream7’},{id:‘bride’},{id:‘hurlevent’},{id:‘lol2’},{id:‘marsupilami’},{id:‘maigret’},{id:‘chers’}]},
+{id:‘ugc-paris19’,      lat:48.8866,lng:2.3780,  chain:‘ugc’,    icon:‘🎬’,name:‘UGC Ciné Cité Paris 19’,  addr:‘1 rue du Bassin’,            metro:‘Corentin Cariou’, salles:14,tech:[‘Dolby’,‘ICE’],      films:[{id:‘marty’},{id:‘reve’},{id:‘maison’},{id:‘jumpers’},{id:‘alter’},{id:‘scream7’},{id:‘lol2’},{id:‘marsupilami’},{id:‘chers’}]},
+{id:‘ugc-maillot’,      lat:48.8794,lng:2.2830,  chain:‘ugc’,    icon:‘🎬’,name:‘UGC Maillot’,             addr:‘2 pl. de la Porte Maillot’,  metro:‘Porte Maillot’,   salles:12,tech:[‘Dolby’],            films:[{id:‘marty’},{id:‘reve’},{id:‘hurlevent’},{id:‘alter’},{id:‘scream7’},{id:‘maigret’}]},
+{id:‘ugc-opera’,        lat:48.8719,lng:2.3387,  chain:‘ugc’,    icon:‘🎬’,name:‘UGC Opéra’,               addr:‘34 bd des Italiens’,         metro:‘Opéra’,           salles:4, tech:[‘Dolby’],            films:[{id:‘marty’},{id:‘reve’},{id:‘hurlevent’},{id:‘alter’},{id:‘lol2’}]},
+{id:‘ugc-danton’,       lat:48.8527,lng:2.3411,  chain:‘ugc’,    icon:‘🎬’,name:‘UGC Danton’,              addr:‘99 bd du Montparnasse’,      metro:‘Vavin’,           salles:4, tech:[],                   films:[{id:‘marty’},{id:‘alter’},{id:‘lol2’},{id:‘marsupilami’},{id:‘chers’}]},
+{id:‘ugc-montparnasse’, lat:48.8424,lng:2.3244,  chain:‘ugc’,    icon:‘🎬’,name:‘UGC Montparnasse’,        addr:‘103 bd du Montparnasse’,     metro:‘Vavin’,           salles:3, tech:[],                   films:[{id:‘marty’},{id:‘hurlevent’},{id:‘lol2’},{id:‘chers’}]},
+{id:‘ugc-lyon’,         lat:48.8448,lng:2.3731,  chain:‘ugc’,    icon:‘🎬’,name:‘UGC Lyon-Bastille’,       addr:‘12 rue de Lyon’,             metro:‘Gare de Lyon’,    salles:7, tech:[‘Dolby’],            films:[{id:‘marty’},{id:‘scream7’},{id:‘jumpers’},{id:‘marsupilami’},{id:‘chers’}]},
+// Pathé
+{id:‘pathe-beaugrenelle’,lat:48.8473,lng:2.2894, chain:‘pathe’,  icon:‘🌟’,name:‘Pathé Beaugrenelle’,      addr:‘7 rue Linois’,               metro:‘Charles Michels’, salles:10,tech:[‘Dolby’,‘4DX’,‘ScreenX’],films:[{id:‘marty’},{id:‘reve’},{id:‘maison’},{id:‘jumpers’},{id:‘bride’},{id:‘scream7’},{id:‘hurlevent’},{id:‘lol2’},{id:‘marsupilami’},{id:‘chers’}]},
+{id:‘pathe-convention’,  lat:48.8394,lng:2.2988, chain:‘pathe’,  icon:‘🌟’,name:‘Pathé Convention’,        addr:‘27 rue Alain-Chartier’,      metro:‘Convention’,      salles:9, tech:[‘Dolby’],             films:[{id:‘marty’},{id:‘maison’},{id:‘malaga’},{id:‘alter’},{id:‘coutures’},{id:‘maigret’},{id:‘marsupilami’},{id:‘hamnet’}]},
+{id:‘pathe-parnasse’,    lat:48.8352,lng:2.3243, chain:‘pathe’,  icon:‘🌟’,name:‘Pathé Parnasse’,          addr:‘3 rue du Départ’,            metro:‘Montparnasse’,    salles:12,tech:[‘Dolby’,‘4DX’],      films:[{id:‘marty’},{id:‘reve’},{id:‘scream7’},{id:‘bride’},{id:‘alter’},{id:‘lol2’},{id:‘marsupilami’},{id:‘hurlevent’},{id:‘chers’}]},
+{id:‘pathe-wepler’,      lat:48.8835,lng:2.3263, chain:‘pathe’,  icon:‘🌟’,name:‘Pathé Wepler’,            addr:‘14 pl. de Clichy’,           metro:‘Place de Clichy’, salles:12,tech:[‘Dolby’],             films:[{id:‘marty’},{id:‘reve’},{id:‘maison’},{id:‘alter’},{id:‘scream7’},{id:‘lol2’},{id:‘marsupilami’},{id:‘chers’}]},
+{id:‘pathe-alesia’,      lat:48.8287,lng:2.3243, chain:‘pathe’,  icon:‘🌟’,name:‘Pathé Alésia’,            addr:‘73 av. du Gén. Leclerc’,     metro:‘Alésia’,          salles:8, tech:[‘Dolby’],             films:[{id:‘marty’},{id:‘hurlevent’},{id:‘reve’},{id:‘alter’},{id:‘maigret’}]},
+{id:‘pathe-batignolles’, lat:48.8854,lng:2.3181, chain:‘pathe’,  icon:‘🌟’,name:‘Les 7 Batignolles’,       addr:‘17 rue du Dr Heulin’,        metro:‘Brochant’,        salles:7, tech:[‘Dolby’],             films:[{id:‘scream7’},{id:‘jumpers’},{id:‘marsupilami’},{id:‘lol2’},{id:‘chers’}]},
+// Gaumont / Pathé Opéra
+{id:‘gaumont-opera’,     lat:48.8708,lng:2.3327, chain:‘gaumont’,icon:‘🔵’,name:‘Pathé Opéra Premier’,     addr:‘35 bd des Capucines’,        metro:‘Opéra’,           salles:8, tech:[‘Dolby’,‘4DX’],      films:[{id:‘marty’},{id:‘reve’},{id:‘maison’},{id:‘coutures’},{id:‘lol2’},{id:‘chers’}]},
+{id:‘gaumont-convention’,lat:48.8394,lng:2.2988, chain:‘gaumont’,icon:‘🔵’,name:‘Gaumont Convention’,      addr:‘27 rue Alain-Chartier’,      metro:‘Convention’,      salles:9, tech:[‘Dolby’],             films:[{id:‘marty’},{id:‘reve’},{id:‘maison’},{id:‘alter’},{id:‘lol2’},{id:‘marsupilami’},{id:‘maigret’},{id:‘chers’}]},
+{id:‘gaumont-aquaboulevard’,lat:48.8306,lng:2.2867,chain:‘gaumont’,icon:‘🔵’,name:‘Gaumont Aquaboulevard’, addr:‘15 rue Gaston-de-Caillavet’, metro:‘Balard’,          salles:14,tech:[‘Dolby’],             films:[{id:‘marty’},{id:‘scream7’},{id:‘jumpers’},{id:‘lol2’},{id:‘marsupilami’},{id:‘chers’}]},
 ];
 
 // ═══════════ SÉANCES (vraies données Filmorama semaine du 9 mars 2026) ═══════════
 const SEANCES = {
-  'ugc-halles': {
-    marty:    ['09h00','10h30','12h00','13h45','15h10','17h00','18h20','20h15','21h25'],
-    reve:     ['10h15','13h00','15h45','18h30','21h15'],
-    maison:   ['09h10','11h40','14h15','16h45','19h20','21h50'],
-    jumpers:  ['10h00','12h30','14h55','17h15','19h35','21h55'],
-    alter:    ['09h00','11h05','13h15','15h30','17h50','20h05','22h15'],
-    scream7:  ['09h05','11h40','14h15','16h50','19h25','21h55'],
-    bride:    ['09h15','12h05','14h50','17h40','20h30'],
-    hurlevent:['10h00','12h50','15h45','18h40','21h35'],
-    lol2:     ['10h35','13h00','15h25','19h55','22h05'],
-    marsupilami:['09h00','11h10','13h25','15h40','17h45'],
-    hamnet:   ['09h00','11h30','14h05','16h40','19h15','21h50'],
-    maigret:  ['18h00'],
-    coutures: ['18h15','20h35'],
-    chers:    ['09h45','11h45','13h50','15h55','18h00','20h00','22h00'],
-  },
-  'ugc-bercy': {
-    marty:    ['10h15','14h00','17h15','20h30'],
-    reve:     ['10h45','13h45','16h30','19h15','21h50'],
-    maison:   ['10h30','14h00','16h30','19h30','22h05'],
-    jumpers:  ['09h45','11h50','13h55','16h00','18h05','20h10','22h15'],
-    alter:    ['10h45','13h45','15h50','18h00','20h10','22h15'],
-    scream7:  ['10h00','13h00','14h00','15h15','17h30','19h45','22h00'],
-    bride:    ['10h30','14h00','16h45','19h15','21h45'],
-    hurlevent:['18h00','20h45'],
-    lol2:     ['11h00','13h30','15h40','17h50','20h00','22h10'],
-    marsupilami:['10h15','13h30','15h30','17h30'],
-    maigret:  ['16h30'],
-    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00','22h00'],
-  },
-  'ugc-paris19': {
-    marty:    ['10h30','14h00','17h15','20h30'],
-    reve:     ['11h00','14h00','17h00','20h00'],
-    maison:   ['10h15','13h15','16h15','19h15','22h00'],
-    jumpers:  ['10h00','12h00','14h00','16h00','18h00','20h00'],
-    alter:    ['11h30','14h30','17h30','20h30'],
-    scream7:  ['10h45','13h45','16h45','19h45'],
-    lol2:     ['10h30','13h00','15h30','18h00','20h30'],
-    marsupilami:['10h00','12h00','14h00','16h00'],
-    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
-  },
-  'ugc-maillot': {
-    marty:    ['11h00','14h00','17h00','20h00'],
-    reve:     ['10h30','13h30','16h30','19h30'],
-    hurlevent:['12h00','15h00','18h00','21h00'],
-    alter:    ['11h30','14h30','17h30','20h30'],
-    scream7:  ['10h00','13h00','16h00','19h00','22h00'],
-    maigret:  ['12h00','15h00','18h00','21h00'],
-  },
-  'ugc-opera': {
-    marty:    ['12h00','15h00','18h00','21h00'],
-    reve:     ['11h30','14h30','17h30','20h30'],
-    hurlevent:['13h00','16h00','19h00','22h00'],
-    alter:    ['10h30','13h30','16h30','19h30'],
-    lol2:     ['10h00','12h15','14h30','16h45','19h00','21h15'],
-  },
-  'ugc-danton': {
-    marty:    ['11h00','14h00','17h00','20h00'],
-    alter:    ['10h30','13h30','16h30','19h30'],
-    lol2:     ['10h00','12h15','14h30','16h45','19h00','21h15'],
-    marsupilami:['10h00','12h00','14h00','16h00'],
-    chers:    ['10h30','12h30','14h30','16h30','18h30','20h30'],
-  },
-  'ugc-montparnasse': {
-    marty:    ['12h00','15h00','18h00','21h00'],
-    hurlevent:['13h30','16h30','19h30','22h00'],
-    lol2:     ['11h00','13h30','16h00','18h30','21h00'],
-    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
-  },
-  'ugc-lyon': {
-    marty:    ['11h00','14h00','17h00','20h00'],
-    scream7:  ['12h30','15h30','18h30','21h30'],
-    jumpers:  ['10h00','12h00','14h00','16h00','18h00','20h00'],
-    marsupilami:['10h30','12h30','14h30','16h30'],
-    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
-  },
-  'pathe-beaugrenelle': {
-    marty:    ['10h30','14h00','17h00','19h45','21h10','22h00'],
-    reve:     ['11h15','14h25','17h55','19h40','22h15'],
-    maison:   ['10h45','13h15','15h35','17h45','19h40','22h45'],
-    jumpers:  ['10h00','11h00','13h00','13h30','14h00','15h15','16h15','17h30','20h00','22h10'],
-    bride:    ['10h15','11h00','14h30','17h00','18h30','20h30','22h15'],
-    scream7:  ['10h30','13h00','17h15','19h30','19h45','22h00','22h25'],
-    hurlevent:['10h15'],
-    lol2:     ['15h30','22h40'],
-    marsupilami:['12h05','14h15','16h25'],
-    chers:    ['10h10','13h25','15h25','18h35','20h30','23h05'],
-  },
-  'pathe-convention': {
-    marty:    ['10h00','13h45','16h50','20h00','21h40'],
-    maison:   ['10h20','13h40','15h00','17h20','19h20','22h15'],
-    malaga:   ['09h55','12h15','14h20','16h45','19h10','22h00'],
-    alter:    ['10h15','13h25','15h35','17h45','19h50','22h10'],
-    coutures: ['13h20'],
-    maigret:  ['10h35','13h10','15h30','17h20','20h15'],
-    marsupilami:['10h30','16h00'],
-    hamnet:   ['16h45','19h40'],
-  },
-  'pathe-parnasse': {
-    marty:    ['10h30','14h00','17h15','20h30'],
-    reve:     ['11h00','14h10','17h20','20h15'],
-    scream7:  ['10h15','13h15','16h15','19h15','22h00'],
-    bride:    ['11h30','14h30','17h30','20h30'],
-    alter:    ['10h00','12h10','14h25','16h40','18h55','21h10'],
-    lol2:     ['10h45','13h00','15h20','17h40','20h00','22h15'],
-    marsupilami:['10h00','12h00','14h00','16h00'],
-    hurlevent:['10h30','13h30','16h30','19h30'],
-    chers:    ['10h10','12h15','14h20','16h25','18h30','20h35','22h40'],
-  },
-  'pathe-wepler': {
-    marty:    ['10h00','13h30','16h45','20h00'],
-    reve:     ['10h30','13h45','17h00','20h15'],
-    maison:   ['10h15','13h00','15h15','17h30','19h45','22h00'],
-    alter:    ['10h45','13h00','15h15','17h30','19h45','22h00'],
-    scream7:  ['10h00','13h15','16h30','19h45'],
-    lol2:     ['10h30','13h00','15h30','18h00','20h30'],
-    marsupilami:['10h15','12h15','14h15','16h15'],
-    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00','22h00'],
-  },
-  'pathe-alesia': {
-    marty:    ['10h00','13h30','16h45','20h00'],
-    hurlevent:['11h00','14h00','17h00','20h00'],
-    reve:     ['10h30','13h45','17h00','20h15'],
-    alter:    ['10h15','12h30','14h45','17h00','19h15','21h30'],
-    maigret:  ['10h45','13h00','15h15','17h30','19h45'],
-  },
-  'pathe-batignolles': {
-    scream7:  ['10h30','13h30','16h30','19h30','22h00'],
-    jumpers:  ['10h00','12h00','14h00','16h00','18h00','20h00'],
-    marsupilami:['10h30','12h30','14h30','16h30'],
-    lol2:     ['11h00','13h30','16h00','18h30','21h00'],
-    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
-  },
-  'gaumont-opera': {
-    marty:    ['10h00','13h30','16h45','20h00'],
-    reve:     ['10h45','14h00','17h15','20h30'],
-    maison:   ['10h30','13h15','15h30','17h45','20h00','22h15'],
-    coutures: ['10h15','13h00','15h15','18h00','20h15','22h30'],
-    lol2:     ['10h00','12h15','14h30','16h45','19h00','21h15'],
-    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00','22h00'],
-  },
-  'gaumont-convention': {
-    marty:    ['10h15','13h45','17h00','20h15'],
-    reve:     ['11h00','14h15','17h30','20h45'],
-    maison:   ['10h30','13h30','16h30','19h30','22h00'],
-    alter:    ['11h30','14h30','17h30','20h30'],
-    lol2:     ['10h00','12h15','14h30','16h45','19h00','21h15'],
-    marsupilami:['10h00','12h00','14h00','16h00'],
-    maigret:  ['11h00','13h30','16h00','18h30','21h00'],
-    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
-  },
-  'gaumont-aquaboulevard': {
-    marty:    ['11h00','14h00','17h00','20h00'],
-    scream7:  ['10h30','13h30','16h30','19h30','22h00'],
-    jumpers:  ['10h00','12h00','14h00','16h00','18h00','20h00'],
-    lol2:     ['11h30','14h00','16h30','19h00','21h30'],
-    marsupilami:['10h15','12h15','14h15','16h15','18h15'],
-    chers:    ['10h00','12h00','14h00','16h00','18h00','20h00'],
-  },
+‘ugc-halles’: {
+marty:    [‘09h00’,‘10h30’,‘12h00’,‘13h45’,‘15h10’,‘17h00’,‘18h20’,‘20h15’,‘21h25’],
+reve:     [‘10h15’,‘13h00’,‘15h45’,‘18h30’,‘21h15’],
+maison:   [‘09h10’,‘11h40’,‘14h15’,‘16h45’,‘19h20’,‘21h50’],
+jumpers:  [‘10h00’,‘12h30’,‘14h55’,‘17h15’,‘19h35’,‘21h55’],
+alter:    [‘09h00’,‘11h05’,‘13h15’,‘15h30’,‘17h50’,‘20h05’,‘22h15’],
+scream7:  [‘09h05’,‘11h40’,‘14h15’,‘16h50’,‘19h25’,‘21h55’],
+bride:    [‘09h15’,‘12h05’,‘14h50’,‘17h40’,‘20h30’],
+hurlevent:[‘10h00’,‘12h50’,‘15h45’,‘18h40’,‘21h35’],
+lol2:     [‘10h35’,‘13h00’,‘15h25’,‘19h55’,‘22h05’],
+marsupilami:[‘09h00’,‘11h10’,‘13h25’,‘15h40’,‘17h45’],
+hamnet:   [‘09h00’,‘11h30’,‘14h05’,‘16h40’,‘19h15’,‘21h50’],
+maigret:  [‘18h00’],
+coutures: [‘18h15’,‘20h35’],
+chers:    [‘09h45’,‘11h45’,‘13h50’,‘15h55’,‘18h00’,‘20h00’,‘22h00’],
+},
+‘ugc-bercy’: {
+marty:    [‘10h15’,‘14h00’,‘17h15’,‘20h30’],
+reve:     [‘10h45’,‘13h45’,‘16h30’,‘19h15’,‘21h50’],
+maison:   [‘10h30’,‘14h00’,‘16h30’,‘19h30’,‘22h05’],
+jumpers:  [‘09h45’,‘11h50’,‘13h55’,‘16h00’,‘18h05’,‘20h10’,‘22h15’],
+alter:    [‘10h45’,‘13h45’,‘15h50’,‘18h00’,‘20h10’,‘22h15’],
+scream7:  [‘10h00’,‘13h00’,‘14h00’,‘15h15’,‘17h30’,‘19h45’,‘22h00’],
+bride:    [‘10h30’,‘14h00’,‘16h45’,‘19h15’,‘21h45’],
+hurlevent:[‘18h00’,‘20h45’],
+lol2:     [‘11h00’,‘13h30’,‘15h40’,‘17h50’,‘20h00’,‘22h10’],
+marsupilami:[‘10h15’,‘13h30’,‘15h30’,‘17h30’],
+maigret:  [‘16h30’],
+chers:    [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’,‘22h00’],
+},
+‘ugc-paris19’: {
+marty:    [‘10h30’,‘14h00’,‘17h15’,‘20h30’],
+reve:     [‘11h00’,‘14h00’,‘17h00’,‘20h00’],
+maison:   [‘10h15’,‘13h15’,‘16h15’,‘19h15’,‘22h00’],
+jumpers:  [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+alter:    [‘11h30’,‘14h30’,‘17h30’,‘20h30’],
+scream7:  [‘10h45’,‘13h45’,‘16h45’,‘19h45’],
+lol2:     [‘10h30’,‘13h00’,‘15h30’,‘18h00’,‘20h30’],
+marsupilami:[‘10h00’,‘12h00’,‘14h00’,‘16h00’],
+chers:    [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+},
+‘ugc-maillot’: {
+marty:    [‘11h00’,‘14h00’,‘17h00’,‘20h00’],
+reve:     [‘10h30’,‘13h30’,‘16h30’,‘19h30’],
+hurlevent:[‘12h00’,‘15h00’,‘18h00’,‘21h00’],
+alter:    [‘11h30’,‘14h30’,‘17h30’,‘20h30’],
+scream7:  [‘10h00’,‘13h00’,‘16h00’,‘19h00’,‘22h00’],
+maigret:  [‘12h00’,‘15h00’,‘18h00’,‘21h00’],
+},
+‘ugc-opera’: {
+marty:    [‘12h00’,‘15h00’,‘18h00’,‘21h00’],
+reve:     [‘11h30’,‘14h30’,‘17h30’,‘20h30’],
+hurlevent:[‘13h00’,‘16h00’,‘19h00’,‘22h00’],
+alter:    [‘10h30’,‘13h30’,‘16h30’,‘19h30’],
+lol2:     [‘10h00’,‘12h15’,‘14h30’,‘16h45’,‘19h00’,‘21h15’],
+},
+‘ugc-danton’: {
+marty:    [‘11h00’,‘14h00’,‘17h00’,‘20h00’],
+alter:    [‘10h30’,‘13h30’,‘16h30’,‘19h30’],
+lol2:     [‘10h00’,‘12h15’,‘14h30’,‘16h45’,‘19h00’,‘21h15’],
+marsupilami:[‘10h00’,‘12h00’,‘14h00’,‘16h00’],
+chers:    [‘10h30’,‘12h30’,‘14h30’,‘16h30’,‘18h30’,‘20h30’],
+},
+‘ugc-montparnasse’: {
+marty:    [‘12h00’,‘15h00’,‘18h00’,‘21h00’],
+hurlevent:[‘13h30’,‘16h30’,‘19h30’,‘22h00’],
+lol2:     [‘11h00’,‘13h30’,‘16h00’,‘18h30’,‘21h00’],
+chers:    [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+},
+‘ugc-lyon’: {
+marty:    [‘11h00’,‘14h00’,‘17h00’,‘20h00’],
+scream7:  [‘12h30’,‘15h30’,‘18h30’,‘21h30’],
+jumpers:  [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+marsupilami:[‘10h30’,‘12h30’,‘14h30’,‘16h30’],
+chers:    [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+},
+‘pathe-beaugrenelle’: {
+marty:    [‘10h30’,‘14h00’,‘17h00’,‘19h45’,‘21h10’,‘22h00’],
+reve:     [‘11h15’,‘14h25’,‘17h55’,‘19h40’,‘22h15’],
+maison:   [‘10h45’,‘13h15’,‘15h35’,‘17h45’,‘19h40’,‘22h45’],
+jumpers:  [‘10h00’,‘11h00’,‘13h00’,‘13h30’,‘14h00’,‘15h15’,‘16h15’,‘17h30’,‘20h00’,‘22h10’],
+bride:    [‘10h15’,‘11h00’,‘14h30’,‘17h00’,‘18h30’,‘20h30’,‘22h15’],
+scream7:  [‘10h30’,‘13h00’,‘17h15’,‘19h30’,‘19h45’,‘22h00’,‘22h25’],
+hurlevent:[‘10h15’],
+lol2:     [‘15h30’,‘22h40’],
+marsupilami:[‘12h05’,‘14h15’,‘16h25’],
+chers:    [‘10h10’,‘13h25’,‘15h25’,‘18h35’,‘20h30’,‘23h05’],
+},
+‘pathe-convention’: {
+marty:    [‘10h00’,‘13h45’,‘16h50’,‘20h00’,‘21h40’],
+maison:   [‘10h20’,‘13h40’,‘15h00’,‘17h20’,‘19h20’,‘22h15’],
+malaga:   [‘09h55’,‘12h15’,‘14h20’,‘16h45’,‘19h10’,‘22h00’],
+alter:    [‘10h15’,‘13h25’,‘15h35’,‘17h45’,‘19h50’,‘22h10’],
+coutures: [‘13h20’],
+maigret:  [‘10h35’,‘13h10’,‘15h30’,‘17h20’,‘20h15’],
+marsupilami:[‘10h30’,‘16h00’],
+hamnet:   [‘16h45’,‘19h40’],
+},
+‘pathe-parnasse’: {
+marty:    [‘10h30’,‘14h00’,‘17h15’,‘20h30’],
+reve:     [‘11h00’,‘14h10’,‘17h20’,‘20h15’],
+scream7:  [‘10h15’,‘13h15’,‘16h15’,‘19h15’,‘22h00’],
+bride:    [‘11h30’,‘14h30’,‘17h30’,‘20h30’],
+alter:    [‘10h00’,‘12h10’,‘14h25’,‘16h40’,‘18h55’,‘21h10’],
+lol2:     [‘10h45’,‘13h00’,‘15h20’,‘17h40’,‘20h00’,‘22h15’],
+marsupilami:[‘10h00’,‘12h00’,‘14h00’,‘16h00’],
+hurlevent:[‘10h30’,‘13h30’,‘16h30’,‘19h30’],
+chers:    [‘10h10’,‘12h15’,‘14h20’,‘16h25’,‘18h30’,‘20h35’,‘22h40’],
+},
+‘pathe-wepler’: {
+marty:    [‘10h00’,‘13h30’,‘16h45’,‘20h00’],
+reve:     [‘10h30’,‘13h45’,‘17h00’,‘20h15’],
+maison:   [‘10h15’,‘13h00’,‘15h15’,‘17h30’,‘19h45’,‘22h00’],
+alter:    [‘10h45’,‘13h00’,‘15h15’,‘17h30’,‘19h45’,‘22h00’],
+scream7:  [‘10h00’,‘13h15’,‘16h30’,‘19h45’],
+lol2:     [‘10h30’,‘13h00’,‘15h30’,‘18h00’,‘20h30’],
+marsupilami:[‘10h15’,‘12h15’,‘14h15’,‘16h15’],
+chers:    [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’,‘22h00’],
+},
+‘pathe-alesia’: {
+marty:    [‘10h00’,‘13h30’,‘16h45’,‘20h00’],
+hurlevent:[‘11h00’,‘14h00’,‘17h00’,‘20h00’],
+reve:     [‘10h30’,‘13h45’,‘17h00’,‘20h15’],
+alter:    [‘10h15’,‘12h30’,‘14h45’,‘17h00’,‘19h15’,‘21h30’],
+maigret:  [‘10h45’,‘13h00’,‘15h15’,‘17h30’,‘19h45’],
+},
+‘pathe-batignolles’: {
+scream7:  [‘10h30’,‘13h30’,‘16h30’,‘19h30’,‘22h00’],
+jumpers:  [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+marsupilami:[‘10h30’,‘12h30’,‘14h30’,‘16h30’],
+lol2:     [‘11h00’,‘13h30’,‘16h00’,‘18h30’,‘21h00’],
+chers:    [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+},
+‘gaumont-opera’: {
+marty:    [‘10h00’,‘13h30’,‘16h45’,‘20h00’],
+reve:     [‘10h45’,‘14h00’,‘17h15’,‘20h30’],
+maison:   [‘10h30’,‘13h15’,‘15h30’,‘17h45’,‘20h00’,‘22h15’],
+coutures: [‘10h15’,‘13h00’,‘15h15’,‘18h00’,‘20h15’,‘22h30’],
+lol2:     [‘10h00’,‘12h15’,‘14h30’,‘16h45’,‘19h00’,‘21h15’],
+chers:    [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’,‘22h00’],
+},
+‘gaumont-convention’: {
+marty:    [‘10h15’,‘13h45’,‘17h00’,‘20h15’],
+reve:     [‘11h00’,‘14h15’,‘17h30’,‘20h45’],
+maison:   [‘10h30’,‘13h30’,‘16h30’,‘19h30’,‘22h00’],
+alter:    [‘11h30’,‘14h30’,‘17h30’,‘20h30’],
+lol2:     [‘10h00’,‘12h15’,‘14h30’,‘16h45’,‘19h00’,‘21h15’],
+marsupilami:[‘10h00’,‘12h00’,‘14h00’,‘16h00’],
+maigret:  [‘11h00’,‘13h30’,‘16h00’,‘18h30’,‘21h00’],
+chers:    [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+},
+‘gaumont-aquaboulevard’: {
+marty:    [‘11h00’,‘14h00’,‘17h00’,‘20h00’],
+scream7:  [‘10h30’,‘13h30’,‘16h30’,‘19h30’,‘22h00’],
+jumpers:  [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+lol2:     [‘11h30’,‘14h00’,‘16h30’,‘19h00’,‘21h30’],
+marsupilami:[‘10h15’,‘12h15’,‘14h15’,‘16h15’,‘18h15’],
+chers:    [‘10h00’,‘12h00’,‘14h00’,‘16h00’,‘18h00’,‘20h00’],
+},
 };
+
+// ═══════════ TOAST ═══════════
+function toast(msg, type=‘info’, dur=2800){
+const colors={info:MU, success:LB, error:AC, warning:GD};
+const t=document.createElement(‘div’);
+t.style.cssText=`position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:${S2};border:1px solid ${colors[type]||BD};border-radius:12px;padding:10px 16px;font-size:12px;color:${TX};z-index:9999;opacity:0;transition:all 0.25s;white-space:nowrap;max-width:300px;text-align:center;`;
+t.textContent=msg;
+document.body.appendChild(t);
+requestAnimationFrame(()=>{t.style.opacity=‘1’;t.style.transform=‘translateX(-50%) translateY(0)’;});
+setTimeout(()=>{t.style.opacity=‘0’;t.style.transform=‘translateX(-50%) translateY(10px)’;setTimeout(()=>t.remove(),300);},dur);
+}
 
 // ═══════════ GÉOLOCALISATION ═══════════
 let userPos = null;
 function getDistance(lat1,lng1,lat2,lng2){
-  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
-  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
-function distLabel(km){ return km<1?Math.round(km*1000)+'m':km.toFixed(1)+'km'; }
+function distLabel(km){ return km<1?Math.round(km*1000)+‘m’:km.toFixed(1)+‘km’; }
 function requestGeoLoc(){
-  if(!navigator.geolocation)return;
-  navigator.geolocation.getCurrentPosition(p=>{
-    userPos={lat:p.coords.latitude,lng:p.coords.longitude};
-    if(['cinemas','cinema-detail'].includes(st.screen))render();
-  },()=>{},{timeout:8000});
+if(!navigator.geolocation)return;
+navigator.geolocation.getCurrentPosition(p=>{
+userPos={lat:p.coords.latitude,lng:p.coords.longitude};
+if([‘cinemas’,‘cinema-detail’].includes(st.screen))render();
+},()=>{},{timeout:8000});
 }
 function sortedCinemas(chain){
-  const list=chain?CINEMAS.filter(c=>c.chain===chain):CINEMAS;
-  if(!userPos)return list;
-  return [...list].sort((a,b)=>{
-    const da=(a.lat&&a.lng)?getDistance(userPos.lat,userPos.lng,a.lat,a.lng):999;
-    const db=(b.lat&&b.lng)?getDistance(userPos.lat,userPos.lng,b.lat,b.lng):999;
-    return da-db;
-  });
+const list=chain?CINEMAS.filter(c=>c.chain===chain):CINEMAS;
+if(!userPos)return list;
+return […list].sort((a,b)=>{
+const da=(a.lat&&a.lng)?getDistance(userPos.lat,userPos.lng,a.lat,a.lng):999;
+const db=(b.lat&&b.lng)?getDistance(userPos.lat,userPos.lng,b.lat,b.lng):999;
+return da-db;
+});
 }
 requestGeoLoc();
 
 // ═══════════ TMDB ═══════════
 const posters={}, ratings={}, trailers={};
 async function loadPosters(){
-  await Promise.all(Object.entries(FILMS).map(async([id,f])=>{
-    try{
-      const q=encodeURIComponent(f.t.replace(/[^\w\s]/g,' ').trim());
-      const r=await fetch(`https://api.themoviedb.org/3/search/movie?query=${q}&language=fr-FR&page=1`,{headers:{Authorization:`Bearer ${TMDB_TOKEN}`}});
-      const d=await r.json();
-      const hit=d.results?.[0];
-      if(!hit)return;
-      if(hit.poster_path)posters[id]=TMDB_IMG+hit.poster_path;
-      if(hit.vote_average)ratings[id]={note:hit.vote_average.toFixed(1),votes:hit.vote_count};
-      const rv=await fetch(`https://api.themoviedb.org/3/movie/${hit.id}/videos?language=fr-FR`,{headers:{Authorization:`Bearer ${TMDB_TOKEN}`}});
-      const dv=await rv.json();
-      const tr=dv.results?.find(v=>v.type==='Trailer'&&v.site==='YouTube')||dv.results?.find(v=>v.site==='YouTube');
-      if(tr)trailers[id]=tr.key;
-      if(['home','cinemas','cinema-detail','film'].includes(st.screen))render();
-    }catch(e){}
-  }));
+await Promise.all(Object.entries(FILMS).map(async([id,f])=>{
+try{
+const q=encodeURIComponent(f.t.replace(/[^\w\s]/g,’ ’).trim());
+const r=await fetch(`https://api.themoviedb.org/3/search/movie?query=${q}&language=fr-FR&page=1`,{headers:{Authorization:`Bearer ${TMDB_TOKEN}`}});
+const d=await r.json();
+const hit=d.results?.[0];
+if(!hit)return;
+if(hit.poster_path)posters[id]=TMDB_IMG+hit.poster_path;
+if(hit.vote_average)ratings[id]={note:hit.vote_average.toFixed(1),votes:hit.vote_count};
+const rv=await fetch(`https://api.themoviedb.org/3/movie/${hit.id}/videos?language=fr-FR`,{headers:{Authorization:`Bearer ${TMDB_TOKEN}`}});
+const dv=await rv.json();
+const tr=dv.results?.find(v=>v.type===‘Trailer’&&v.site===‘YouTube’)||dv.results?.find(v=>v.site===‘YouTube’);
+if(tr)trailers[id]=tr.key;
+if([‘home’,‘cinemas’,‘cinema-detail’,‘film’].includes(st.screen))render();
+}catch(e){}
+}));
 }
 
 // ═══════════ SUPABASE ═══════════
-const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsd2ZibWluaGR3aW54Y296amxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODA1NTYsImV4cCI6MjA4ODU1NjU1Nn0.OTr8lyDpRQsmXUCPKsm1wvNPYfCA32UBQShRibI_bDg';
+const SUPA_URL=‘https://alwfbminhdwinxcozjlj.supabase.co’;
+const SUPA_KEY=‘eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsd2ZibWluaGR3aW54Y296amxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODA1NTYsImV4cCI6MjA4ODU1NjU1Nn0.OTr8lyDpRQsmXUCPKsm1wvNPYfCA32UBQShRibI_bDg’;
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 // ═══════════ STATE ═══════════
-const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
+const _saved=JSON.parse(localStorage.getItem(‘cm2’)||’{}’);
 let st={
-  screen:_saved.pseudo?'home':'pseudo',
-  pseudo:_saved.pseudo||'',
-  pseudoInput:_saved.pseudo||'',
-  avatar:_saved.avatar||'🎬',
-  cinema:null,film:null,filmSrc:'home',groupe:null,
-  genre:'tous',cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',
-  tab:'vote',voted:null,
-  msgs:[],date:todayStr(),
-  lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',
-  viewedMember:null,showAvatarPicker:false,
-  _inviteGroupe:null,_inviteFilm:null,_changingPseudo:false,
+screen:_saved.pseudo?‘home’:‘pseudo’,
+pseudo:_saved.pseudo||’’,
+pseudoInput:_saved.pseudo||’’,
+avatar:_saved.avatar||‘🎬’,
+cinema:null,film:null,filmSrc:‘home’,groupe:null,search:’’,
+genre:‘tous’,cinFilter:‘tous’,secs:3600,syncing:false,syncLabel:’’,
+tab:‘vote’,voted:null,
+msgs:[],date:todayStr(),
+lbdPseudo:_saved.lbdPseudo||’’,lbdInput:’’,
+viewedMember:null,showAvatarPicker:false,
+_inviteGroupe:null,_inviteFilm:null,_changingPseudo:false,
 };
-function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar}))}catch(e){}}
+function save(){try{localStorage.setItem(‘cm2’,JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar}))}catch(e){}}
 
 function todayStr(){
-  const d=new Date();
-  return d.toISOString().slice(0,10);
+const d=new Date();
+return d.toISOString().slice(0,10);
 }
 
 // ═══════════ LBD ═══════════
 let lbdSeen=new Set(),lbdWatchlist=new Set();
-function normTitle(t){return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
+function normTitle(t){return t.toLowerCase().normalize(‘NFD’).replace(/[\u0300-\u036f]/g,’’).replace(/[^a-z0-9]/g,’’);}
 function filmInLbd(filmId,list){
-  const f=FILMS[filmId];if(!f)return false;
-  const titles=[f.t,...(f.alt||[])].map(normTitle);
-  for(const t of list){for(const n of titles){if(t.includes(n)||n.includes(t))return true;}}
-  return false;
+const f=FILMS[filmId];if(!f)return false;
+const titles=[f.t,…(f.alt||[])].map(normTitle);
+for(const t of list){for(const n of titles){if(t.includes(n)||n.includes(t))return true;}}
+return false;
 }
 function isVu(id){return filmInLbd(id,lbdSeen);}
 function isWatchlist(id){return filmInLbd(id,lbdWatchlist);}
 
 async function loadLbd(pseudo){
-  try{
-    const r=await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);
-    if(!r.ok)return false;
-    const d=await r.json();
-    lbdSeen=new Set();lbdWatchlist=new Set();
-    (d.items||[]).forEach(item=>{
-      const n=normTitle(item.title);
-      // Dans le RSS Letterboxd, les items du diary = films vus
-      // Les items avec cat 'wishlist' = watchlist, sinon = vu
-      if(item.cats&&item.cats.includes('wishlist'))lbdWatchlist.add(n);
-      else lbdSeen.add(n);
-    });
-    return true;
-  }catch(e){return false;}
+try{
+const r=await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);
+if(!r.ok)return false;
+const d=await r.json();
+lbdSeen=new Set();lbdWatchlist=new Set();
+(d.items||[]).forEach(item=>{
+const n=normTitle(item.title);
+// Dans le RSS Letterboxd, les items du diary = films vus
+// Les items avec cat ‘wishlist’ = watchlist, sinon = vu
+if(item.cats&&item.cats.includes(‘wishlist’))lbdWatchlist.add(n);
+else lbdSeen.add(n);
+});
+return true;
+}catch(e){return false;}
 }
 
 // LBD membres
 const membresLbd={};
 async function loadMemberLbd(pseudo){
-  if(membresLbd[pseudo])return membresLbd[pseudo];
-  try{
-    const r=await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);
-    if(!r.ok)return null;
-    const d=await r.json();
-    const seen=new Set(),wl=new Set();
-    (d.items||[]).forEach(item=>{
-      const n=normTitle(item.title);
-      if(item.cats&&item.cats.includes('wishlist'))wl.add(n);
-      else seen.add(n);
-    });
-    membresLbd[pseudo]={seen,wl};
-    return membresLbd[pseudo];
-  }catch(e){return null;}
+if(membresLbd[pseudo])return membresLbd[pseudo];
+try{
+const r=await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);
+if(!r.ok)return null;
+const d=await r.json();
+const seen=new Set(),wl=new Set();
+(d.items||[]).forEach(item=>{
+const n=normTitle(item.title);
+if(item.cats&&item.cats.includes(‘wishlist’))wl.add(n);
+else seen.add(n);
+});
+membresLbd[pseudo]={seen,wl};
+return membresLbd[pseudo];
+}catch(e){return null;}
 }
 
 // ═══════════ SUPABASE DONNÉES ═══════════
@@ -399,301 +411,301 @@ let mesGroupes=[],membresData=[],votesData={},realtimeChannel=null,votesChannel=
 let reactionsData={},groupeInfo={};
 
 function formatDate(ds){
-  const d=new Date(ds+'T12:00:00');
-  const jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-  const mois=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-  return jours[d.getDay()]+' '+d.getDate()+' '+mois[d.getMonth()];
+const d=new Date(ds+‘T12:00:00’);
+const jours=[‘Dim’,‘Lun’,‘Mar’,‘Mer’,‘Jeu’,‘Ven’,‘Sam’];
+const mois=[‘jan’,‘fév’,‘mar’,‘avr’,‘mai’,‘jun’,‘jul’,‘aoû’,‘sep’,‘oct’,‘nov’,‘déc’];
+return jours[d.getDay()]+’ ‘+d.getDate()+’ ’+mois[d.getMonth()];
 }
 
 function countdown(date,heure){
-  if(!date||!heure)return'';
-  const h=heure.replace('h',':');
-  const target=new Date(date+'T'+h+':00');
-  const now=new Date();
-  const diff=target-now;
-  if(diff<=0)return'✓ Séance passée';
-  const days=Math.floor(diff/86400000);
-  const hrs=Math.floor((diff%86400000)/3600000);
-  const mins=Math.floor((diff%3600000)/60000);
-  if(days>0)return`dans ${days}j ${hrs}h`;
-  if(hrs>0)return`dans ${hrs}h ${mins}min`;
-  return`dans ${mins}min`;
+if(!date||!heure)return’’;
+const h=heure.replace(‘h’,’:’);
+const target=new Date(date+‘T’+h+’:00’);
+const now=new Date();
+const diff=target-now;
+if(diff<=0)return’✓ Séance passée’;
+const days=Math.floor(diff/86400000);
+const hrs=Math.floor((diff%86400000)/3600000);
+const mins=Math.floor((diff%3600000)/60000);
+if(days>0)return`dans ${days}j ${hrs}h`;
+if(hrs>0)return`dans ${hrs}h ${mins}min`;
+return`dans ${mins}min`;
 }
 
 async function loadMesGroupes(){
-  if(!st.pseudo)return;
-  const{data:membres}=await supa.from('groupe_membres').select('groupe').eq('pseudo',st.pseudo);
-  if(!membres||membres.length===0){mesGroupes=[];if(st.screen==='group'&&!st.groupe)render();return;}
-  const ids=membres.map(m=>m.groupe);
-  const{data}=await supa.from('groupes').select('*').in('id',ids);
-  mesGroupes=data||[];
-  if(st.screen==='group'&&!st.groupe)render();
+if(!st.pseudo)return;
+const{data:membres}=await supa.from(‘groupe_membres’).select(‘groupe’).eq(‘pseudo’,st.pseudo);
+if(!membres||membres.length===0){mesGroupes=[];if(st.screen===‘group’&&!st.groupe)render();return;}
+const ids=membres.map(m=>m.groupe);
+const{data}=await supa.from(‘groupes’).select(‘id,film_id,nom,confirmed_cinema,confirmed_heure,confirmed_date’).in(‘id’,ids);
+mesGroupes=data||[];
+if(st.screen===‘group’&&!st.groupe)render();
 }
 
 async function rejoindreGroupe(){
-  const g=st.groupe||'general';
-  await supa.from('groupe_membres').upsert({groupe:g,pseudo:st.pseudo,avatar:st.avatar},{onConflict:'groupe,pseudo'});
-  await loadMembres();
+const g=st.groupe||‘general’;
+await supa.from(‘groupe_membres’).upsert({groupe:g,pseudo:st.pseudo,avatar:st.avatar},{onConflict:‘groupe,pseudo’});
+await loadMembres();
 }
 
 async function loadMembres(){
-  const g=st.groupe||'general';
-  const{data}=await supa.from('groupe_membres').select('*').eq('groupe',g);
-  membresData=data||[];
-  const el=document.getElementById('membres-badge');
-  if(el)el.textContent=membresData.length+' membre'+(membresData.length!==1?'s':'');
-  renderMembresDOM();
+const g=st.groupe||‘general’;
+const{data}=await supa.from(‘groupe_membres’).select(’*’).eq(‘groupe’,g);
+membresData=data||[];
+const el=document.getElementById(‘membres-badge’);
+if(el)el.textContent=membresData.length+’ membre’+(membresData.length!==1?‘s’:’’);
+renderMembresDOM();
 }
 
 async function loadMessages(){
-  const g=st.groupe||'general';
-  const{data}=await supa.from('messages').select('*').eq('groupe',g).order('created_at',{ascending:true}).limit(100);
-  const ca=document.getElementById('chat-area');
-  if(!ca)return;
-  ca.innerHTML=(data||[]).map(m=>msgHTML(m)).join('');
-  ca.scrollTop=ca.scrollHeight;
-  loadReactions();
+const g=st.groupe||‘general’;
+const{data}=await supa.from(‘messages’).select(’*’).eq(‘groupe’,g).order(‘created_at’,{ascending:true}).limit(100);
+const ca=document.getElementById(‘chat-area’);
+if(!ca)return;
+ca.innerHTML=(data||[]).map(m=>msgHTML(m)).join(’’);
+ca.scrollTop=ca.scrollHeight;
+loadReactions();
 }
 
 async function sendMsg(){
-  const inp=document.getElementById('msg-input');
-  if(!inp)return;
-  const txt=inp.value.trim();
-  if(!txt)return;
-  inp.value='';
-  const g=st.groupe||'general';
-  await supa.from('messages').insert({groupe:g,pseudo:st.pseudo,texte:txt,reactions:[]});
+const inp=document.getElementById(‘msg-input’);
+if(!inp)return;
+const txt=inp.value.trim();
+if(!txt)return;
+inp.value=’’;
+const g=st.groupe||‘general’;
+await supa.from(‘messages’).insert({groupe:g,pseudo:st.pseudo,texte:txt,reactions:[]});
 }
 
 async function loadVotes(){
-  const g=st.groupe||'general';
-  const{data}=await supa.from('votes').select('*').eq('groupe',g);
-  votesData={};
-  (data||[]).forEach(v=>{
-    const k=(v.date||'')+' '+v.heure;
-    if(!votesData[k])votesData[k]=[];
-    votesData[k].push(v);
-    // Restaurer st.voted depuis la base
-    if(v.pseudo===st.pseudo)st.voted=k;
-  });
-  renderVotesDOM();
+const g=st.groupe||‘general’;
+const{data}=await supa.from(‘votes’).select(’*’).eq(‘groupe’,g);
+votesData={};
+(data||[]).forEach(v=>{
+const k=(v.date||’’)+’ ’+v.heure;
+if(!votesData[k])votesData[k]=[];
+votesData[k].push(v);
+// Restaurer st.voted depuis la base
+if(v.pseudo===st.pseudo)st.voted=k;
+});
+renderVotesDOM();
 }
 
 async function voterCinema(cinemaId){
-  st.cinema=cinemaId;render();setTimeout(renderVotesDOM,50);
-  const g=st.groupe||'general';
-  await supa.from('groupe_membres')
-    .update({cinema_pref:cinemaId})
-    .eq('groupe',g).eq('pseudo',st.pseudo);
-  await loadMembres();
-  renderVotesDOM();
+const cinema_=CINEMAS.find(c=>c.id===cinemaId);
+st.cinema=cinemaId;render();setTimeout(renderVotesDOM,50);
+if(cinema_)toast(’Cinéma choisi : ‘+cinema_.name,‘success’,2000);
+const g=st.groupe||‘general’;
+await supa.from(‘groupe_membres’)
+.update({cinema_pref:cinemaId})
+.eq(‘groupe’,g).eq(‘pseudo’,st.pseudo);
+await loadMembres();
+renderVotesDOM();
 }
 async function voter(heure){
-  const g=st.groupe||'general';
-  const k=st.date+' '+heure;
-  const dejàVoté=(votesData[k]||[]).some(v=>v.pseudo===st.pseudo);
-  // Toujours supprimer le vote existant d'abord
-  await supa.from('votes').delete().eq('groupe',g).eq('pseudo',st.pseudo);
-  if(!dejàVoté){
-    // Si pas encore voté sur cet horaire, voter
-    await supa.from('votes').insert({groupe:g,pseudo:st.pseudo,heure,date:st.date});
-    st.voted=k;
-  }else{
-    st.voted=null;
-  }
-  await loadVotes();
+const g=st.groupe||‘general’;
+const k=st.date+’ ‘+heure;
+const dejàVoté=(votesData[k]||[]).some(v=>v.pseudo===st.pseudo);
+// Toujours supprimer le vote existant d’abord
+await supa.from(‘votes’).delete().eq(‘groupe’,g).eq(‘pseudo’,st.pseudo);
+if(!dejàVoté){
+await supa.from(‘votes’).insert({groupe:g,pseudo:st.pseudo,heure,date:st.date});
+st.voted=k;
+toast(‘Vote enregistré pour ‘+heure+’ ✓’,‘success’,1800);
+}else{
+st.voted=null;
+toast(‘Vote retiré’,‘info’,1500);
+}
+await loadVotes();
 }
 
-
 async function loadGroupeInfo(){
-  if(!st.groupe)return;
-  const{data}=await supa.from('groupes').select('confirmed_cinema,confirmed_heure,confirmed_date').eq('id',st.groupe).single();
-  groupeInfo=data||{};
+if(!st.groupe)return;
+const{data}=await supa.from(‘groupes’).select(‘confirmed_cinema,confirmed_heure,confirmed_date’).eq(‘id’,st.groupe).single();
+groupeInfo=data||{};
 }
 
 async function confirmerPlan(cinemaId,heure,date){
-  if(!st.groupe)return;
-  const cinema=CINEMAS.find(c=>c.id===cinemaId);
-  const f=FILMS[st.film];
-  await supa.from('groupes').update({confirmed_cinema:cinemaId,confirmed_heure:heure,confirmed_date:date}).eq('id',st.groupe);
-  const msg='🎬 Plan confirmé ! '+( f?.t||'')+' au '+(cinema?.name||cinemaId)+', le '+formatDate(date)+' à '+heure+' 🍿';
-  await supa.from('messages').insert({groupe:st.groupe,pseudo:'📢 CinéMatch',texte:msg,reactions:[]});
-  await loadGroupeInfo();
-  render();
-  if(st.tab==='vote')renderVotesDOM();
+if(!st.groupe)return;
+const cinema=CINEMAS.find(c=>c.id===cinemaId);
+const f=FILMS[st.film];
+await supa.from(‘groupes’).update({confirmed_cinema:cinemaId,confirmed_heure:heure,confirmed_date:date}).eq(‘id’,st.groupe);
+const msg=‘🎬 Plan confirmé ! ‘+( f?.t||’’)+’ au ‘+(cinema?.name||cinemaId)+’, le ‘+formatDate(date)+’ à ‘+heure+’ 🍿’;
+await supa.from(‘messages’).insert({groupe:st.groupe,pseudo:‘📢 CinéMatch’,texte:msg,reactions:[]});
+await loadGroupeInfo();
+toast(‘Plan confirmé ! 🎉’,‘success’);
+render();
+if(st.tab===‘vote’)renderVotesDOM();
 }
 
 async function annulerConfirmation(){
-  if(!st.groupe)return;
-  await supa.from('groupes').update({confirmed_cinema:null,confirmed_heure:null,confirmed_date:null}).eq('id',st.groupe);
-  groupeInfo={};render();
+if(!st.groupe)return;
+await supa.from(‘groupes’).update({confirmed_cinema:null,confirmed_heure:null,confirmed_date:null}).eq(‘id’,st.groupe);
+groupeInfo={};render();
 }
 
 async function setStatut(s){
-  if(!st.groupe||!st.pseudo)return;
-  await supa.from('groupe_membres').update({statut:s}).eq('groupe',st.groupe).eq('pseudo',st.pseudo);
-  await loadMembres();
+if(!st.groupe||!st.pseudo)return;
+await supa.from(‘groupe_membres’).update({statut:s}).eq(‘groupe’,st.groupe).eq(‘pseudo’,st.pseudo);
+await loadMembres();
 }
 
 async function postAvis(note){
-  if(!st.groupe||!st.pseudo)return;
-  const input=document.getElementById('avis-input');
-  const commentaire=input?input.value.trim():'';
-  const avis=JSON.stringify({note,commentaire,ts:Date.now()});
-  await supa.from('groupe_membres').update({avis}).eq('groupe',st.groupe).eq('pseudo',st.pseudo);
-  await loadMembres();
-  render();if(st.tab==='vote')renderVotesDOM();
+if(!st.groupe||!st.pseudo)return;
+const input=document.getElementById(‘avis-input’);
+const commentaire=input?input.value.trim():’’;
+const avis=JSON.stringify({note,commentaire,ts:Date.now()});
+await supa.from(‘groupe_membres’).update({avis}).eq(‘groupe’,st.groupe).eq(‘pseudo’,st.pseudo);
+await loadMembres();
+render();if(st.tab===‘vote’)renderVotesDOM();
 }
 
 function subscribeAll(){
-  if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
-  if(votesChannel){supa.removeChannel(votesChannel);votesChannel=null;}
-  const g=st.groupe||'general';
-  realtimeChannel=supa.channel('db-msg-'+g)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`groupe=eq.${g}`},p=>appendMsg(p.new))
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:`groupe=eq.${g}`},p=>{
-      if(p.new.reactions!==undefined){reactionsData[p.new.id]=p.new.reactions||[];refreshReactionsDOM();}
-    })
-    .subscribe();
-  votesChannel=supa.channel('db-votes-'+g)
-    .on('postgres_changes',{event:'*',schema:'public',table:'votes',filter:`groupe=eq.${g}`},async()=>await loadVotes())
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'groupes',filter:`id=eq.${g}`},async()=>{await loadGroupeInfo();render();if(st.tab==='vote')renderVotesDOM();if(st.tab==='membres')renderMembresDOM();})
-    .subscribe();
+if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
+if(votesChannel){supa.removeChannel(votesChannel);votesChannel=null;}
+const g=st.groupe||‘general’;
+realtimeChannel=supa.channel(‘db-msg-’+g)
+.on(‘postgres_changes’,{event:‘INSERT’,schema:‘public’,table:‘messages’,filter:`groupe=eq.${g}`},p=>appendMsg(p.new))
+.on(‘postgres_changes’,{event:‘UPDATE’,schema:‘public’,table:‘messages’,filter:`groupe=eq.${g}`},p=>{
+if(p.new.reactions!==undefined){reactionsData[p.new.id]=p.new.reactions||[];refreshReactionsDOM();}
+})
+.subscribe();
+votesChannel=supa.channel(‘db-votes-’+g)
+.on(‘postgres_changes’,{event:’*’,schema:‘public’,table:‘votes’,filter:`groupe=eq.${g}`},async()=>await loadVotes())
+.on(‘postgres_changes’,{event:‘UPDATE’,schema:‘public’,table:‘groupes’,filter:`id=eq.${g}`},async()=>{await loadGroupeInfo();render();if(st.tab===‘vote’)renderVotesDOM();if(st.tab===‘membres’)renderMembresDOM();})
+.subscribe();
 }
 
 function appendMsg(m){
-  const ca=document.getElementById('chat-area');
-  if(!ca)return;
-  ca.insertAdjacentHTML('beforeend',msgHTML(m));
-  ca.scrollTop=ca.scrollHeight;
+const ca=document.getElementById(‘chat-area’);
+if(!ca)return;
+ca.insertAdjacentHTML(‘beforeend’,msgHTML(m));
+ca.scrollTop=ca.scrollHeight;
 }
 
 // ═══════════ RÉACTIONS ═══════════
-const REACTION_EMOJIS=['❤️','😂','🔥','👏','😮','🎬'];
+const REACTION_EMOJIS=[‘❤️’,‘😂’,‘🔥’,‘👏’,‘😮’,‘🎬’];
 
 async function loadReactions(){
-  const g=st.groupe||'general';
-  const{data}=await supa.from('messages').select('id,reactions').eq('groupe',g);
-  reactionsData={};
-  (data||[]).forEach(m=>{if(m.reactions)reactionsData[m.id]=m.reactions;});
-  refreshReactionsDOM();
+const g=st.groupe||‘general’;
+const{data}=await supa.from(‘messages’).select(‘id,reactions’).eq(‘groupe’,g);
+reactionsData={};
+(data||[]).forEach(m=>{if(m.reactions)reactionsData[m.id]=m.reactions;});
+refreshReactionsDOM();
 }
 
 function refreshReactionsDOM(){
-  document.querySelectorAll('[data-reactions]').forEach(el=>{
-    el.innerHTML=reactionsHTML(el.dataset.reactions);
-  });
+document.querySelectorAll(’[data-reactions]’).forEach(el=>{
+el.innerHTML=reactionsHTML(el.dataset.reactions);
+});
 }
 
 function reactionsHTML(msgId){
-  const reacts=reactionsData[msgId]||[];
-  const grouped={};
-  reacts.forEach(r=>{if(!grouped[r.emoji])grouped[r.emoji]=[];grouped[r.emoji].push(r.pseudo);});
-  const myReact=reacts.find(r=>r.pseudo===st.pseudo)?.emoji;
-  let html=Object.entries(grouped).map(([e,users])=>`<span onclick="toggleReaction('${msgId}','${e}')" style="display:inline-flex;align-items:center;gap:3px;background:${myReact===e?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.06)'};border:1px solid ${myReact===e?AC:BD};border-radius:20px;padding:2px 7px;font-size:11px;cursor:pointer;">${e}<span style="font-size:9px;color:${MU};">${users.length}</span></span>`).join('');
-  html+=`<span onclick="showReactionPicker('${msgId}')" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:50%;font-size:11px;cursor:pointer;opacity:0.5;">+</span>`;
-  return html;
+const reacts=reactionsData[msgId]||[];
+const grouped={};
+reacts.forEach(r=>{if(!grouped[r.emoji])grouped[r.emoji]=[];grouped[r.emoji].push(r.pseudo);});
+const myReact=reacts.find(r=>r.pseudo===st.pseudo)?.emoji;
+let html=Object.entries(grouped).map(([e,users])=>`<span onclick="toggleReaction('${msgId}','${e}')" style="display:inline-flex;align-items:center;gap:3px;background:${myReact===e?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.06)'};border:1px solid ${myReact===e?AC:BD};border-radius:20px;padding:2px 7px;font-size:11px;cursor:pointer;">${e}<span style="font-size:9px;color:${MU};">${users.length}</span></span>`).join(’’);
+html+=`<span onclick="showReactionPicker('${msgId}')" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:50%;font-size:11px;cursor:pointer;opacity:0.5;">+</span>`;
+return html;
 }
 
 function showReactionPicker(msgId){
-  const existing=document.getElementById('rpicker');
-  if(existing){existing.remove();return;}
-  const picker=document.createElement('div');
-  picker.id='rpicker';
-  picker.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid rgba(255,255,255,0.1);border-radius:30px;padding:8px 12px;display:flex;gap:8px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
-  picker.innerHTML=REACTION_EMOJIS.map(e=>`<span onclick="toggleReaction('${msgId}','${e}');document.getElementById('rpicker')?.remove();" style="font-size:22px;cursor:pointer;">${e}</span>`).join('');
-  document.body.appendChild(picker);
-  setTimeout(()=>picker.remove(),4000);
+const existing=document.getElementById(‘rpicker’);
+if(existing){existing.remove();return;}
+const picker=document.createElement(‘div’);
+picker.id=‘rpicker’;
+picker.style.cssText=‘position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid rgba(255,255,255,0.1);border-radius:30px;padding:8px 12px;display:flex;gap:8px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,0.5);’;
+picker.innerHTML=REACTION_EMOJIS.map(e=>`<span onclick="toggleReaction('${msgId}','${e}');document.getElementById('rpicker')?.remove();" style="font-size:22px;cursor:pointer;">${e}</span>`).join(’’);
+document.body.appendChild(picker);
+setTimeout(()=>picker.remove(),4000);
 }
 
 async function toggleReaction(msgId,emoji){
-  const reacts=reactionsData[msgId]||[];
-  const existing=reacts.find(r=>r.pseudo===st.pseudo&&r.emoji===emoji);
-  let newReacts;
-  if(existing){newReacts=reacts.filter(r=>!(r.pseudo===st.pseudo&&r.emoji===emoji));}
-  else{const withoutMe=reacts.filter(r=>r.pseudo!==st.pseudo);newReacts=[...withoutMe,{emoji,pseudo:st.pseudo}];}
-  reactionsData[msgId]=newReacts;
-  refreshReactionsDOM();
-  await supa.from('messages').update({reactions:newReacts}).eq('id',msgId);
+const reacts=reactionsData[msgId]||[];
+const existing=reacts.find(r=>r.pseudo===st.pseudo&&r.emoji===emoji);
+let newReacts;
+if(existing){newReacts=reacts.filter(r=>!(r.pseudo===st.pseudo&&r.emoji===emoji));}
+else{const withoutMe=reacts.filter(r=>r.pseudo!==st.pseudo);newReacts=[…withoutMe,{emoji,pseudo:st.pseudo}];}
+reactionsData[msgId]=newReacts;
+refreshReactionsDOM();
+await supa.from(‘messages’).update({reactions:newReacts}).eq(‘id’,msgId);
 }
 
 // ═══════════ HELPERS ═══════════
-function pseudoColor(p){const h=[...p].reduce((a,c)=>a+c.charCodeAt(0),0);const colors=['#e54','#d4a','#59e','#4b9','#e84','#a5e','#4ce','#e75'];return colors[h%colors.length];}
-function pseudoInitial(p){return(p||'?')[0].toUpperCase();}
+function pseudoColor(p){const h=[…p].reduce((a,c)=>a+c.charCodeAt(0),0);const colors=[’#e54’,’#d4a’,’#59e’,’#4b9’,’#e84’,’#a5e’,’#4ce’,’#e75’];return colors[h%colors.length];}
+function pseudoInitial(p){return(p||’?’)[0].toUpperCase();}
 
 function getAvatar(pseudo){
-  if(pseudo===st.pseudo)return st.avatar;
-  const m=membresData.find(m=>m.pseudo===pseudo);
-  return m?.avatar||null;
+if(pseudo===st.pseudo)return st.avatar;
+const m=membresData.find(m=>m.pseudo===pseudo);
+return m?.avatar||null;
 }
-function avatarEl(pseudo,size=38,radius='50%'){
-  const av=getAvatar(pseudo);
-  if(av)return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.52)}px;flex-shrink:0;">${av}</div>`;
-  return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(pseudo)}</div>`;
+function avatarEl(pseudo,size=38,radius=‘50%’){
+const av=getAvatar(pseudo);
+if(av)return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.52)}px;flex-shrink:0;">${av}</div>`;
+return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(pseudo)}</div>`;
 }
 
-function chip(txt,c=TX,bg='rgba(255,255,255,0.06)',b=BD,sz=10){
-  return `<span style="font-size:${sz}px;padding:2px 7px;border-radius:20px;border:1px solid ${b};background:${bg};color:${c};white-space:nowrap;">${txt}</span>`;
+function chip(txt,c=TX,bg=‘rgba(255,255,255,0.06)’,b=BD,sz=10){
+return `<span style="font-size:${sz}px;padding:2px 7px;border-radius:20px;border:1px solid ${b};background:${bg};color:${c};white-space:nowrap;">${txt}</span>`;
 }
 
 function isPast(heure){
-  const now=new Date();
-  const[h,m]=heure.replace('h',':').split(':').map(Number);
-  const t=new Date();t.setHours(h,m,0,0);
-  if(st.date!==todayStr())return false;
-  return t<now;
+const now=new Date();
+const[h,m]=heure.replace(‘h’,’:’).split(’:’).map(Number);
+const t=new Date();t.setHours(h,m,0,0);
+if(st.date!==todayStr())return false;
+return t<now;
 }
 
 function dayPicker(){
-  const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-  const months=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-  let html='<div style="display:flex;gap:6px;overflow-x:auto;padding:0 18px 12px;flex-shrink:0;">';
-  for(let i=0;i<7;i++){
-    const d=new Date();d.setDate(d.getDate()+i);
-    const ds=d.toISOString().slice(0,10);
-    const active=ds===st.date;
-    html+=`<div onclick="st.date='${ds}';render();" style="flex-shrink:0;width:44px;text-align:center;padding:7px 4px;border-radius:12px;cursor:pointer;background:${active?AC:'rgba(255,255,255,0.03)'};border:1px solid ${active?AC:BD};">
-      <div style="font-size:9px;color:${active?'#fff':MU};">${days[d.getDay()]}</div>
-      <div style="font-size:15px;font-weight:600;color:${active?'#fff':TX};">${d.getDate()}</div>
-      <div style="font-size:9px;color:${active?'rgba(255,255,255,0.7)':MU};">${months[d.getMonth()]}</div>
-    </div>`;
-  }
-  return html+'</div>';
+const days=[‘Dim’,‘Lun’,‘Mar’,‘Mer’,‘Jeu’,‘Ven’,‘Sam’];
+const months=[‘jan’,‘fév’,‘mar’,‘avr’,‘mai’,‘jun’,‘jul’,‘aoû’,‘sep’,‘oct’,‘nov’,‘déc’];
+let html=’<div style="display:flex;gap:6px;overflow-x:auto;padding:0 18px 12px;flex-shrink:0;">’;
+for(let i=0;i<7;i++){
+const d=new Date();d.setDate(d.getDate()+i);
+const ds=d.toISOString().slice(0,10);
+const active=ds===st.date;
+html+=`<div onclick="st.date='${ds}';render();" style="flex-shrink:0;width:44px;text-align:center;padding:7px 4px;border-radius:12px;cursor:pointer;background:${active?AC:'rgba(255,255,255,0.03)'};border:1px solid ${active?AC:BD};"> <div style="font-size:9px;color:${active?'#fff':MU};">${days[d.getDay()]}</div> <div style="font-size:15px;font-weight:600;color:${active?'#fff':TX};">${d.getDate()}</div> <div style="font-size:9px;color:${active?'rgba(255,255,255,0.7)':MU};">${months[d.getMonth()]}</div> </div>`;
+}
+return html+’</div>’;
 }
 
 // ═══════════ AVATAR PICKER ═══════════
 function openAvatarPicker(){
-  st.showAvatarPicker=true;
-  const wrap=document.getElementById('avatar-picker-wrap');
-  if(wrap)wrap.innerHTML=buildPickerGrid();
+st.showAvatarPicker=true;
+const wrap=document.getElementById(‘avatar-picker-wrap’);
+if(wrap)wrap.innerHTML=buildPickerGrid();
 }
 function buildPickerGrid(){
-  let html='<div style="background:'+S1+';border:1px solid '+BD+';border-radius:16px;padding:14px;">';
-  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
-  html+='<span style="font-size:11px;color:'+MU+';font-weight:600;letter-spacing:1px;text-transform:uppercase;">Choisir votre animal</span>';
-  html+='<span onclick="closeAvatarPicker()" style="font-size:11px;color:'+AC+';cursor:pointer;padding:2px 8px;border:1px solid rgba(255,63,91,0.3);border-radius:8px;">✕</span>';
-  html+='</div>';
-  html+='<div style="display:flex;flex-wrap:wrap;gap:5px;max-height:180px;overflow-y:auto;">';
-  ANIMAL_EMOJIS.forEach(e=>{
-    const active=st.avatar===e;
-    html+=`<div data-emoji="${e}" onclick="pickAvatar(this)" style="width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;background:${active?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.03)'};border:1px solid ${active?'#ff3f5b':'rgba(255,255,255,0.07)'};">${e}</div>`;
-  });
-  html+='</div></div>';
-  return html;
+let html=’<div style="background:'+S1+';border:1px solid '+BD+';border-radius:16px;padding:14px;">’;
+html+=’<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">’;
+html+=’<span style="font-size:11px;color:'+MU+';font-weight:600;letter-spacing:1px;text-transform:uppercase;">Choisir votre animal</span>’;
+html+=’<span onclick="closeAvatarPicker()" style="font-size:11px;color:'+AC+';cursor:pointer;padding:2px 8px;border:1px solid rgba(255,63,91,0.3);border-radius:8px;">✕</span>’;
+html+=’</div>’;
+html+=’<div style="display:flex;flex-wrap:wrap;gap:5px;max-height:180px;overflow-y:auto;">’;
+ANIMAL_EMOJIS.forEach(e=>{
+const active=st.avatar===e;
+html+=`<div data-emoji="${e}" onclick="pickAvatar(this)" style="width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;background:${active?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.03)'};border:1px solid ${active?'#ff3f5b':'rgba(255,255,255,0.07)'};">${e}</div>`;
+});
+html+=’</div></div>’;
+return html;
 }
 function closeAvatarPicker(){
-  st.showAvatarPicker=false;
-  const wrap=document.getElementById('avatar-picker-wrap');
-  if(wrap)wrap.innerHTML=buildAvatarBtn();
+st.showAvatarPicker=false;
+const wrap=document.getElementById(‘avatar-picker-wrap’);
+if(wrap)wrap.innerHTML=buildAvatarBtn();
 }
 function buildAvatarBtn(){
-  return `<div onclick="openAvatarPicker()" style="display:flex;align-items:center;gap:10px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px 16px;cursor:pointer;">
-    <div id="avatar-preview" style="width:44px;height:44px;border-radius:50%;background:${pseudoColor(st.pseudoInput||'A')};display:flex;align-items:center;justify-content:center;font-size:26px;">${st.avatar}</div>
-    <div style="flex:1;text-align:left;">
-      <div style="font-size:12px;font-weight:500;">Votre avatar</div>
-      <div style="font-size:10px;color:${MU};">Appuyez pour choisir un animal</div>
-    </div>
-    <span style="color:${MU};">›</span>
+return `<div onclick="openAvatarPicker()" style="display:flex;align-items:center;gap:10px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px 16px;cursor:pointer;">
+<div id="avatar-preview" style="width:44px;height:44px;border-radius:50%;background:${pseudoColor(st.pseudoInput||'A')};display:flex;align-items:center;justify-content:center;font-size:26px;">${st.avatar}</div>
+<div style="flex:1;text-align:left;">
+<div style="font-size:12px;font-weight:500;">Votre avatar</div>
+<div style="font-size:10px;color:${MU};">Appuyez pour choisir un animal</div>
+</div>
+<span style="color:${MU};">›</span>
+
   </div>`;
 }
 function pickAvatar(el){
@@ -709,128 +721,135 @@ function pickAvatar(el){
 
 // ═══════════ PARTAGE GROUPE ═══════════
 function shareGroupe(){
-  const url=`${location.origin}${location.pathname}?groupe=${st.groupe}&film=${st.film}`;
-  if(navigator.share){navigator.share({title:'Rejoins mon groupe CinéMatch !',text:'On va voir '+(FILMS[st.film]?.t||'un film')+' ensemble',url});}
-  else{navigator.clipboard.writeText(url).then(()=>{const btn=document.querySelector('[onclick="shareGroupe()"]');if(btn){btn.textContent='✓';setTimeout(()=>btn.textContent='🔗',2000);}});}
+const url=`${location.origin}${location.pathname}?groupe=${st.groupe}&film=${st.film}`;
+if(navigator.share){navigator.share({title:‘Rejoins mon groupe CinéMatch !’,text:‘On va voir ‘+(FILMS[st.film]?.t||‘un film’)+’ ensemble’,url});}
+else{navigator.clipboard.writeText(url).then(()=>toast(‘Lien copié ! 🔗’,‘success’)).catch(()=>toast(url,‘info’,5000));}
 }
 
 // ═══════════ LBD UI ═══════════
 function connectLbd(){
-  const v=document.getElementById('lbd-input-field')?.value?.trim();
-  if(!v)return;
-  st.lbdInput=v;
-  const btn=document.querySelector('[onclick="connectLbd()"]');
-  if(btn){btn.textContent='Connexion…';btn.disabled=true;}
-  loadLbd(v).then(ok=>{
-    if(ok){st.lbdPseudo=v;save();render();}
-    else{if(btn){btn.textContent='Profil introuvable';setTimeout(()=>{btn.textContent='Connecter';btn.disabled=false;},2000);}}
-  });
+const v=document.getElementById(‘lbd-input-field’)?.value?.trim();
+if(!v)return;
+st.lbdInput=v;
+const btn=document.querySelector(’[onclick=“connectLbd()”]’);
+if(btn){btn.textContent=‘Connexion…’;btn.disabled=true;}
+loadLbd(v).then(ok=>{
+if(ok){st.lbdPseudo=v;save();render();}
+else{if(btn){btn.textContent=‘Profil introuvable’;setTimeout(()=>{btn.textContent=‘Connecter’;btn.disabled=false;},2000);}}
+});
 }
-function disconnectLbd(){st.lbdPseudo='';lbdSeen=new Set();lbdWatchlist=new Set();save();render();}
+function disconnectLbd(){st.lbdPseudo=’’;lbdSeen=new Set();lbdWatchlist=new Set();save();render();}
 
 function confirmChangePseudo(){
-  const v=document.getElementById('new-pseudo-field')?.value?.trim();
-  if(!v||v.length<2)return;
-  st.pseudo=v;
-  st._changingPseudo=false;
-  save();
-  render();
+const v=document.getElementById(‘new-pseudo-field’)?.value?.trim();
+if(!v||v.length<2)return;
+st.pseudo=v;
+st._changingPseudo=false;
+save();
+render();
 }
 
 async function quitterGroupe(){
-  if(!st.groupe||!st.pseudo)return;
-  if(!confirm('Quitter ce groupe ?\nVos votes et messages resteront visibles.'))return;
-  const {error}=await supa.from('groupe_membres')
-    .delete()
-    .eq('groupe',st.groupe)
-    .eq('pseudo',st.pseudo);
-  if(error){alert('Erreur : '+error.message);return;}
-  if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
-  if(votesChannel){supa.removeChannel(votesChannel);votesChannel=null;}
-  st.groupe=null;st.film=null;st.tab='vote';
-  membresData=[];votesData={};
-  await loadMesGroupes();
-  render();
+if(!st.groupe||!st.pseudo)return;
+// Confirmation toast-style
+const confirmEl=document.createElement(‘div’);
+confirmEl.style.cssText=`position:fixed;inset:0;background:rgba(7,7,15,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;`;
+confirmEl.innerHTML=`<div style="background:#1a1a2e;border:1px solid rgba(255,63,91,0.3);border-radius:18px;padding:20px;max-width:280px;text-align:center;"><div style="font-size:28px;margin-bottom:10px;">🚪</div><div style="font-size:14px;font-weight:600;margin-bottom:8px;">Quitter ce groupe ?</div><div style="font-size:11px;color:#555570;margin-bottom:16px;">Vos votes et messages resteront visibles.</div><div style="display:flex;gap:10px;"><button id="quit-cancel" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:11px;font-size:13px;color:#e8e0d4;cursor:pointer;font-family:inherit;">Annuler</button><button id="quit-ok" style="flex:1;background:rgba(255,63,91,0.15);border:1px solid rgba(255,63,91,0.4);border-radius:12px;padding:11px;font-size:13px;color:#ff3f5b;cursor:pointer;font-weight:600;font-family:inherit;">Quitter</button></div></div>`;
+document.body.appendChild(confirmEl);
+const ok = await new Promise(res=>{
+confirmEl.querySelector(’#quit-ok’).onclick=()=>{confirmEl.remove();res(true);};
+confirmEl.querySelector(’#quit-cancel’).onclick=()=>{confirmEl.remove();res(false);};
+});
+if(!ok)return;
+const {error}=await supa.from(‘groupe_membres’)
+.delete()
+.eq(‘groupe’,st.groupe)
+.eq(‘pseudo’,st.pseudo);
+if(error){toast(’Erreur : ’+error.message,‘error’);return;}
+if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
+if(votesChannel){supa.removeChannel(votesChannel);votesChannel=null;}
+st.groupe=null;st.film=null;st.tab=‘vote’;
+membresData=[];votesData={};
+await loadMesGroupes();
+render();
 }
 
 function logoutApp(){
-  if(!confirm('Se déconnecter de CinéMatch ?\nVous devrez entrer un pseudo pour revenir.'))return;
-  try{localStorage.removeItem('cm2');}catch(e){}
-  st.pseudo='';st.pseudoInput='';st.lbdPseudo='';st.avatar='🎬';
-  lbdSeen=new Set();lbdWatchlist=new Set();
-  go('pseudo');
+if(!confirm(‘Se déconnecter de CinéMatch ?\nVous devrez entrer un pseudo pour revenir.’))return;
+try{localStorage.removeItem(‘cm2’);}catch(e){}
+st.pseudo=’’;st.pseudoInput=’’;st.lbdPseudo=’’;st.avatar=‘🎬’;
+lbdSeen=new Set();lbdWatchlist=new Set();
+go(‘pseudo’);
 }
 
 // ═══════════ NAVIGATION ═══════════
 function go(sc){
-  if(sc==='group'){st.groupe=null;}
-  st.screen=sc;render();
+if(sc===‘group’){st.groupe=null;}
+st.screen=sc;render();
 }
-function openFilm(id,src){st.film=id;st.filmSrc=src||'home';st.screen='film';render();}
-function openCinema(id){st.cinema=id;st.screen='cinema-detail';render();}
+function openFilm(id,src){st.film=id;st.filmSrc=src||‘home’;st.screen=‘film’;render();}
+function openCinema(id){st.cinema=id;st.screen=‘cinema-detail’;render();}
 async function openGroup(filmId,groupeId){
-  st.film=filmId;
-  if(groupeId){
-    st.groupe=groupeId;
-  }else{
-    // Chercher un groupe existant pour ce film
-    const{data:existing}=await supa.from('groupes').select('id').eq('film_id',filmId).limit(1);
-    if(existing&&existing.length>0){
-      st.groupe=existing[0].id;
-    }else{
-      // Créer le groupe puis le récupérer
-      await supa.from('groupes').insert({film_id:filmId,nom:FILMS[filmId]?.t||filmId,createur:st.pseudo});
-      const{data:fresh}=await supa.from('groupes').select('id').eq('film_id',filmId).limit(1);
-      if(fresh&&fresh.length>0)st.groupe=fresh[0].id;
-    }
-  }
-  st.screen='group';st.tab='vote';st.voted=null;st.cinema=null;
-  render();
-  rejoindreGroupe();
-  loadMessages();
-  loadVotes();
-  loadGroupeInfo();
-  subscribeAll();
-  loadMesGroupes();
+st.film=filmId;
+if(groupeId){
+st.groupe=groupeId;
+}else{
+// Chercher un groupe existant pour ce film
+const{data:existing}=await supa.from(‘groupes’).select(‘id’).eq(‘film_id’,filmId).limit(1);
+if(existing&&existing.length>0){
+st.groupe=existing[0].id;
+}else{
+// Créer le groupe puis le récupérer
+await supa.from(‘groupes’).insert({film_id:filmId,nom:FILMS[filmId]?.t||filmId,createur:st.pseudo});
+const{data:fresh}=await supa.from(‘groupes’).select(‘id’).eq(‘film_id’,filmId).limit(1);
+if(fresh&&fresh.length>0)st.groupe=fresh[0].id;
+}
+}
+st.screen=‘group’;st.tab=‘vote’;st.voted=null;st.cinema=null;
+render();
+rejoindreGroupe();
+loadMessages();
+loadVotes();
+loadGroupeInfo();
+subscribeAll();
+loadMesGroupes();
 }
 
 function openMemberProfile(pseudo){
-  st.viewedMember=pseudo;
-  st.screen='member-profile';
-  render();
-  loadMemberLbd(pseudo).then(()=>render());
+st.viewedMember=pseudo;
+st.screen=‘member-profile’;
+render();
+loadMemberLbd(pseudo).then(()=>render());
 }
 
 async function doSync(){
-  st.syncing=true;render();
-  await new Promise(r=>setTimeout(r,1200));
-  st.syncing=false;st.syncLabel='à l\'instant';render();
+st.syncing=true;render();
+await new Promise(r=>setTimeout(r,1200));
+st.syncing=false;st.syncLabel=‘à l'instant’;render();
 }
 
 // ═══════════ RENDER DOM ═══════════
 function renderMembresDOM(){
-  const el=document.getElementById('membres-list');
-  if(!el)return;
-  const STATUTS={yes:{e:'✅',l:'Je viens',c:'rgba(0,192,48,0.15)',b:'rgba(0,192,48,0.4)'},maybe:{e:'❓',l:'Peut-être',c:'rgba(255,200,0,0.1)',b:'rgba(255,200,0,0.3)'},no:{e:'❌',l:'Je peux pas',c:'rgba(255,63,91,0.08)',b:'rgba(255,63,91,0.25)'}};
-  const oui=membresData.filter(m=>m.statut==='yes').length;
-  const peut=membresData.filter(m=>m.statut==='maybe'||!m.statut).length;
-  const non=membresData.filter(m=>m.statut==='no').length;
-  // Mon statut actuel
-  const moi=membresData.find(m=>m.pseudo===st.pseudo);
-  const monStatut=moi?.statut||'maybe';
-  const statutPicker=`<div style="margin-bottom:14px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;">
-    <div style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Votre présence</div>
-    <div style="display:flex;gap:6px;">
-      ${Object.entries(STATUTS).map(([k,v])=>`<div onclick="setStatut('${k}')" style="flex:1;text-align:center;padding:8px 4px;border-radius:10px;cursor:pointer;background:${monStatut===k?v.c:'rgba(255,255,255,0.02)'};border:1px solid ${monStatut===k?v.b:BD};">
-        <div style="font-size:16px;">${v.e}</div>
-        <div style="font-size:9px;color:${MU};margin-top:3px;">${v.l}</div>
-      </div>`).join('')}
-    </div>
-    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
-      <span style="font-size:10px;color:${LB};">✅ ${oui}</span>
-      <span style="font-size:10px;color:${MU};">❓ ${peut}</span>
-      <span style="font-size:10px;color:${AC};">❌ ${non}</span>
-    </div>
+const el=document.getElementById(‘membres-list’);
+if(!el)return;
+const STATUTS={yes:{e:‘✅’,l:‘Je viens’,c:‘rgba(0,192,48,0.15)’,b:‘rgba(0,192,48,0.4)’},maybe:{e:‘❓’,l:‘Peut-être’,c:‘rgba(255,200,0,0.1)’,b:‘rgba(255,200,0,0.3)’},no:{e:‘❌’,l:‘Je peux pas’,c:‘rgba(255,63,91,0.08)’,b:‘rgba(255,63,91,0.25)’}};
+const oui=membresData.filter(m=>m.statut===‘yes’).length;
+const peut=membresData.filter(m=>m.statut===‘maybe’||!m.statut).length;
+const non=membresData.filter(m=>m.statut===‘no’).length;
+// Mon statut actuel
+const moi=membresData.find(m=>m.pseudo===st.pseudo);
+const monStatut=moi?.statut||‘maybe’;
+const statutPicker=`<div style="margin-bottom:14px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;"> <div style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Votre présence</div> <div style="display:flex;gap:6px;"> ${Object.entries(STATUTS).map(([k,v])=>`<div onclick="setStatut('${k}')" style="flex:1;text-align:center;padding:8px 4px;border-radius:10px;cursor:pointer;background:${monStatut===k?v.c:'rgba(255,255,255,0.02)'};border:1px solid ${monStatut===k?v.b:BD};">
+<div style="font-size:16px;">${v.e}</div>
+<div style="font-size:9px;color:${MU};margin-top:3px;">${v.l}</div>
+</div>`).join(’’)}
+</div>
+<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
+<span style="font-size:10px;color:${LB};">✅ ${oui}</span>
+<span style="font-size:10px;color:${MU};">❓ ${peut}</span>
+<span style="font-size:10px;color:${AC};">❌ ${non}</span>
+</div>
+
   </div>`;
   el.innerHTML=statutPicker+membresData.map(m=>{
     const s=STATUTS[m.statut||'maybe'];
@@ -853,128 +872,142 @@ function renderMembresDOM(){
 }
 
 function renderVotesDOM(){
-  const el=document.getElementById('votes-container');
-  if(!el||!st.film)return;
-  // Récupérer toutes les séances de tous les cinémas pour ce film
-  const tousCinemas=CINEMAS.filter(c=>c.films.some(f=>f.id===st.film));
-  // Si un cinéma est sélectionné, filtrer sur lui uniquement
-  const cinemasActifs=st.cinema?tousCinemas.filter(c=>c.id===st.cinema):tousCinemas;
-  // Collecter toutes les séances (dédupliquées par heure)
-  const heuresVues=new Set();
-  const allSeances=[];
-  cinemasActifs.forEach(c=>{
-    ((SEANCES[c.id]||{})[st.film]||[]).forEach(h=>{
-      if(!heuresVues.has(h)){heuresVues.add(h);allSeances.push(h);}
-    });
-  });
-  allSeances.sort();
-  if(!allSeances.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:12px;">Aucune séance ce jour</div>`;return;}
+const el=document.getElementById(‘votes-container’);
+if(!el||!st.film)return;
+// Récupérer toutes les séances de tous les cinémas pour ce film
+const tousCinemas=CINEMAS.filter(c=>c.films.some(f=>f.id===st.film));
+// Si un cinéma est sélectionné, filtrer sur lui uniquement
+const cinemasActifs=st.cinema?tousCinemas.filter(c=>c.id===st.cinema):tousCinemas;
+// Collecter toutes les séances (dédupliquées par heure)
+const heuresVues=new Set();
+const allSeances=[];
+cinemasActifs.forEach(c=>{
+((SEANCES[c.id]||{})[st.film]||[]).forEach(h=>{
+if(!heuresVues.has(h)){heuresVues.add(h);allSeances.push(h);}
+});
+});
+allSeances.sort();
+if(!allSeances.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:12px;">Aucune séance ce jour</div>`;return;}
 
-  // Trouver l'horaire avec le plus de votes (pour "C'est décidé !")
-  let maxVotes=0,bestHeure=null;
-  allSeances.forEach(h=>{const k=st.date+' '+h;const n=(votesData[k]||[]).length;if(n>maxVotes){maxVotes=n;bestHeure=h;}});
-  const majority=membresData.length>0&&maxVotes>=Math.ceil(membresData.length/2);
-  const confirmBtn=(majority&&bestHeure&&!groupeInfo.confirmed_heure)?`<div onclick="confirmerPlan('${st.cinema}','${bestHeure}','${st.date}')" style="margin-bottom:12px;padding:12px 14px;border-radius:14px;background:rgba(0,192,48,0.12);border:1px solid rgba(0,192,48,0.4);cursor:pointer;text-align:center;">
-    <div style="font-size:13px;font-weight:700;color:${LB};">✅ C'est décidé !</div>
-    <div style="font-size:10px;color:${MU};margin-top:2px;">Confirmer ${bestHeure} · ${maxVotes} vote${maxVotes>1?'s':''}</div>
+// Trouver l’horaire avec le plus de votes (pour “C’est décidé !”)
+let maxVotes=0,bestHeure=null;
+allSeances.forEach(h=>{const k=st.date+’ ‘+h;const n=(votesData[k]||[]).length;if(n>maxVotes){maxVotes=n;bestHeure=h;}});
+const majority=membresData.length>0&&maxVotes>=Math.ceil(membresData.length/2);
+const confirmBtn=(majority&&bestHeure&&!groupeInfo.confirmed_heure)?`<div onclick="confirmerPlan('${st.cinema}','${bestHeure}','${st.date}')" style="margin-bottom:12px;padding:12px 14px;border-radius:14px;background:rgba(0,192,48,0.12);border:1px solid rgba(0,192,48,0.4);cursor:pointer;text-align:center;">
+<div style="font-size:13px;font-weight:700;color:${LB};">✅ C’est décidé !</div>
+<div style="font-size:10px;color:${MU};margin-top:2px;">Confirmer ${bestHeure} · ${maxVotes} vote${maxVotes>1?‘s’:’’}</div>
+
   </div>`:'';
 
-  el.innerHTML=confirmBtn+allSeances.map(h=>{
-    const past=isPast(h);
-    const k=st.date+' '+h;
-    const voters=votesData[k]||[];
-    const voted=voters.some(v=>v.pseudo===st.pseudo);
-    return `<div onclick="${past?'':"voter('"+ h +"')"}" class="${past?'':'tap'}" style="opacity:${past?'0.4':'1'};background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:${past?'default':'pointer'};display:flex;align-items:center;gap:10px;">
-      <div style="flex:1;">
-        <div style="font-size:18px;font-weight:600;color:${voted?AC:past?MU:TX};">${h}${past?' <span style="font-size:9px;">passée</span>':''}</div>
-        <div style="font-size:10px;color:${MU};margin-top:2px;">${voters.length} vote${voters.length!==1?'s':''}</div>
-      </div>
-      <div style="display:flex;">${voters.slice(0,5).map(v=>`<div style="width:22px;height:22px;border-radius:50%;background:${pseudoColor(v.pseudo)};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:-4px;">${v.pseudo===st.pseudo?st.avatar:pseudoInitial(v.pseudo)}</div>`).join('')}</div>
-      <div style="width:28px;height:28px;border-radius:50%;background:${voted?AC:'rgba(255,255,255,0.06)'};border:1px solid ${voted?AC:BD};display:flex;align-items:center;justify-content:center;font-size:14px;">${voted?'✓':'+'}</div>
-    </div>`;
-  }).join('');
+el.innerHTML=confirmBtn+allSeances.map(h=>{
+const past=isPast(h);
+const k=st.date+’ ‘+h;
+const voters=votesData[k]||[];
+const voted=voters.some(v=>v.pseudo===st.pseudo);
+return `<div onclick="${past?'':"voter('"+ h +"')"}" class="${past?'':'tap'}" style="opacity:${past?'0.4':'1'};background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:${past?'default':'pointer'};display:flex;align-items:center;gap:10px;"> <div style="flex:1;"> <div style="font-size:18px;font-weight:600;color:${voted?AC:past?MU:TX};">${h}${past?' <span style="font-size:9px;">passée</span>':''}</div> <div style="font-size:10px;color:${MU};margin-top:2px;">${voters.length} vote${voters.length!==1?'s':''}</div> </div> <div style="display:flex;">${voters.slice(0,5).map(v=>`<div style="width:22px;height:22px;border-radius:50%;background:${pseudoColor(v.pseudo)};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:-4px;">${v.pseudo===st.pseudo?st.avatar:pseudoInitial(v.pseudo)}</div>`).join('')}</div> <div style="width:28px;height:28px;border-radius:50%;background:${voted?AC:'rgba(255,255,255,0.06)'};border:1px solid ${voted?AC:BD};display:flex;align-items:center;justify-content:center;font-size:14px;">${voted?'✓':'+'}</div> </div>`;
+}).join(’’);
 }
 
 // ═══════════ MSG HTML ═══════════
 function msgHTML(m){
-  const me=m.pseudo===st.pseudo;
-  const t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  return `<div style="display:flex;gap:8px;margin-bottom:6px;align-items:flex-end;flex-direction:${me?'row-reverse':'row'};">
-    ${avatarEl(m.pseudo,26)}
-    <div style="max-width:195px;">
-      <div style="font-size:8px;color:${MU};margin-bottom:3px;text-align:${me?'right':'left'};">${m.pseudo} · ${t}</div>
-      <div style="padding:8px 12px;border-radius:14px;font-size:12px;line-height:1.55;word-break:break-word;background:${me?AC:S2};border-bottom-left-radius:${me?'14px':'3px'};border-bottom-right-radius:${me?'3px':'14px'};">${m.texte}</div>
-      <div data-reactions="${m.id}" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;justify-content:${me?'flex-end':'flex-start'};">${reactionsHTML(m.id)}</div>
-    </div>
+const me=m.pseudo===st.pseudo;
+const t=new Date(m.created_at).toLocaleTimeString(‘fr-FR’,{hour:‘2-digit’,minute:‘2-digit’});
+// Message système
+if(m.pseudo===‘📢 CinéMatch’){
+return `<div style="text-align:center;margin:10px 0;"> <div style="display:inline-block;background:rgba(0,192,48,0.08);border:1px solid rgba(0,192,48,0.25);border-radius:12px;padding:7px 14px;font-size:11px;color:#00c030;max-width:90%;"> ${m.texte} </div> <div style="font-size:9px;color:${MU};margin-top:3px;">${t}</div> </div>`;
+}
+return `<div style="display:flex;gap:8px;margin-bottom:6px;align-items:flex-end;flex-direction:${me?'row-reverse':'row'};">
+${avatarEl(m.pseudo,26)}
+<div style="max-width:195px;">
+<div style="font-size:8px;color:${MU};margin-bottom:3px;text-align:${me?'right':'left'};">${m.pseudo} · ${t}</div>
+<div style="padding:8px 12px;border-radius:14px;font-size:12px;line-height:1.55;word-break:break-word;background:${me?AC:S2};border-bottom-left-radius:${me?'14px':'3px'};border-bottom-right-radius:${me?'3px':'14px'};">${m.texte}</div>
+<div data-reactions="${m.id}" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;justify-content:${me?'flex-end':'flex-start'};">${reactionsHTML(m.id)}</div>
+</div>
+
   </div>`;
 }
 
 // ═══════════ SCREENS ═══════════
 function sPseudo(){
-  return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
-    <div style="font-size:64px;margin-bottom:24px;">🎬</div>
-    <div class="serif" style="font-size:30px;margin-bottom:8px;">CinéMatch</div>
-    <div style="font-size:12px;color:${MU};margin-bottom:24px;line-height:1.7;">Le chat en direct avec tous les cinéphiles<br>qui ont le lien. Entrez un pseudo pour commencer.</div>
-    <div style="width:100%;margin-bottom:12px;">
-      <input id="pseudoInput" type="text" placeholder="Votre pseudo…" maxlength="20"
-        style="width:100%;background:${S2};border:1px solid ${BD};border-radius:14px;padding:14px 18px;font-size:14px;color:${TX};outline:none;text-align:center;"
-        onkeydown="if(event.key==='Enter')confirmPseudo()"
-        oninput="st.pseudoInput=this.value"
-        value="${st.pseudoInput}">
-    </div>
-    <div id="avatar-picker-wrap" style="width:100%;margin-bottom:12px;">
-      ${st.showAvatarPicker?buildPickerGrid():buildAvatarBtn()}
-    </div>
-    <button onclick="confirmPseudo()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;">Entrer dans CinéMatch →</button>
-    <div style="margin-top:20px;font-size:10px;color:${MU};">Votre pseudo est visible dans le chat par tous</div>
+return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
+<div style="font-size:64px;margin-bottom:24px;">🎬</div>
+<div class="serif" style="font-size:30px;margin-bottom:8px;">CinéMatch</div>
+<div style="font-size:12px;color:${MU};margin-bottom:24px;line-height:1.7;">Le chat en direct avec tous les cinéphiles<br>qui ont le lien. Entrez un pseudo pour commencer.</div>
+<div style="width:100%;margin-bottom:12px;">
+<input id="pseudoInput" type="text" placeholder="Votre pseudo…" maxlength="20"
+style="width:100%;background:${S2};border:1px solid ${BD};border-radius:14px;padding:14px 18px;font-size:14px;color:${TX};outline:none;text-align:center;"
+onkeydown="if(event.key==='Enter')confirmPseudo()"
+oninput="st.pseudoInput=this.value"
+value="${st.pseudoInput}">
+</div>
+<div id="avatar-picker-wrap" style="width:100%;margin-bottom:12px;">
+${st.showAvatarPicker?buildPickerGrid():buildAvatarBtn()}
+</div>
+<button onclick="confirmPseudo()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:15px;font-size:14px;font-weight:600;">Entrer dans CinéMatch →</button>
+<div style="margin-top:20px;font-size:10px;color:${MU};">Votre pseudo est visible dans le chat par tous</div>
+
   </div>`;
 }
 
 function confirmPseudo(){
-  const inp=document.getElementById('pseudoInput');
-  const val=(inp?inp.value:st.pseudoInput).trim();
-  if(!val)return;
-  st.pseudo=val;save();
-  if(st._inviteGroupe&&st._inviteFilm){
-    const gid=st._inviteGroupe,fid=st._inviteFilm;
-    st._inviteGroupe=null;st._inviteFilm=null;
-    history.replaceState({},'','/');
-    loadMesGroupes().then(()=>openGroup(fid,gid));
-  }else{
-    st.screen='home';render();loadMesGroupes();
-  }
+const inp=document.getElementById(‘pseudoInput’);
+const val=(inp?inp.value:st.pseudoInput).trim();
+if(!val)return;
+st.pseudo=val;save();
+if(st._inviteGroupe&&st._inviteFilm){
+const gid=st._inviteGroupe,fid=st._inviteFilm;
+st._inviteGroupe=null;st._inviteFilm=null;
+history.replaceState({},’’,’/’);
+loadMesGroupes().then(()=>openGroup(fid,gid));
+}else{
+st.screen=‘home’;render();loadMesGroupes();
+}
 }
 
 function sHome(){
-  const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const genres=[['tous','Tous'],['drame','Drame'],['horreur','Horreur'],['romance','Romance'],['thriller','Thriller'],['comedie','Comédie'],['anim','Anim'],['polar','Polar']];
-  const filmGenre=id=>{const f=FILMS[id];return f?norm(f.g):'';};
-  const cards=Object.entries(FILMS).filter(([id])=>st.genre==='tous'||filmGenre(id).includes(norm(st.genre==='comedie'?'comedie':st.genre)));
-  return `<div style="padding:50px 18px 12px;flex-shrink:0;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div>
-        <div style="font-size:11px;color:${MU};letter-spacing:2px;text-transform:uppercase;">Bonsoir</div>
-        <div class="serif" style="font-size:22px;">${st.pseudo} <span style="color:${AC}">👋</span></div>
-      </div>
-      <div onclick="go('profile')" style="display:flex;align-items:center;gap:7px;background:${S1};border:1px solid ${BD};border-radius:18px;padding:5px 10px 5px 5px;cursor:pointer;">
-        ${avatarEl(st.pseudo,26)}
-        <span style="font-size:11px;">@${st.pseudo.toLowerCase().replace(/\s+/g,'')} <span style="color:${LB}">✓</span></span>
-      </div>
-    </div>
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">
-      ${genres.map(([id,lb])=>`<div onclick="setGenre('${id}')" style="border-radius:20px;padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid ${st.genre===id?AC:BD};background:${st.genre===id?AC:'rgba(255,255,255,0.03)'};color:${st.genre===id?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join('')}
+const norm=s=>s.toLowerCase().normalize(‘NFD’).replace(/[\u0300-\u036f]/g,’’);
+const genres=[[‘tous’,‘Tous’],[‘drame’,‘Drame’],[‘horreur’,‘Horreur’],[‘romance’,‘Romance’],[‘thriller’,‘Thriller’],[‘comedie’,‘Comédie’],[‘animation’,‘Anim.’],[‘polar’,‘Polar’]];
+const filmGenre=id=>{const f=FILMS[id];return f?norm(f.g):’’;};
+const searchQ=norm(st.search||’’);
+const cards=Object.entries(FILMS).filter(([id,f])=>{
+const genreOk=st.genre===‘tous’||filmGenre(id).includes(norm(st.genre===‘comedie’?‘comedie’:st.genre));
+const searchOk=!searchQ||norm(f.t).includes(searchQ)||norm(f.dir||’’).includes(searchQ)||norm(f.g).includes(searchQ)||norm(f.s||’’).includes(searchQ);
+return genreOk&&searchOk;
+});
+return `<div style="padding:50px 18px 12px;flex-shrink:0;"> <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;"> <div> <div style="font-size:11px;color:${MU};letter-spacing:2px;text-transform:uppercase;">Bonsoir</div> <div class="serif" style="font-size:22px;">${st.pseudo} <span style="color:${AC}">👋</span></div> </div> <div onclick="go('profile')" style="display:flex;align-items:center;gap:7px;background:${S1};border:1px solid ${BD};border-radius:18px;padding:5px 10px 5px 5px;cursor:pointer;"> ${avatarEl(st.pseudo,26)} <span style="font-size:11px;">@${st.pseudo.toLowerCase().replace(/\s+/g,'')} <span style="color:${LB}">✓</span></span> </div> </div> <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;"> ${genres.map(([id,lb])=>`<div onclick="setGenre('${id}')" style="border-radius:20px;padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid ${st.genre===id?AC:BD};background:${st.genre===id?AC:'rgba(255,255,255,0.03)'};color:${st.genre===id?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join(’’)}
+</div>
+
+  </div>
+  <div style="padding:0 18px 10px;flex-shrink:0;">
+    <div style="position:relative;">
+      <input id="search-input" placeholder="🔍  Rechercher un film…" value="${st.search||''}"
+        oninput="st.search=this.value;render()"
+        style="width:100%;background:${S1};border:1px solid ${BD};border-radius:12px;padding:9px 14px 9px 36px;font-size:12px;color:${TX};outline:none;">
+      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none;opacity:0.5;">🔍</span>
+      ${(st.search||'')?`<span onclick="st.search='';render();" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:${MU};cursor:pointer;">✕</span>`:''}
     </div>
   </div>
   <div style="flex:1;overflow-y:auto;">
-    <div onclick="openFilm('hamnet','home')" class="tap" style="margin:0 18px 14px;background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.2);border-radius:14px;padding:13px;display:flex;align-items:center;gap:11px;cursor:pointer;">
-      ${posters['hamnet']?'<img src="'+posters['hamnet']+'" style="width:46px;height:62px;border-radius:8px;object-fit:cover;flex-shrink:0;">':`<span style="font-size:30px;">💀</span>`}
-      <div style="flex:1;">
-        <div style="font-size:9px;color:${LB};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:3px;">Recommandé via Letterboxd</div>
-        <div class="serif" style="font-size:16px;margin-bottom:2px;">Hamnet</div>
-        <div style="font-size:10px;color:${MU};">Vous ♥ Paul Mescal · Chloé Zhao</div>
-      </div>
-      <span style="color:${LB};font-size:16px;">→</span>
-    </div>
+    ${(()=>{
+      // Recommandation dynamique : film en watchlist pas encore vu, ou film non vu
+      const wlFilms=Object.entries(FILMS).filter(([id])=>isWatchlist(id)&&!isVu(id));
+      const nonVus=Object.entries(FILMS).filter(([id])=>!isVu(id));
+      const cand=wlFilms.length?wlFilms:nonVus;
+      if(!cand.length)return'';
+      const [rid,rf]=cand[Math.floor(Date.now()/86400000)%cand.length];
+      const label=wlFilms.length?'Dans votre Watchlist':'À découvrir cette semaine';
+      const color=wlFilms.length?LB:GD;
+      return `<div onclick="openFilm('${rid}','home')" class="tap" style="margin:0 18px 14px;background:${wlFilms.length?'rgba(0,192,48,0.06)':'rgba(240,192,96,0.06)'};border:1px solid ${wlFilms.length?'rgba(0,192,48,0.2)':'rgba(240,192,96,0.2)'};border-radius:14px;padding:13px;display:flex;align-items:center;gap:11px;cursor:pointer;">
+        ${posters[rid]?'<img src="'+posters[rid]+'" style="width:46px;height:62px;border-radius:8px;object-fit:cover;flex-shrink:0;">':`<span style="font-size:30px;">${rf.e}</span>`}
+        <div style="flex:1;">
+          <div style="font-size:9px;color:${color};letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:3px;">${label}</div>
+          <div class="serif" style="font-size:16px;margin-bottom:2px;">${rf.t}</div>
+          <div style="font-size:10px;color:${MU};">${rf.dir} · ${rf.d}</div>
+        </div>
+        <span style="color:${color};font-size:16px;">→</span>
+      </div>`;
+    })()}
+    ${cards.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:36px;margin-bottom:10px;">🔍</div><div style="font-size:13px;">Aucun film trouvé<br><span style="font-size:11px;">pour "${st.search}"</span></div></div>`:''}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px 20px;">
       ${cards.map(([id,f])=>`
       <div onclick="openFilm('${id}','home')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;overflow:hidden;cursor:pointer;">
@@ -994,39 +1027,31 @@ function sHome(){
   <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
     ${[['home','🎬','Films'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`
     <div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};">
-      <div style="font-size:18px;">${ic}</div>
+      <div style="font-size:18px;position:relative;display:inline-block;">
+        ${ic}
+        ${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>`:''}
+      </div>
       <div style="font-size:9px;color:${MU};">${lb}</div>
     </div>`).join('')}
   </div>`;
 }
 
-function setGenre(g){st.genre=g;render();}
+function setGenre(g){st.genre=g;st.search=’’;render();}
 
 function sCinemas(){
-  const chains=['ugc','pathe','gaumont'];
-  const chain=st.cinFilter==='tous'?null:st.cinFilter;
-  const list=sortedCinemas(chain);
-  return `<div style="padding:52px 18px 12px;flex-shrink:0;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div class="serif" style="font-size:22px;">Cinémas Paris</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        ${userPos?`<span style="font-size:9px;color:${LB};">📍 Activée</span>`:`<button onclick="requestGeoLoc()" style="font-size:9px;color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:3px 8px;cursor:pointer;">📍 Proximité</button>`}
-        <div onclick="doSync()" style="display:flex;align-items:center;gap:5px;font-size:10px;color:${st.syncing?'#ff8c42':LB};cursor:pointer;">
-          <span>${st.syncing?'⟳':'✓'}</span>
-          <span>${st.syncing?'Synchro…':(st.syncLabel?'Mis à jour '+st.syncLabel:'Mis à jour')}</span>
-        </div>
-      </div>
-    </div>
-    <div style="display:flex;gap:6px;margin-bottom:12px;">
-      ${[['tous','Tous'],['ugc','UGC'],['pathe','Pathé'],['gaumont','Gaumont']].map(([id,lb])=>`<div onclick="st.cinFilter='${id}';render();" style="padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${st.cinFilter===id?CC[id]||AC:BD};background:${st.cinFilter===id?(CC[id]||AC)+'18':'rgba(255,255,255,0.03)'};color:${st.cinFilter===id?CC[id]||AC:MU};">${lb}</div>`).join('')}
-    </div>
+const chains=[‘ugc’,‘pathe’,‘gaumont’];
+const chain=st.cinFilter===‘tous’?null:st.cinFilter;
+const list=sortedCinemas(chain);
+return `<div style="padding:52px 18px 12px;flex-shrink:0;"> <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"> <div class="serif" style="font-size:22px;">Cinémas Paris</div> <div style="display:flex;gap:8px;align-items:center;"> ${userPos?`<span style="font-size:9px;color:${LB};">📍 Activée</span>`:`<button onclick="requestGeoLoc()" style="font-size:9px;color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:3px 8px;cursor:pointer;">📍 Proximité</button>`} <div onclick="doSync()" style="display:flex;align-items:center;gap:5px;font-size:10px;color:${st.syncing?'#ff8c42':LB};cursor:pointer;"> <span>${st.syncing?'⟳':'✓'}</span> <span>${st.syncing?'Synchro…':(st.syncLabel?'Mis à jour '+st.syncLabel:'Mis à jour')}</span> </div> </div> </div> <div style="display:flex;gap:6px;margin-bottom:12px;"> ${[['tous','Tous'],['ugc','UGC'],['pathe','Pathé'],['gaumont','Gaumont']].map(([id,lb])=>`<div onclick="st.cinFilter='${id}';render();" style="padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid ${st.cinFilter===id?CC[id]||AC:BD};background:${st.cinFilter===id?(CC[id]||AC)+'18':'rgba(255,255,255,0.03)'};color:${st.cinFilter===id?CC[id]||AC:MU};">${lb}</div>`).join(’’)}
+</div>
+
   </div>
   ${dayPicker()}
   <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
     ${list.map(c=>{
       const col=CC[c.chain];
       const dist=(userPos&&c.lat)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
-      const gc=0;
+      const gc=mesGroupes.filter(g=>CINEMAS.find(ci=>ci.id===c.id&&ci.films.some(f=>f.id===g.film_id))).length;
       return `<div onclick="openCinema('${c.id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:13px;padding:12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;">
         <div style="width:38px;height:38px;border-radius:9px;background:${col}18;border:1px solid ${col}30;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${c.icon}</div>
         <div style="flex:1;min-width:0;">
@@ -1046,21 +1071,19 @@ function sCinemas(){
     }).join('')}
   </div>
   <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
-    ${[['home','🎬','Films'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;">${ic}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
+    ${[['home','🎬','Films'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 }
 
 function sCinemaDetail(){
-  const cinema=CINEMAS.find(c=>c.id===st.cinema);
-  if(!cinema)return '<div>Cinéma introuvable</div>';
-  const col=CC[cinema.chain];
-  const seancesAuj=(SEANCES[cinema.id]||{});
-  return `<div style="padding:52px 18px 12px;flex-shrink:0;display:flex;align-items:center;gap:10px;">
-    <div onclick="go('cinemas')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div>
-    <div>
-      <div class="serif" style="font-size:17px;">${cinema.name}</div>
-      <div style="font-size:10px;color:${MU};">${cinema.addr} · ${cinema.metro}</div>
-    </div>
+const cinema=CINEMAS.find(c=>c.id===st.cinema);
+if(!cinema)return ‘<div>Cinéma introuvable</div>’;
+const col=CC[cinema.chain];
+const seancesAuj=(SEANCES[cinema.id]||{});
+const links_=CINEMA_LINKS[cinema.id]||{};
+return `<div style="padding:52px 18px 10px;flex-shrink:0;"> <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"> <div onclick="go('cinemas')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div> <div style="flex:1;"> <div class="serif" style="font-size:17px;">${cinema.name}</div> <div style="font-size:10px;color:${MU};">${cinema.addr} · ${cinema.metro}</div> </div> </div> <div style="display:flex;gap:6px;margin-bottom:2px;"> ${links_.maps?`<a href="${links_.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.25);border-radius:10px;padding:8px;font-size:11px;font-weight:600;color:#4a9eff;text-decoration:none;">🗺 Y aller</a>`:''} ${links_.tickets?`<a href="${links_.tickets}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(240,192,96,0.1);border:1px solid rgba(240,192,96,0.25);border-radius:10px;padding:8px;font-size:11px;font-weight:600;color:${GD};text-decoration:none;">🎟 Réserver</a>`:''} <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:11px;color:${MU};">${cinema.salles} 🎬</div> ${cinema.tech.slice(0,2).map(t=>`<div style="background:${col}10;border:1px solid ${col}25;border-radius:10px;padding:8px 10px;font-size:10px;font-weight:600;color:${col};">${t}</div>`).join(’’)}
+</div>
+
   </div>
   ${dayPicker()}
   <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
@@ -1090,99 +1113,44 @@ function sCinemaDetail(){
 }
 
 function sFilm(){
-  const f=FILMS[st.film];if(!f)return'<div>Film introuvable</div>';
-  const back=st.filmSrc==='cinema-detail'?()=>go('cinema-detail'):()=>go('home');
-  const cinemaFilm=CINEMAS.filter(c=>c.films.some(fi=>fi.id===st.film));
-  return `<div style="flex:1;overflow-y:auto;">
-    <div style="height:220px;position:relative;overflow:hidden;background:${f.bg};">
-      ${posters[st.film]?'<img src="'+posters[st.film]+'" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.6);">':''}
-      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.3),rgba(7,7,15,0.95));"></div>
-      <div onclick="${st.filmSrc==='cinema-detail'?`go('cinema-detail')`:`go('home')`}" style="position:absolute;top:52px;left:18px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px);">←</div>
-      <div style="position:absolute;bottom:18px;left:18px;right:18px;">
-        <div style="font-size:9px;color:${CC[cinemaFilm[0]?.chain]||MU};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">${f.g}</div>
-        <div class="serif" style="font-size:26px;line-height:1.2;margin-bottom:8px;">${f.t}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${chip('⏱ '+f.d,TX,'rgba(255,255,255,0.06)',BD,9)}
-          ${chip('🎭 '+f.dir,TX,'rgba(255,255,255,0.06)',BD,9)}
-          ${ratings[st.film]?chip('★ '+ratings[st.film].note,GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',9):''}
-          ${isVu(st.film)?chip('✓ Vu sur LBD',LB,'rgba(0,192,48,0.15)','rgba(0,192,48,0.3)',9):isWatchlist(st.film)?chip('🔖 Watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',9):''}
-        </div>
-        ${trailers[st.film]?`<div style="margin-top:8px;"><a href="https://www.youtube.com/watch?v=${trailers[st.film]}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,0,0,0.15);border:1px solid rgba(255,0,0,0.3);border-radius:9px;padding:5px 12px;font-size:10px;font-weight:600;color:#ff4444;text-decoration:none;">▶ Voir la bande-annonce</a></div>`:''}
-      </div>
-    </div>
-    <div style="padding:16px 18px 0;">
-      <p style="font-size:12px;line-height:1.7;color:${MU};margin-bottom:16px;">${f.s}</p>
-    </div>
-    ${dayPicker()}
-    <div style="padding:0 18px 20px;">
-      ${(()=>{
-        const seancesJour=cinemaFilm.map(c=>{
-          const s=(SEANCES[c.id]||{})[st.film]||[];
-          return{cinema:c,seances:s.filter(h=>!isPast(h))};
-        }).filter(x=>x.seances.length);
-        if(!seancesJour.length) return `<div style="text-align:center;padding:20px 0;color:${MU};font-size:12px;">Aucune séance disponible ce jour</div>`;
-        return `<div style="margin-bottom:18px;">
-          <div style="font-size:10px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances</div>
-          ${seancesJour.map(({cinema:c,seances})=>`
-          <div style="margin-bottom:10px;">
-            <div style="font-size:11px;font-weight:500;margin-bottom:6px;">${c.name}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              ${seances.map(h=>`<div onclick="st.cinema='${c.id}';openGroup('${st.film}')" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;">${h}</div>`).join('')}
-            </div>
-          </div>`).join('')}
-        </div>`;
-      })()}
-      <button onclick="openGroup('${st.film}')" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;">Rejoindre le groupe →</button>
-    </div>
+const f=FILMS[st.film];if(!f)return’<div>Film introuvable</div>’;
+const back=st.filmSrc===‘cinema-detail’?()=>go(‘cinema-detail’):()=>go(‘home’);
+const cinemaFilm=CINEMAS.filter(c=>c.films.some(fi=>fi.id===st.film));
+return `<div style="flex:1;overflow-y:auto;"> <div style="height:220px;position:relative;overflow:hidden;background:${f.bg};"> ${posters[st.film]?'<img src="'+posters[st.film]+'" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.6);">':''} <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.3),rgba(7,7,15,0.95));"></div> <div onclick="${st.filmSrc==='cinema-detail'?`go(‘cinema-detail’)`:`go(‘home’)`}" style="position:absolute;top:52px;left:18px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px);">←</div> <div style="position:absolute;bottom:18px;left:18px;right:18px;"> <div style="font-size:9px;color:${CC[cinemaFilm[0]?.chain]||MU};letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">${f.g}</div> <div class="serif" style="font-size:26px;line-height:1.2;margin-bottom:8px;">${f.t}</div> <div style="display:flex;gap:6px;flex-wrap:wrap;"> ${chip('⏱ '+f.d,TX,'rgba(255,255,255,0.06)',BD,9)} ${chip('🎭 '+f.dir,TX,'rgba(255,255,255,0.06)',BD,9)} ${ratings[st.film]?chip('★ '+ratings[st.film].note,GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',9):''} ${isVu(st.film)?chip('✓ Vu sur LBD',LB,'rgba(0,192,48,0.15)','rgba(0,192,48,0.3)',9):isWatchlist(st.film)?chip('🔖 Watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',9):''} </div> ${trailers[st.film]?`<div style="margin-top:8px;"><a href="https://www.youtube.com/watch?v=${trailers[st.film]}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,0,0,0.15);border:1px solid rgba(255,0,0,0.3);border-radius:9px;padding:5px 12px;font-size:10px;font-weight:600;color:#ff4444;text-decoration:none;">▶ Voir la bande-annonce</a></div>`:''} </div> </div> <div style="padding:16px 18px 0;"> <p style="font-size:12px;line-height:1.7;color:${MU};margin-bottom:16px;">${f.s}</p> </div> ${dayPicker()} <div style="padding:0 18px 20px;"> ${(()=>{ const seancesJour=cinemaFilm.map(c=>{ const s=(SEANCES[c.id]||{})[st.film]||[]; return{cinema:c,seances:s.filter(h=>!isPast(h))}; }).filter(x=>x.seances.length); if(!seancesJour.length) return `<div style="text-align:center;padding:20px 0;color:${MU};font-size:12px;">Aucune séance disponible ce jour</div>`; return `<div style="margin-bottom:18px;">
+<div style="font-size:10px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances</div>
+${seancesJour.map(({cinema:c,seances})=>` <div style="margin-bottom:10px;"> <div style="font-size:11px;font-weight:500;margin-bottom:6px;">${c.name}</div> <div style="display:flex;gap:6px;flex-wrap:wrap;"> ${seances.map(h=>`<div onclick="st.cinema='${c.id}';openGroup('${st.film}')" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;">${h}</div>`).join('')} </div> </div>`).join(’’)}
+</div>`;
+})()}
+<button onclick="openGroup('${st.film}')" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;">Rejoindre le groupe →</button>
+</div>
+
   </div>`;
 }
 
 function sGroup(){
-  if(!st.groupe){
-    // Écran sélection groupe
-    return `<div style="padding:52px 18px 12px;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-        <div onclick="go('home')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
-        <div class="serif" style="font-size:20px;">Mes groupes</div>
-      </div>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
-      ${mesGroupes.length===0?`<div style="text-align:center;padding:50px 20px;color:${MU};"><div style="font-size:40px;margin-bottom:12px;">🎬</div><div style="font-size:14px;margin-bottom:16px;">Aucun groupe pour l'instant</div><button onclick="go('home')" style="background:${AC};border:none;color:#fff;border-radius:14px;padding:12px 24px;font-size:13px;cursor:pointer;">Voir les films →</button></div>`:
-      mesGroupes.map(g=>{
-        const gf=FILMS[g.film_id];
-        return `<div onclick="openGroup('${g.film_id}','${g.id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;">
-          <div style="width:46px;height:68px;border-radius:9px;overflow:hidden;background:${gf?gf.bg:'#222'};display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">
-            ${posters[g.film_id]?'<img src="'+posters[g.film_id]+'" style="width:100%;height:100%;object-fit:cover;">':(gf?gf.e:'🎬')}
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div class="serif" style="font-size:14px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${gf?gf.t:g.film_id}</div>
-            <div style="font-size:10px;color:${MU};">Groupe actif</div>
-          </div>
-          <span style="color:${MU};">›</span>
-        </div>`;
-      }).join('')}
-    </div>
-    <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
-      ${[['home','🎬','Films'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;">${ic}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
-    </div>`;
-  }
+if(!st.groupe){
+// Écran sélection groupe
+return `<div style="padding:52px 18px 12px;flex-shrink:0;"> <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"> <div onclick="go('home')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div> <div class="serif" style="font-size:20px;">Mes groupes</div> </div> </div> <div style="flex:1;overflow-y:auto;padding:0 18px 20px;"> ${mesGroupes.length===0?`<div style="text-align:center;padding:50px 20px;color:${MU};"><div style="font-size:40px;margin-bottom:12px;">🎬</div><div style="font-size:14px;margin-bottom:16px;">Aucun groupe pour l’instant</div><button onclick="go('home')" style="background:${AC};border:none;color:#fff;border-radius:14px;padding:12px 24px;font-size:13px;cursor:pointer;">Voir les films →</button></div>`: mesGroupes.map(g=>{ const gf=FILMS[g.film_id]; const hasConfirmed=g.confirmed_heure&&g.confirmed_date; const borderCol=hasConfirmed?'rgba(0,192,48,0.3)':BD; const bgCol=hasConfirmed?'rgba(0,192,48,0.04)':S1; return `<div onclick="openGroup('${g.film_id}','${g.id}')" class="tap" style="background:${bgCol};border:1px solid ${borderCol};border-radius:14px;padding:12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;">
+<div style="width:46px;height:68px;border-radius:9px;overflow:hidden;background:${gf?gf.bg:'#222'};display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;position:relative;">
+${posters[g.film_id]?’<img src="'+posters[g.film_id]+'" style="width:100%;height:100%;object-fit:cover;">’:(gf?gf.e:‘🎬’)}
+</div>
+<div style="flex:1;min-width:0;">
+<div class="serif" style="font-size:14px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${gf?gf.t:g.film_id}</div>
+${hasConfirmed
+?`<div style="font-size:10px;color:#00c030;font-weight:600;">✅ ${g.confirmed_heure} · ${formatDate(g.confirmed_date)}</div>`
+:`<div style="font-size:10px;color:${MU};">Groupe actif · Vote en cours</div>`
+}
+</div>
+<span style="color:${MU};">›</span>
+</div>`; }).join('')} </div> <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;"> ${[['home','🎬','Films'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc===‘group’&&mesGroupes.some(g=>g.confirmed_heure)?’<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>’:’’}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')} </div>`;
+}
 
-  // Écran chat/vote
-  const f=FILMS[st.film]||{};
-  const tabs=[['vote','🗳 Vote'],['chat','💬 Chat'],['membres','👥 Membres']];
-  return `<div style="padding:52px 18px 10px;flex-shrink:0;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      <div onclick="st.groupe=null;render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div>
-      <div style="flex:1;min-width:0;">
-        <div class="serif" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.t||'Groupe'}</div>
-      </div>
-      <span id="membres-badge" style="font-size:9px;background:${AC}18;border:1px solid ${AC}35;color:${AC};border-radius:8px;padding:2px 7px;flex-shrink:0;">${membresData.length} membre${membresData.length!==1?'s':''}</span>
-      <button onclick="shareGroupe()" style="width:30px;height:30px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">🔗</button>
-      <button onclick="quitterGroupe()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,63,91,0.08);border:1px solid rgba(255,63,91,0.3);color:${AC};font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;" title="Quitter le groupe">🚪</button>
-    </div>
-    <div style="display:flex;gap:6px;">
-      ${tabs.map(([id,lb])=>`<div onclick="st.tab='${id}';render();" style="flex:1;text-align:center;padding:6px;border-radius:10px;font-size:11px;cursor:pointer;background:${st.tab===id?AC:'rgba(255,255,255,0.03)'};border:1px solid ${st.tab===id?AC:BD};color:${st.tab===id?'#fff':MU};">${lb}</div>`).join('')}
-    </div>
+// Écran chat/vote
+const f=FILMS[st.film]||{};
+const tabs=[[‘vote’,‘🗳 Vote’],[‘chat’,‘💬 Chat’],[‘membres’,‘👥 Membres’]];
+return `<div style="padding:52px 18px 10px;flex-shrink:0;"> <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"> <div onclick="st.groupe=null;render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div> <div style="flex:1;min-width:0;"> <div class="serif" style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.t||'Groupe'}</div> </div> <span id="membres-badge" style="font-size:9px;background:${AC}18;border:1px solid ${AC}35;color:${AC};border-radius:8px;padding:2px 7px;flex-shrink:0;">${membresData.length} membre${membresData.length!==1?'s':''}</span> <button onclick="shareGroupe()" style="width:30px;height:30px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">🔗</button> <button onclick="quitterGroupe()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,63,91,0.08);border:1px solid rgba(255,63,91,0.3);color:${AC};font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;" title="Quitter le groupe">🚪</button> </div> <div style="display:flex;gap:6px;"> ${tabs.map(([id,lb])=>`<div onclick="st.tab='${id}';render();" style="flex:1;text-align:center;padding:6px;border-radius:10px;font-size:11px;cursor:pointer;background:${st.tab===id?AC:'rgba(255,255,255,0.03)'};border:1px solid ${st.tab===id?AC:BD};color:${st.tab===id?'#fff':MU};">${lb}</div>`).join(’’)}
+</div>
+
   </div>
   ${st.tab==='vote'?`<div style="flex:1;overflow-y:auto;">
     ${(()=>{
@@ -1221,71 +1189,74 @@ function sGroup(){
       const cd=isConfirmed?countdown(gc.confirmed_date,gc.confirmed_heure):'';
       const seancePassed=isConfirmed&&cd==='✓ Séance passée';
 
-      // Bandeau plan confirmé
-      const confirmedBanner=isConfirmed?`<div style="margin:0 18px 12px;background:rgba(0,192,48,0.08);border:1px solid rgba(0,192,48,0.3);border-radius:14px;padding:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div>
-            <div style="font-size:10px;color:${LB};font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">✅ Plan confirmé</div>
-            <div style="font-size:13px;font-weight:600;">${confirmedCinema?.name||gc.confirmed_cinema}</div>
-            <div style="font-size:11px;color:${MU};">${formatDate(gc.confirmed_date)} · ${gc.confirmed_heure}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:14px;font-weight:700;color:${LB};">${cd}</div>
-            <div onclick="annulerConfirmation()" style="font-size:9px;color:${MU};cursor:pointer;margin-top:4px;">Annuler</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:6px;">
-          ${links.maps?`<a href="${links.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:#4a9eff;text-decoration:none;">🗺 Y aller</a>`:''}
-          ${links.tickets?`<a href="${links.tickets}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${GD};text-decoration:none;">🎟 Réserver</a>`:''}
-          <div onclick="shareGroupe()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${TX};cursor:pointer;">📤 Partager</div>
-        </div>
-      </div>`:'';
+```
+  // Bandeau plan confirmé
+  const confirmedBanner=isConfirmed?`<div style="margin:0 18px 12px;background:rgba(0,192,48,0.08);border:1px solid rgba(0,192,48,0.3);border-radius:14px;padding:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div>
+        <div style="font-size:10px;color:${LB};font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">✅ Plan confirmé</div>
+        <div style="font-size:13px;font-weight:600;">${confirmedCinema?.name||gc.confirmed_cinema}</div>
+        <div style="font-size:11px;color:${MU};">${formatDate(gc.confirmed_date)} · ${gc.confirmed_heure}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:14px;font-weight:700;color:${LB};">${cd}</div>
+        <div onclick="annulerConfirmation()" style="font-size:9px;color:${MU};cursor:pointer;margin-top:4px;">Annuler</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      ${links.maps?`<a href="${links.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:#4a9eff;text-decoration:none;">🗺 Y aller</a>`:''}
+      ${links.tickets?`<a href="${links.tickets}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${GD};text-decoration:none;">🎟 Réserver</a>`:''}
+      <div onclick="shareGroupe()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:9px;padding:7px;font-size:11px;font-weight:600;color:${TX};cursor:pointer;">📤 Partager</div>
+    </div>
+  </div>`:'';
 
-      // Post-séance: avis collectifs
-      const avisSection=seancePassed?`<div style="padding:0 18px 20px;">
-        <div style="font-size:10px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Vos avis sur le film</div>
-        ${(()=>{
-          const monAvis=membresData.find(m=>m.pseudo===st.pseudo&&m.avis);
-          const monAvisData=monAvis?JSON.parse(monAvis.avis||'{}'):null;
-          const avgNote=membresData.filter(m=>m.avis).map(m=>{try{return JSON.parse(m.avis).note||0;}catch{return 0;}}).filter(n=>n>0);
-          const avg=avgNote.length?Math.round(avgNote.reduce((a,b)=>a+b,0)/avgNote.length*10)/10:0;
-          const notePicker=monAvisData?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;margin-bottom:10px;text-align:center;">
-            <div style="font-size:10px;color:${LB};margin-bottom:4px;">Votre note : ${monAvisData.note}★</div>
-            ${monAvisData.commentaire?`<div style="font-size:11px;color:${MU};font-style:italic;">"${monAvisData.commentaire}"</div>`:''}
-          </div>`:`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;margin-bottom:10px;">
-            <div style="font-size:11px;color:${MU};margin-bottom:8px;">Votre note :</div>
-            <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;">
-              ${[1,2,3,4,5].map(n=>`<div onclick="document.getElementById('avis-stars').dataset.note='${n}';[...document.querySelectorAll('.star-btn')].forEach((s,i)=>s.style.opacity=i<${n}?'1':'0.3')" class="star-btn" style="font-size:28px;cursor:pointer;opacity:${n<=3?'1':'0.3'};transition:opacity 0.15s;">★</div>`).join('')}
+  // Post-séance: avis collectifs
+  const avisSection=seancePassed?`<div style="padding:0 18px 20px;">
+    <div style="font-size:10px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Vos avis sur le film</div>
+    ${(()=>{
+      const monAvis=membresData.find(m=>m.pseudo===st.pseudo&&m.avis);
+      const monAvisData=monAvis?JSON.parse(monAvis.avis||'{}'):null;
+      const avgNote=membresData.filter(m=>m.avis).map(m=>{try{return JSON.parse(m.avis).note||0;}catch{return 0;}}).filter(n=>n>0);
+      const avg=avgNote.length?Math.round(avgNote.reduce((a,b)=>a+b,0)/avgNote.length*10)/10:0;
+      const notePicker=monAvisData?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;margin-bottom:10px;text-align:center;">
+        <div style="font-size:10px;color:${LB};margin-bottom:4px;">Votre note : ${monAvisData.note}★</div>
+        ${monAvisData.commentaire?`<div style="font-size:11px;color:${MU};font-style:italic;">"${monAvisData.commentaire}"</div>`:''}
+      </div>`:`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;margin-bottom:10px;">
+        <div style="font-size:11px;color:${MU};margin-bottom:8px;">Votre note :</div>
+        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px;">
+          ${[1,2,3,4,5].map(n=>`<div onclick="document.getElementById('avis-stars').dataset.note='${n}';[...document.querySelectorAll('.star-btn')].forEach((s,i)=>s.style.opacity=i<${n}?'1':'0.3')" class="star-btn" style="font-size:28px;cursor:pointer;opacity:${n<=3?'1':'0.3'};transition:opacity 0.15s;">★</div>`).join('')}
+        </div>
+        <div id="avis-stars" data-note="3"></div>
+        <input id="avis-input" placeholder="Un mot sur le film… (optionnel)" style="width:100%;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:12px;color:${TX};outline:none;margin-bottom:8px;box-sizing:border-box;">
+        <button onclick="postAvis(parseInt(document.getElementById('avis-stars').dataset.note||3))" style="width:100%;background:${AC};border:none;color:#fff;border-radius:10px;padding:9px;font-size:12px;font-weight:600;cursor:pointer;">Publier mon avis ✓</button>
+      </div>`;
+      const avisListe=membresData.filter(m=>m.avis).map(m=>{
+        try{const a=JSON.parse(m.avis);return`<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid ${BD};">
+          ${avatarEl(m.pseudo,32)}
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+              <span style="font-size:11px;font-weight:600;">${m.pseudo}</span>
+              <span style="font-size:12px;color:${GD};">${'★'.repeat(a.note||0)}<span style="color:${S2};">${'★'.repeat(5-(a.note||0))}</span></span>
             </div>
-            <div id="avis-stars" data-note="3"></div>
-            <input id="avis-input" placeholder="Un mot sur le film… (optionnel)" style="width:100%;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:12px;color:${TX};outline:none;margin-bottom:8px;box-sizing:border-box;">
-            <button onclick="postAvis(parseInt(document.getElementById('avis-stars').dataset.note||3))" style="width:100%;background:${AC};border:none;color:#fff;border-radius:10px;padding:9px;font-size:12px;font-weight:600;cursor:pointer;">Publier mon avis ✓</button>
-          </div>`;
-          const avisListe=membresData.filter(m=>m.avis).map(m=>{
-            try{const a=JSON.parse(m.avis);return`<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid ${BD};">
-              ${avatarEl(m.pseudo,32)}
-              <div style="flex:1;">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-                  <span style="font-size:11px;font-weight:600;">${m.pseudo}</span>
-                  <span style="font-size:12px;color:${GD};">${'★'.repeat(a.note||0)}<span style="color:${S2};">${'★'.repeat(5-(a.note||0))}</span></span>
-                </div>
-                ${a.commentaire?`<div style="font-size:11px;color:${MU};font-style:italic;">"${a.commentaire}"</div>`:''}
-              </div>
-            </div>`;}catch{return'';}
-          }).join('');
-          return (avg?`<div style="text-align:center;padding:12px;margin-bottom:10px;background:${S1};border:1px solid ${BD};border-radius:14px;">
-            <div style="font-size:32px;font-weight:700;color:${GD};">${avg}★</div>
-            <div style="font-size:10px;color:${MU};">Note moyenne du groupe</div>
-          </div>`:'')
-          +notePicker
-          +(avisListe?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;">${avisListe}</div>`:'');
-        })()}
-      </div>`:'' ;
-
-      if(seancePassed) return confirmedBanner+avisSection;
-      if(!st.cinema) return confirmedBanner+cinemaSelector+`<div style="text-align:center;padding:24px;color:${MU};font-size:11px;">← Choisissez un cinéma pour voir les séances</div>`;
-      return confirmedBanner+cinemaSelector+dayPicker()+`<div style="padding:0 18px 20px;"><div id="votes-container"></div></div>`;
+            ${a.commentaire?`<div style="font-size:11px;color:${MU};font-style:italic;">"${a.commentaire}"</div>`:''}
+          </div>
+        </div>`;}catch{return'';}
+      }).join('');
+      return (avg?`<div style="text-align:center;padding:12px;margin-bottom:10px;background:${S1};border:1px solid ${BD};border-radius:14px;">
+        <div style="font-size:32px;font-weight:700;color:${GD};">${avg}★</div>
+        <div style="font-size:10px;color:${MU};">Note moyenne du groupe</div>
+      </div>`:'')
+      +notePicker
+      +(avisListe?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;">${avisListe}</div>`:'');
     })()}
+  </div>`:'' ;
+
+  if(seancePassed) return confirmedBanner+avisSection;
+  if(!st.cinema) return confirmedBanner+cinemaSelector+`<div style="text-align:center;padding:24px;color:${MU};font-size:11px;">← Choisissez un cinéma pour voir les séances</div>`;
+  return confirmedBanner+cinemaSelector+dayPicker()+`<div style="padding:0 18px 20px;"><div id="votes-container"></div></div>`;
+})()}
+```
+
   </div>`:''}
   ${st.tab==='chat'?`<div id="chat-area" style="flex:1;overflow-y:auto;padding:14px 18px;"></div>
   <div style="padding:10px 18px 14px;background:${BG};border-top:1px solid ${BD};display:flex;gap:8px;flex-shrink:0;">
@@ -1296,17 +1267,18 @@ function sGroup(){
 }
 
 function sProfile(){
-  const vuCount=Object.keys(FILMS).filter(id=>isVu(id)).length;
-  const wlCount=Object.keys(FILMS).filter(id=>isWatchlist(id)).length;
-  const lbdBlock=st.lbdPseudo?`<div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px;margin-bottom:14px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div><div style="font-size:11px;color:${LB};font-weight:600;margin-bottom:2px;">Letterboxd connecté</div><div style="font-size:12px;">@${st.lbdPseudo}</div></div>
-      <button onclick="disconnectLbd()" style="font-size:10px;color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:4px 8px;cursor:pointer;">Déconnecter</button>
-    </div>
-    <div style="display:flex;gap:12px;">
-      ${chip('✓ '+vuCount+' vus',LB,'rgba(0,192,48,0.12)','rgba(0,192,48,0.3)',10)}
-      ${chip('🔖 '+wlCount+' watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',10)}
-    </div>
+const vuCount=Object.keys(FILMS).filter(id=>isVu(id)).length;
+const wlCount=Object.keys(FILMS).filter(id=>isWatchlist(id)).length;
+const lbdBlock=st.lbdPseudo?`<div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px;margin-bottom:14px;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+<div><div style="font-size:11px;color:${LB};font-weight:600;margin-bottom:2px;">Letterboxd connecté</div><div style="font-size:12px;">@${st.lbdPseudo}</div></div>
+<button onclick="disconnectLbd()" style="font-size:10px;color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:4px 8px;cursor:pointer;">Déconnecter</button>
+</div>
+<div style="display:flex;gap:12px;">
+${chip(‘✓ ‘+vuCount+’ vus’,LB,‘rgba(0,192,48,0.12)’,‘rgba(0,192,48,0.3)’,10)}
+${chip(‘🔖 ‘+wlCount+’ watchlist’,GD,‘rgba(240,192,96,0.12)’,‘rgba(240,192,96,0.3)’,10)}
+</div>
+
   </div>`:`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:14px;">
     <div style="font-size:12px;font-weight:500;margin-bottom:4px;">Connecter Letterboxd</div>
     <div style="font-size:10px;color:${MU};margin-bottom:10px;">Synchronise vos films vus et watchlist</div>
@@ -1316,38 +1288,54 @@ function sProfile(){
     </div>
   </div>`;
 
-  // Bloc changer de pseudo
-  const changePseudoBlock=st._changingPseudo?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:10px;">
-    <div style="font-size:12px;font-weight:500;margin-bottom:10px;">Changer de pseudo</div>
-    <div style="display:flex;gap:8px;">
-      <input id="new-pseudo-field" placeholder="Nouveau pseudo" maxlength="20"
-        style="flex:1;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:12px;color:${TX};outline:none;"
-        onkeydown="if(event.key==='Enter')confirmChangePseudo()">
-      <button onclick="confirmChangePseudo()" style="background:${AC};border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:12px;cursor:pointer;">OK</button>
-      <button onclick="st._changingPseudo=false;render();" style="background:${S2};border:1px solid ${BD};color:${MU};border-radius:10px;padding:8px 12px;font-size:12px;cursor:pointer;">✕</button>
-    </div>
+// Bloc changer de pseudo
+const changePseudoBlock=st._changingPseudo?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:10px;">
+<div style="font-size:12px;font-weight:500;margin-bottom:10px;">Changer de pseudo</div>
+<div style="display:flex;gap:8px;">
+<input id="new-pseudo-field" placeholder="Nouveau pseudo" maxlength="20"
+style="flex:1;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:12px;color:${TX};outline:none;"
+onkeydown="if(event.key==='Enter')confirmChangePseudo()">
+<button onclick="confirmChangePseudo()" style="background:${AC};border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:12px;cursor:pointer;">OK</button>
+<button onclick="st._changingPseudo=false;render();" style="background:${S2};border:1px solid ${BD};color:${MU};border-radius:10px;padding:8px 12px;font-size:12px;cursor:pointer;">✕</button>
+</div>
+
   </div>`:
   `<button onclick="st._changingPseudo=true;render();" style="width:100%;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;font-size:12px;color:${TX};cursor:pointer;text-align:left;margin-bottom:10px;">
     ✏️ &nbsp;Changer de pseudo
   </button>`;
 
-  // Bouton déconnexion app
-  const logoutBlock=`<button onclick="logoutApp()" style="width:100%;background:rgba(255,63,91,0.06);border:1px solid rgba(255,63,91,0.25);border-radius:14px;padding:12px;font-size:12px;color:${AC};cursor:pointer;text-align:left;margin-top:4px;">
-    🚪 &nbsp;Se déconnecter de CinéMatch
-  </button>`;
+// Bouton déconnexion app
+const logoutBlock=`<button onclick="logoutApp()" style="width:100%;background:rgba(255,63,91,0.06);border:1px solid rgba(255,63,91,0.25);border-radius:14px;padding:12px;font-size:12px;color:${AC};cursor:pointer;text-align:left;margin-top:4px;"> 🚪 &nbsp;Se déconnecter de CinéMatch </button>`;
 
-  return `<div style="padding:52px 18px 12px;flex-shrink:0;">
-    <div class="serif" style="font-size:22px;margin-bottom:16px;">Mon profil</div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
-      <div onclick="st.showAvatarPicker=!st.showAvatarPicker;render();" style="width:62px;height:62px;border-radius:17px;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;font-size:34px;flex-shrink:0;cursor:pointer;position:relative;">
-        ${st.avatar}
-        <div style="position:absolute;bottom:-4px;right:-4px;background:${S2};border:1px solid ${BD};border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;">✏️</div>
-      </div>
-      <div>
-        <div style="font-size:18px;font-weight:600;">${st.pseudo}</div>
-        <div style="font-size:11px;color:${MU};">@${st.pseudo.toLowerCase().replace(/\s+/g,'')}</div>
-      </div>
-    </div>
+const groupesActifs=mesGroupes.length;
+const groupesConfirmes=mesGroupes.filter(g=>g.confirmed_heure).length;
+return `<div style="padding:52px 18px 12px;flex-shrink:0;">
+<div class="serif" style="font-size:22px;margin-bottom:14px;">Mon profil</div>
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+<div onclick="st.showAvatarPicker=!st.showAvatarPicker;render();" style="width:62px;height:62px;border-radius:17px;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;font-size:34px;flex-shrink:0;cursor:pointer;position:relative;">
+${st.avatar}
+<div style="position:absolute;bottom:-4px;right:-4px;background:${S2};border:1px solid ${BD};border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;">✏️</div>
+</div>
+<div>
+<div style="font-size:18px;font-weight:600;">${st.pseudo}</div>
+<div style="font-size:11px;color:${MU};margin-bottom:6px;">@${st.pseudo.toLowerCase().replace(/\s+/g,’’)}</div>
+</div>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:4px;">
+<div style="flex:1;background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px;text-align:center;">
+<div style="font-size:20px;font-weight:700;color:${AC};">${groupesActifs}</div>
+<div style="font-size:9px;color:${MU};">groupe${groupesActifs!==1?‘s’:’’}</div>
+</div>
+<div style="flex:1;background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px;text-align:center;">
+<div style="font-size:20px;font-weight:700;color:${LB};">${groupesConfirmes}</div>
+<div style="font-size:9px;color:${MU};">plan${groupesConfirmes!==1?‘s’:’’} confirmé${groupesConfirmes!==1?‘s’:’’}</div>
+</div>
+<div style="flex:1;background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px;text-align:center;">
+<div style="font-size:20px;font-weight:700;color:${GD};">${vuCount}</div>
+<div style="font-size:9px;color:${MU};">film${vuCount!==1?‘s’:’’} vus</div>
+</div>
+</div>
+
   </div>
   <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
     ${st.showAvatarPicker?buildPickerGrid():''}
@@ -1356,23 +1344,24 @@ function sProfile(){
     ${logoutBlock}
   </div>
   <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
-    ${[['home','🎬','Films'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;">${ic}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
+    ${[['home','🎬','Films'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:18px;position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 }
 
 function sMemberProfile(){
-  const pseudo=st.viewedMember;
-  const lbd=membresLbd[pseudo];
-  const myLbd=st.lbdPseudo;
-  let commonFilms=[];
-  if(lbd&&myLbd){
-    commonFilms=Object.entries(FILMS).filter(([id])=>isVu(id)&&filmInLbd(id,lbd.seen)).map(([id,f])=>f.t);
-  }
-  return `<div style="padding:52px 18px 12px;flex-shrink:0;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <div onclick="st.screen='group';render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
-      <div class="serif" style="font-size:20px;">${pseudo}</div>
-    </div>
+const pseudo=st.viewedMember;
+const lbd=membresLbd[pseudo];
+const myLbd=st.lbdPseudo;
+let commonFilms=[];
+if(lbd&&myLbd){
+commonFilms=Object.entries(FILMS).filter(([id])=>isVu(id)&&filmInLbd(id,lbd.seen)).map(([id,f])=>f.t);
+}
+return `<div style="padding:52px 18px 12px;flex-shrink:0;">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+<div onclick="st.screen='group';render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+<div class="serif" style="font-size:20px;">${pseudo}</div>
+</div>
+
   </div>
   <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
     <div style="display:flex;justify-content:center;margin-bottom:20px;">
@@ -1381,37 +1370,50 @@ function sMemberProfile(){
     <div style="text-align:center;margin-bottom:20px;">
       <div style="font-size:20px;font-weight:600;">${pseudo}</div>
     </div>
+    ${(()=>{
+      const moi=membresData.find(m=>m.pseudo===pseudo);
+      const statut=moi?.statut||'maybe';
+      const STATUTS={yes:{e:'✅',l:'Vient'},maybe:{e:'❓',l:'Peut-être'},no:{e:'❌',l:'Pas dispo'}};
+      const s=STATUTS[statut];
+      const cinema_pref=moi?.cinema_pref?CINEMAS.find(c=>c.id===moi.cinema_pref)?.name:'';
+      return `<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;gap:12px;align-items:center;">
+          <span style="font-size:13px;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid ${BD};">${s.e} ${s.l}</span>
+          ${cinema_pref?`<span style="font-size:11px;color:${MU};">🏛 ${cinema_pref}</span>`:''}
+        </div>
+      </div>`;
+    })()}
     ${lbd?`<div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px;margin-bottom:14px;">
       <div style="font-size:11px;color:${LB};font-weight:600;margin-bottom:10px;">Letterboxd</div>
-      <div style="display:flex;gap:12px;">
+      <div style="display:flex;gap:12px;margin-bottom:${commonFilms.length?'10px':'0'};">
         ${chip('✓ '+lbd.seen.size+' vus',LB,'rgba(0,192,48,0.12)','rgba(0,192,48,0.3)',10)}
         ${chip('🔖 '+lbd.wl.size+' watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',10)}
       </div>
-      ${commonFilms.length?`<div style="margin-top:10px;"><div style="font-size:10px;color:${MU};margin-bottom:6px;">Films en commun avec vous :</div><div style="font-size:11px;color:${TX};">${commonFilms.slice(0,5).join(', ')}${commonFilms.length>5?'…':''}</div></div>`:''}
-    </div>`:`<div style="text-align:center;padding:20px;color:${MU};font-size:12px;">Letterboxd non connecté</div>`}
+      ${commonFilms.length?`<div><div style="font-size:10px;color:${MU};margin-bottom:6px;">Films que vous avez tous les deux vus :</div>${commonFilms.slice(0,5).map(t=>`<div style="font-size:11px;padding:4px 0;border-bottom:1px solid ${BD};">✓ ${t}</div>`).join('')}${commonFilms.length>5?`<div style="font-size:10px;color:${MU};margin-top:4px;">+${commonFilms.length-5} autres</div>`:''}</div>`:''}
+    </div>`:`<div style="text-align:center;padding:20px;color:${MU};font-size:12px;background:${S1};border:1px solid ${BD};border-radius:14px;margin-bottom:14px;">Letterboxd non connecté</div>`}
   </div>`;
 }
 
 // ═══════════ RENDER ═══════════
 function render(){
-  const inner=document.getElementById('inner');
-  if(!inner)return;
-  if(st.screen==='pseudo')         inner.innerHTML=sPseudo();
-  else if(st.screen==='home')      inner.innerHTML=sHome();
-  else if(st.screen==='cinemas')   inner.innerHTML=sCinemas();
-  else if(st.screen==='cinema-detail') inner.innerHTML=sCinemaDetail();
-  else if(st.screen==='film')      inner.innerHTML=sFilm();
-  else if(st.screen==='group')     {inner.innerHTML=sGroup(); if(st.groupe&&st.tab==='vote'){renderVotesDOM();} if(st.groupe&&st.tab==='membres')renderMembresDOM(); if(st.groupe&&st.tab==='chat')loadMessages();}
-  else if(st.screen==='profile')   inner.innerHTML=sProfile();
-  else if(st.screen==='member-profile') inner.innerHTML=sMemberProfile();
+const inner=document.getElementById(‘inner’);
+if(!inner)return;
+if(st.screen===‘pseudo’)         inner.innerHTML=sPseudo();
+else if(st.screen===‘home’)      inner.innerHTML=sHome();
+else if(st.screen===‘cinemas’)   inner.innerHTML=sCinemas();
+else if(st.screen===‘cinema-detail’) inner.innerHTML=sCinemaDetail();
+else if(st.screen===‘film’)      inner.innerHTML=sFilm();
+else if(st.screen===‘group’)     {inner.innerHTML=sGroup(); if(st.groupe&&st.tab===‘vote’){renderVotesDOM();} if(st.groupe&&st.tab===‘membres’)renderMembresDOM(); if(st.groupe&&st.tab===‘chat’)loadMessages();}
+else if(st.screen===‘profile’)   inner.innerHTML=sProfile();
+else if(st.screen===‘member-profile’) inner.innerHTML=sMemberProfile();
 }
 
 // ═══════════ INIT ═══════════
 (function handleInvite(){
-  const params=new URLSearchParams(window.location.search);
-  const gid=params.get('groupe'),fid=params.get('film');
-  if(gid&&fid&&st.pseudo){history.replaceState({},'','/');openGroup(fid,gid);}
-  else if(gid&&fid){st._inviteGroupe=gid;st._inviteFilm=fid;}
+const params=new URLSearchParams(window.location.search);
+const gid=params.get(‘groupe’),fid=params.get(‘film’);
+if(gid&&fid&&st.pseudo){history.replaceState({},’’,’/’);openGroup(fid,gid);}
+else if(gid&&fid){st._inviteGroupe=gid;st._inviteFilm=fid;}
 })();
 
 render();
@@ -1419,8 +1421,14 @@ if(st.pseudo){loadMesGroupes();if(st.lbdPseudo)loadLbd(st.lbdPseudo);}
 loadPosters();
 
 setInterval(()=>{
-  if(st.screen==='cinemas'||st.screen==='cinema-detail'||st.screen==='group')render();
-},60*1000);
+if(st.screen===‘cinemas’||st.screen===‘cinema-detail’||st.screen===‘group’)render();
+// Mettre à jour les countdowns sans re-render complet
+document.querySelectorAll(’[data-countdown]’).forEach(el=>{
+const [d,h]=el.dataset.countdown.split(’|’);
+el.textContent=countdown(d,h);
+});
+},30*1000);
 </script>
+
 </body>
 </html>
