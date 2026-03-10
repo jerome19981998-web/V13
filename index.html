@@ -877,6 +877,27 @@ function sHome(){
         ${[['all','🍿 Toutes'],['near','📍 Près de moi'],['tonight','🎬 Ce soir'],['week','📅 Cette semaine'],['hot','🔥 Presque complet']].map(([f,lb])=>`<div onclick="st.sortieFilter='${f}';render()" style="border-radius:20px;padding:5px 11px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;border:1px solid ${st.sortieFilter===f?AC:BD};background:${st.sortieFilter===f?AC:'rgba(255,255,255,0.03)'};color:${st.sortieFilter===f?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join('')}
       </div>
       ${filtered_sorties.length===0?emptySorties:filtered_sorties.map(sortieCard).join('')}
+
+      ${filtered_sorties.length>0&&filtered_sorties.length<5?`
+      <!-- Discovery fill when few results -->
+      <div style="margin:8px 18px 0;padding:16px;background:${S1};border-radius:16px;border:1px solid ${BD};">
+        <div style="font-size:clamp(9px,2.8vw,12px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">✦ Découvrir</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="flex:1;min-width:130px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid ${BD};cursor:pointer;text-align:center;">
+            <div style="font-size:24px;margin-bottom:6px;">🍿</div>
+            <div style="font-size:clamp(10px,3vw,12px);font-weight:600;">Créer une sortie</div>
+            <div style="font-size:clamp(8px,2.5vw,10px);color:${MU};margin-top:3px;">Invite tes amis au ciné</div>
+          </div>
+          <div onclick="go('cinemas')" style="flex:1;min-width:130px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid ${BD};cursor:pointer;text-align:center;">
+            <div style="font-size:24px;margin-bottom:6px;">🏛</div>
+            <div style="font-size:clamp(10px,3vw,12px);font-weight:600;">Explorer les cinémas</div>
+            <div style="font-size:clamp(8px,2.5vw,10px);color:${MU};margin-top:3px;">Séances près de toi</div>
+          </div>
+        </div>
+      </div>`:''}
+
+      <!-- Bottom breathing room -->
+      <div style="height:20px;flex-shrink:0;"></div>
     </div>
     ${navbar}
   </div>`;
