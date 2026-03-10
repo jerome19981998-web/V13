@@ -467,7 +467,9 @@ const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{
   auth:{
     autoRefreshToken:true,
     persistSession:true,
-    detectSessionInUrl:true   // capture le magic link depuis l'URL
+    detectSessionInUrl:true,
+    storageKey:'cm_auth',       // clé dédiée → plus de conflit avec d'autres onglets
+    lock: async (name, acquireTimeout, fn) => fn() // bypass le Web Locks API
   }
 });
 
@@ -1377,6 +1379,17 @@ function sAuth(){
       <div style="font-size:14px;font-weight:600;margin-bottom:8px;">${lang==='fr'?'Email envoyé !':'Email sent!'}</div>
       <div style="font-size:12px;color:${MU};margin-bottom:24px;line-height:1.7;">${lang==='fr'?'Vérifie ta boîte mail et clique sur le lien pour réinitialiser ton mot de passe.':'Check your inbox and click the link to reset your password.'}</div>
       <span onclick="st.authStep='login';render()" style="font-size:12px;color:${AC};cursor:pointer;">${lang==='fr'?'← Retour à la connexion':'← Back to sign in'}</span>`;
+  } else if(mode==='confirm'){
+    const mail=st._confirmEmail||'';
+    body=`
+      <div style="font-size:48px;margin-bottom:16px;">✉️</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">${lang==='fr'?'Confirme ton email':'Confirm your email'}</div>
+      <div style="font-size:12px;color:${MU};margin-bottom:6px;line-height:1.7;">${lang==='fr'?'Un email de confirmation a été envoyé à':'A confirmation email was sent to'}</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:20px;color:${TX};">${mail}</div>
+      <div style="font-size:11px;color:${MU};margin-bottom:24px;line-height:1.7;">${lang==='fr'?'Clique sur le lien dans le mail, puis reviens ici pour te connecter.':'Click the link in the email, then come back here to sign in.'}</div>
+      <button onclick="st.authStep='login';render()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;">
+        ${lang==='fr'?'Aller à la connexion →':'Go to sign in →'}
+      </button>`;
   }
 
   return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
@@ -1428,27 +1441,50 @@ async function registerWithPassword(){
   if(pass.length<6){showAuthErr('Mot de passe trop court (min 6 caractères)');return;}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthErr('Email invalide');return;}
 
-  // Vérifier que le pseudo est disponible
-  const{data:existing}=await supa.from('profiles').select('id').eq('pseudo',pseudo).limit(1);
-  if(existing&&existing.length>0){showAuthErr('Ce pseudo est déjà pris ❌');return;}
+  // Bouton en état de chargement
+  const btn=document.querySelector('[onclick="registerWithPassword()"]');
+  if(btn){btn.disabled=true;btn.textContent='Création...';}
+  showAuthErr('');
 
-  const{data,error}=await supa.auth.signUp({email,password:pass});
-  if(error){showAuthErr(error.message);return;}
+  try{
+    // Vérifier que le pseudo est disponible
+    const{data:existing}=await supa.from('profiles').select('id').eq('pseudo',pseudo).limit(1);
+    if(existing&&existing.length>0){showAuthErr('Ce pseudo est déjà pris ❌');return;}
 
-  // Créer le profil immédiatement avec l'email
-  if(data?.user){
-    await supa.from('profiles').upsert({
-      id:data.user.id,pseudo,avatar:st.avatar||'🎬',lang:st.lang||'fr',email
-    },{onConflict:'id'});
-    st.pseudo=pseudo;save();
-  }
-  // Auto-login après inscription
-  const{error:loginErr}=await supa.auth.signInWithPassword({email,password:pass});
-  if(loginErr){
-    // Email non confirmé — prévenir l'utilisateur
-    showAuthErr('');
-    toast('Vérifie ton email pour confirmer ton compte 📬','success',5000);
-    st.authStep='login';render();
+    const{data,error}=await supa.auth.signUp({email,password:pass,options:{
+      emailRedirectTo:window.location.origin
+    }});
+
+    if(error){
+      if(error.message.includes('already registered')||error.message.includes('User already')){
+        showAuthErr('Email déjà utilisé — essaie de te connecter ❌');
+      }else{
+        showAuthErr(error.message);
+      }
+      return;
+    }
+
+    // Créer le profil immédiatement
+    if(data?.user){
+      const{error:profErr}=await supa.from('profiles').upsert({
+        id:data.user.id,pseudo,avatar:st.avatar||'🎬',lang:st.lang||'fr',email
+      },{onConflict:'id'});
+      if(profErr)console.warn('Profile upsert:',profErr.message);
+      st.pseudo=pseudo;save();
+    }
+
+    // Tenter auto-login
+    const{error:loginErr}=await supa.auth.signInWithPassword({email,password:pass});
+    if(loginErr){
+      // Supabase exige confirmation email — informer l'user
+      showAuthErr('');
+      st.authStep='confirm';st._confirmEmail=email;render();
+    }
+    // Sinon handleSession prend le relais via onAuthStateChange
+  }catch(e){
+    showAuthErr('Erreur : '+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=st.lang==='fr'?'Créer mon compte →':'Create my account →';}
   }
 }
 
