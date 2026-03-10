@@ -1,20 +1,44 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/cinematch.html" },
-    { "source": "/index.html", "destination": "/cinematch.html" }
+    {
+      "source": "/",
+      "destination": "/cinematch.html"
+    },
+    {
+      "source": "/index.html",
+      "destination": "/cinematch.html"
+    }
   ],
   "headers": [
     {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache" },
-        { "key": "Service-Worker-Allowed", "value": "/" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
       ]
     },
     {
       "source": "/manifest.json",
       "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json" }
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.png)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
       ]
     }
   ]
