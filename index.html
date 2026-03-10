@@ -2675,9 +2675,38 @@ setInterval(()=>{
   <script>
     if('serviceWorker' in navigator){
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(r => console.log('SW enregistré:', r.scope))
-          .catch(e => console.log('SW erreur:', e));
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+          // Vérifier les mises à jour toutes les 60 secondes
+          setInterval(() => reg.update(), 60000);
+
+          // Quand un nouveau SW est installé et en attente
+          reg.addEventListener('updatefound', () => {
+            const newSW = reg.installing;
+            newSW.addEventListener('statechange', () => {
+              if(newSW.state === 'installed' && navigator.serviceWorker.controller){
+                // Nouvelle version dispo — recharger automatiquement
+                newSW.postMessage({type:'SKIP_WAITING'});
+              }
+            });
+          });
+        }).catch(e => console.log('SW erreur:', e));
+
+        // Recharger la page quand le nouveau SW prend le contrôle
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if(!refreshing){
+            refreshing = true;
+            window.location.reload();
+          }
+        });
+
+        // Recevoir le message SW_UPDATED
+        navigator.serviceWorker.addEventListener('message', e => {
+          if(e.data?.type === 'SW_UPDATED' && !refreshing){
+            refreshing = true;
+            window.location.reload();
+          }
+        });
       });
     }
 
