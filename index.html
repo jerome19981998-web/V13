@@ -988,6 +988,7 @@ async function quitterGroupe(){
 
 async function logoutApp(){
   if(!confirm(T('deconnexion')+' ?'))return;
+  _explicitLogout=true;
   await supa.auth.signOut();
   try{localStorage.removeItem('cm2');}catch(e){}
   st.pseudo='';st.userId=null;st.userEmail='';
@@ -1118,46 +1119,41 @@ async function handleSession(session, force=false){
   }
 }
 
-// onAuthStateChange est la seule source de verite — il couvre magic link, Google, refresh
-supa.auth.onAuthStateChange(async(event,session)=>{
-  if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){
-    _sessionHandled=false; // reset pour que handleSession s'execute
+// Flag pour eviter que SIGNED_OUT d'un refresh redirige vers auth
+let _explicitLogout = false;
+
+supa.auth.onAuthStateChange(async(event, session)=>{
+  if(event==='INITIAL_SESSION'||event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
+    _sessionHandled=false;
     await handleSession(session);
-  } else if(event==='TOKEN_REFRESHED'||event==='USER_UPDATED'){
-    await handleSession(session,true);
   } else if(event==='SIGNED_OUT'){
-    // Seulement si c'est un vrai logout (pas un refresh de token)
-    if(!_supaSession){
+    // Ne rediriger que si c'est un vrai logout déclenché par logoutApp()
+    if(_explicitLogout){
+      _explicitLogout=false;
       _sessionHandled=false;
       _handlingSession=false;
       st.userId=null;st.userEmail='';
       st.screen='auth';st.authStep='email';render();
     }
+    // Sinon ignorer — peut être un faux SIGNED_OUT pendant un refresh
   }
 });
 
-// Timeout de secours : si apres 5s l'app est toujours sur loading
-// → si session locale détectée, attendre encore, sinon → ecran auth
+// Timeout de secours unique à 5s
 setTimeout(()=>{
   if(st.screen==='loading'){
-    if(_supaSession){
-      // Session détectée mais INITIAL_SESSION pas encore reçu → forcer getSession
-      supa.auth.getSession().then(({data:{session}})=>{
+    supa.auth.getSession().then(({data:{session}})=>{
+      if(session){
         _sessionHandled=false;
         handleSession(session);
-      });
-    }else{
+      } else {
+        st.screen='auth';st.authStep='email';render();
+      }
+    }).catch(()=>{
       st.screen='auth';st.authStep='email';render();
-    }
+    });
   }
-},3000);
-
-// Deuxième timeout absolu : si toujours bloqué après 8s → auth
-setTimeout(()=>{
-  if(st.screen==='loading'){
-    st.screen='auth';st.authStep='email';render();
-  }
-},8000);
+},5000);
 
 // Écran de chargement initial
 function sLoading(){
