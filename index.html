@@ -36,7 +36,7 @@
       .notch{display:flex;position:absolute;top:12px;left:50%;transform:translateX(-50%);width:100px;height:28px;background:#07070f;border-radius:28px;z-index:100;align-items:center;justify-content:center;}
       .notch-bar{width:52px;height:5px;background:#1a1a2e;border-radius:3px;}
     }
-    #inner{flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding-top:max(env(safe-area-inset-top),0px);padding-bottom:0;font-size:var(--fs-md);}
+    #inner{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:max(env(safe-area-inset-top),0px);padding-bottom:0;font-size:var(--fs-md);}
     @media(min-width:600px){#inner{padding-top:40px;padding-bottom:0;}}
     @supports(padding-bottom:env(safe-area-inset-bottom)){
       .pb-safe{padding-bottom:env(safe-area-inset-bottom)!important;}
@@ -670,7 +670,7 @@ function sHome(){
     const isSearching=searchQ.length>0;
     const isFiltering=activeGenre!=='tous';
 
-    return `<div style="display:flex;flex-direction:column;min-height:100%;">
+    return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
       ${header}
       <!-- Search + Genre bar -->
       <div style="padding:10px 18px 0;flex-shrink:0;">
@@ -691,7 +691,7 @@ function sHome(){
         </div>
       </div>
 
-      <div>
+      <div style="flex:1;overflow-y:auto;">
         ${(isSearching||isFiltering)?`
           <!-- SEARCH / FILTERED RESULTS: grid view -->
           ${filtered.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:clamp(28px,9vw,40px);margin-bottom:10px;">🔍</div><div style="font-size:clamp(11px,3.3vw,14px);">${T('aucunFilmTrouve')}</div></div>`:''}
@@ -876,7 +876,7 @@ function sHome(){
     return true;
   });
 
-  return `<div style="display:flex;flex-direction:column;min-height:100%;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     ${header}
     <div style="padding-top:12px;">
       <!-- Top row: label + create button -->
@@ -890,6 +890,23 @@ function sHome(){
       </div>
       ${filtered_sorties.length===0?emptySorties:filtered_sorties.map(sortieCard).join('')}
 
+      <!-- Films en salle section - fills empty space -->
+      ${tab==='sorties'?`
+      <div style="padding:20px 18px 0;flex-shrink:0;">
+        <div style="font-size:clamp(9px,2.8vw,12px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">🎬 Films en salle</div>
+        <div class="row-scroll">
+          ${Object.entries(FILMS).slice(0,10).map(([id,f])=>`
+            <div onclick="openFilm('${id}','home')" class="tap" style="flex-shrink:0;width:90px;cursor:pointer;">
+              <div style="width:90px;height:134px;border-radius:10px;overflow:hidden;background:${f.bg};position:relative;">
+                ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:32px;">${f.e}</span>`}
+              </div>
+              <div style="font-size:9px;font-weight:500;margin-top:4px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${f.t}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div style="height:16px;"></div>
+      `:''}
+
     </div>
     ${navbar}
   </div>`;
@@ -899,7 +916,7 @@ function sHome(){
 function sCinemas(){
   const chain=st.cinFilter==='tous'?null:st.cinFilter;
   const list=sortedCinemas(chain);
-  return `<div style="display:flex;flex-direction:column;min-height:100%;"><div style="padding:52px 18px 12px;flex-shrink:0;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Cinémas Paris</div>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -943,7 +960,7 @@ function sCinemaDetail(){
   const col=CC[cinema.chain];
   const seancesAuj=(SEANCES[cinema.id]||{});
   const links_=CINEMA_LINKS[cinema.id]||{};
-  return `<div style="display:flex;flex-direction:column;min-height:100%;"><div style="padding:52px 18px 10px;flex-shrink:0;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 10px;flex-shrink:0;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       <div onclick="go('cinemas')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div>
       <div style="flex:1;"><div class="serif" style="font-size:17px;">${cinema.name}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};">${cinema.addr} · ${cinema.metro}</div></div>
@@ -1104,7 +1121,7 @@ function sCreateSortie(){
   const selectedDate=ns.date||AVAILABLE_DATES[0]||todayStr();
   const heuresForDate=(filmId&&cinemaId&&SEANCES[cinemaId]?.[filmId])||[];
   const canCreate=filmId&&cinemaId&&heure&&selectedDate;
-  return `<div style="display:flex;flex-direction:column;min-height:100%;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <div style="padding:50px 18px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${BD};">
       <div onclick="createSortieScroll=0;st.screen='home';st.newSortie=null;render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:clamp(13px,4vw,17px);">←</div>
       <div><div style="font-size:clamp(13px,4vw,17px);font-weight:700;">${T('creerSortie')}</div><div style="font-size:clamp(9px,2.8vw,12px);color:${MU};">${T('creerSortieDesc')}</div></div>
@@ -1128,8 +1145,8 @@ function sCreateSortie(){
 function sGroup(){
   const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;" class="bottom-nav">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div>`;
   if(!st.groupe){
-    if(mesGroupes.length===0)return `<div style="display:flex;flex-direction:column;min-height:100%;"><div style="padding:52px 18px 16px;flex-shrink:0;"><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes groupes</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;gap:12px;"><div style="font-size:52px;">🎬</div><div class="serif" style="font-size:clamp(15px,4.6vw,20px);">Aucun groupe</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};line-height:1.6;">Rejoins une sortie ou crée un groupe<br>depuis un film pour commencer</div><div onclick="go('home')" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:clamp(11px,3.3vw,14px);font-weight:700;cursor:pointer;color:#fff;">Voir les sorties 🍿</div></div>${navbar}</div>`;
-    return `<div style="display:flex;flex-direction:column;min-height:100%;"><div style="padding:52px 18px 12px;flex-shrink:0;"><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes groupes</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};margin-top:2px;">${mesGroupes.length} conversation${mesGroupes.length>1?'s':''}</div></div>
+    if(mesGroupes.length===0)return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 16px;flex-shrink:0;"><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes groupes</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;gap:12px;"><div style="font-size:52px;">🎬</div><div class="serif" style="font-size:clamp(15px,4.6vw,20px);">Aucun groupe</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};line-height:1.6;">Rejoins une sortie ou crée un groupe<br>depuis un film pour commencer</div><div onclick="go('home')" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:clamp(11px,3.3vw,14px);font-weight:700;cursor:pointer;color:#fff;">Voir les sorties 🍿</div></div>${navbar}</div>`;
+    return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;"><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes groupes</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};margin-top:2px;">${mesGroupes.length} conversation${mesGroupes.length>1?'s':''}</div></div>
       <div style="">${mesGroupes.map(g=>{
         const gf=FILMS[g.film_id]||{t:g.nom||'Film',e:'🎬',bg:'#222'};const hasConfirmed=g.confirmed_cinema&&g.confirmed_heure&&g.confirmed_date;
         return `<div onclick="selectGroupe('${g.film_id}','${g.id}')" class="tap" style="display:flex;align-items:center;gap:12px;padding:10px 18px;cursor:pointer;background:${st.groupe===g.id?'rgba(255,255,255,0.04)':'transparent'};border-bottom:1px solid ${BD};">
@@ -1158,17 +1175,17 @@ function sGroup(){
     ${isConfirmed&&!seancePassed?`<div style="margin-bottom:10px;background:rgba(0,192,48,0.07);border:1px solid rgba(0,192,48,0.25);border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:clamp(8px,2.5vw,11px);color:#00c030;font-weight:700;text-transform:uppercase;letter-spacing:1px;">✅ Plan confirmé</div><div style="font-size:clamp(10px,3vw,13px);font-weight:600;margin-top:1px;">${confirmedCinema?.name||gc.confirmed_cinema} · ${gc.confirmed_heure}</div></div><div style="display:flex;gap:6px;">${links.maps?`<a href="${links.maps}" target="_blank" style="padding:5px 10px;background:rgba(74,158,255,0.15);border:1px solid rgba(74,158,255,0.3);border-radius:8px;font-size:clamp(8px,2.5vw,11px);font-weight:600;color:#4a9eff;text-decoration:none;">🗺 Y aller</a>`:''}${links.tickets?`<a href="${links.tickets}" target="_blank" style="padding:5px 10px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);border-radius:8px;font-size:clamp(8px,2.5vw,11px);font-weight:600;color:${GD};text-decoration:none;">🎟 Billets</a>`:''}</div></div>`:''}
     <div style="display:flex;gap:6px;margin-bottom:0;">${tabs.map(([id,lb])=>`<div onclick="st.tab='${id}';render();${id==='membres'?'renderMembresDOM();':id==='vote'?'renderVotesDOM();':id==='chat'?'loadMessages();':''}" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;background:${st.tab===id?AC:'rgba(255,255,255,0.03)'};border:1px solid ${st.tab===id?AC:BD};color:${st.tab===id?'#fff':MU};">${lb}</div>`).join('')}</div>
   </div>`;
-  if(st.tab==='chat')return `<div style="display:flex;flex-direction:column;min-height:100%;">${header}<div id="chat-area" style="padding:14px 18px;"></div><div style="padding:10px 18px 14px;background:${BG};border-top:1px solid ${BD};display:flex;gap:8px;flex-shrink:0;"><input id="msg-input" placeholder="Message…" style="flex:1;background:${S1};border:1px solid ${BD};border-radius:20px;padding:9px 14px;font-size:clamp(11px,3.3vw,14px);color:${TX};outline:none;" onkeydown="if(event.key==='Enter')sendMsg()"><button onclick="sendMsg()" style="width:36px;height:36px;border-radius:50%;background:${AC};border:none;color:#fff;font-size:clamp(13px,4vw,17px);cursor:pointer;flex-shrink:0;">↑</button></div></div>`;
-  if(st.tab==='membres')return `<div style="display:flex;flex-direction:column;min-height:100%;">${header}<div style="padding:12px 18px 20px;"><div id="membres-list"></div></div></div>`;
+  if(st.tab==='chat')return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div id="chat-area" style="padding:14px 18px;"></div><div style="padding:10px 18px 14px;background:${BG};border-top:1px solid ${BD};display:flex;gap:8px;flex-shrink:0;"><input id="msg-input" placeholder="Message…" style="flex:1;background:${S1};border:1px solid ${BD};border-radius:20px;padding:9px 14px;font-size:clamp(11px,3.3vw,14px);color:${TX};outline:none;" onkeydown="if(event.key==='Enter')sendMsg()"><button onclick="sendMsg()" style="width:36px;height:36px;border-radius:50%;background:${AC};border:none;color:#fff;font-size:clamp(13px,4vw,17px);cursor:pointer;flex-shrink:0;">↑</button></div></div>`;
+  if(st.tab==='membres')return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div style="padding:12px 18px 20px;"><div id="membres-list"></div></div></div>`;
   // Vote tab
   const cinemasFilm=CINEMAS.filter(c=>c.films.some(fi=>fi.id===st.film));
   const cinemaSelector=`<div style="padding:12px 18px 0;"><div style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Choisir le cinéma</div><div style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px;">${cinemasFilm.map(c=>{const active=st.cinema===c.id;const col=CC[c.chain]||MU;const votes_c=membresData.filter(m=>m.cinema_pref===c.id).length;const pct=membresData.length>0?Math.round(votes_c/membresData.length*100):0;return `<div onclick="voterCinema('${c.id}')" style="padding:9px 12px;border-radius:12px;cursor:pointer;background:${active?'rgba(255,255,255,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${active?col:BD};"><div style="display:flex;align-items:center;gap:10px;margin-bottom:${votes_c>0?'7px':'0'};"><div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;"></div><div style="flex:1;font-size:clamp(10px,3vw,13px);font-weight:${active?'600':'400'};color:${active?TX:MU};">${c.name}</div>${votes_c>0?`<div style="font-size:clamp(8px,2.5vw,11px);color:${col};font-weight:600;">${votes_c} vote${votes_c>1?'s':''}</div>`:''}${active?`<div style="font-size:clamp(8px,2.5vw,11px);color:${col};">✓</div>`:''}</div>${votes_c>0?`<div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width 0.3s;"></div></div>`:''}</div>`;}).join('')}</div></div>`;
-  return `<div style="display:flex;flex-direction:column;min-height:100%;">${header}<div style="">${seancePassed?'':cinemaSelector+(st.cinema?dayPicker()+'<div style="padding:0 18px 20px;"><div id="votes-container"></div></div>':`<div style="text-align:center;padding:24px;color:${MU};font-size:clamp(9px,2.8vw,12px);">← Choisissez un cinéma pour voir les séances</div>`)}</div></div>`;
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div style="">${seancePassed?'':cinemaSelector+(st.cinema?dayPicker()+'<div style="padding:0 18px 20px;"><div id="votes-container"></div></div>':`<div style="text-align:center;padding:24px;color:${MU};font-size:clamp(9px,2.8vw,12px);">← Choisissez un cinéma pour voir les séances</div>`)}</div></div>`;
 }
 
 function sWantToSee(){
   const list=getWantToSee();const films=list.map(id=>({id,f:FILMS[id]})).filter(x=>x.f);
-  return `<div style="display:flex;flex-direction:column;min-height:100%;"><div style="padding:52px 18px 12px;flex-shrink:0;display:flex;align-items:center;gap:12px;"><div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:clamp(13px,4vw,17px);">←</div><div><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">❤️ Je veux voir</div><div style="font-size:clamp(9px,2.8vw,12px);color:${MU};">${films.length} film${films.length!==1?'s':''}</div></div></div>
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;display:flex;align-items:center;gap:12px;"><div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:clamp(13px,4vw,17px);">←</div><div><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">❤️ Je veux voir</div><div style="font-size:clamp(9px,2.8vw,12px);color:${MU};">${films.length} film${films.length!==1?'s':''}</div></div></div>
   <div style="padding:0 18px 20px;">
     ${films.length===0?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;gap:12px;"><div style="font-size:52px;">🎬</div><div class="serif" style="font-size:clamp(15px,4.6vw,20px);">Aucun film pour l'instant</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};line-height:1.6;">Explore les films et appuie sur<br>❤️ pour les retrouver ici</div><div onclick="st.homeTab='films';go('home')" style="margin-top:8px;padding:10px 24px;background:${AC};border-radius:14px;font-size:clamp(11px,3.3vw,14px);font-weight:700;cursor:pointer;color:#fff;">Parcourir les films</div></div>`:`
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
@@ -1192,7 +1209,7 @@ function sProfile(){
   const lbdBlock=st.lbdPseudo?`<div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px;margin-bottom:14px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div><div style="font-size:clamp(9px,2.8vw,12px);color:${LB};font-weight:600;margin-bottom:2px;">Letterboxd connecté</div><div style="font-size:clamp(10px,3vw,13px);">@${st.lbdPseudo}</div></div><button onclick="disconnectLbd()" style="font-size:clamp(8px,2.5vw,11px);color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:4px 8px;cursor:pointer;">Déconnecter</button></div><div style="display:flex;gap:12px;">${chip('✓ '+vuCount+' vus',LB,'rgba(0,192,48,0.12)','rgba(0,192,48,0.3)',10)}${chip('🔖 '+wlCount+' watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',10)}</div></div>`:`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:14px;"><div style="font-size:clamp(10px,3vw,13px);font-weight:500;margin-bottom:4px;">Connecter Letterboxd</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-bottom:10px;">Synchronise tes films vus et watchlist</div><div style="display:flex;gap:8px;"><input id="lbd-input-field" placeholder="Pseudo Letterboxd" value="${st.lbdInput}" oninput="st.lbdInput=this.value" style="flex:1;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:clamp(10px,3vw,13px);color:${TX};outline:none;" onkeydown="if(event.key==='Enter')connectLbd()"><button onclick="connectLbd()" style="background:${LB};border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:clamp(10px,3vw,13px);cursor:pointer;">Connecter</button></div></div>`;
   const changePseudoBlock=st._changingPseudo?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:10px;"><div style="font-size:clamp(10px,3vw,13px);font-weight:500;margin-bottom:10px;">Changer de pseudo</div><div style="display:flex;gap:8px;"><input id="new-pseudo-field" placeholder="Nouveau pseudo" maxlength="20" style="flex:1;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:clamp(10px,3vw,13px);color:${TX};outline:none;" onkeydown="if(event.key==='Enter')confirmChangePseudo()"><button onclick="confirmChangePseudo()" style="background:${AC};border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:clamp(10px,3vw,13px);cursor:pointer;">OK</button><button onclick="st._changingPseudo=false;render();" style="background:${S2};border:1px solid ${BD};color:${MU};border-radius:10px;padding:8px 12px;font-size:clamp(10px,3vw,13px);cursor:pointer;">✕</button></div></div>`:`<button onclick="st._changingPseudo=true;render();" style="width:100%;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;font-size:clamp(10px,3vw,13px);color:${TX};cursor:pointer;text-align:left;margin-bottom:10px;">✏️ &nbsp;Changer de pseudo</button>`;
   const groupesActifs=mesGroupes.length,groupesConfirmes=mesGroupes.filter(g=>g.confirmed_heure).length,wantCount=getWantToSee().filter(id=>FILMS[id]).length;
-  return `<div style="display:flex;flex-direction:column;min-height:100%;"><div style="padding:52px 18px 12px;flex-shrink:0;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;">
     <div class="serif" style="font-size:clamp(18px,5.6vw,24px);margin-bottom:14px;">Mon profil</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
       <div onclick="st.showAvatarPicker=!st.showAvatarPicker;render();" style="width:62px;height:62px;border-radius:17px;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;font-size:34px;flex-shrink:0;cursor:pointer;position:relative;">${st.avatar}<div style="position:absolute;bottom:-4px;right:-4px;background:${S2};border:1px solid ${BD};border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:clamp(8px,2.5vw,11px);">✏️</div></div>
