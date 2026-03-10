@@ -594,7 +594,7 @@ function sHome(){
   const mySortieIds=new Set(mesGroupes.map(g=>g.id));
 
   // ── Bottom navbar (shared) ──
-  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;" class="bottom-nav">
+  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};position:sticky;bottom:0;z-index:100;" class="bottom-nav">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc||tab==='sorties'&&sc==='home'?1:0.45};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 
@@ -658,7 +658,7 @@ function sHome(){
     const isSearching=searchQ.length>0;
     const isFiltering=activeGenre!=='tous';
 
-    return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    return `<div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;">
       ${header}
       <!-- Search + Genre bar -->
       <div style="padding:10px 18px 0;flex-shrink:0;">
@@ -679,7 +679,7 @@ function sHome(){
         </div>
       </div>
 
-      <div style="flex:1;overflow-y:auto;"><div style="display:flex;flex-direction:column;min-height:100%;">
+      <div>
         ${(isSearching||isFiltering)?`
           <!-- SEARCH / FILTERED RESULTS: grid view -->
           ${filtered.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:clamp(28px,9vw,40px);margin-bottom:10px;">🔍</div><div style="font-size:clamp(11px,3.3vw,14px);">${T('aucunFilmTrouve')}</div></div>`:''}
@@ -898,7 +898,7 @@ function sHome(){
 
       <!-- spacer fills remaining height so no black gap -->
       <div style="flex:1;min-height:20px;"></div>
-    </div></div>
+    </div>
     ${navbar}
   </div>`;
 }
