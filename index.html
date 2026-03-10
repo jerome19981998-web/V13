@@ -1387,15 +1387,38 @@ async function loginWithPassword(){
   const pass=(document.getElementById('authPass')?.value||'').trim();
   if(!pseudo||!pass){showAuthErr('Remplis tous les champs');return;}
 
-  // Chercher l'email associé au pseudo dans profiles
-  const{data:profile,error:pErr}=await supa.from('profiles').select('id,email').eq('pseudo',pseudo).single();
-  if(pErr||!profile?.email){
-    showAuthErr('Pseudo introuvable ❌');return;
-  }
+  const btn=document.querySelector('[onclick="loginWithPassword()"]');
+  if(btn){btn.disabled=true;btn.textContent='Connexion...';}
+  showAuthErr('');
 
-  const{error}=await supa.auth.signInWithPassword({email:profile.email,password:pass});
-  if(error){
-    showAuthErr(error.message.includes('Invalid')?'Mot de passe incorrect ❌':error.message);
+  try{
+    // Chercher l'email — requête sans auth (profiles doit être lisible publiquement)
+    const{data:profile,error:pErr}=await supa
+      .from('profiles')
+      .select('id,email')
+      .ilike('pseudo',pseudo)  // insensible à la casse
+      .limit(1)
+      .single();
+
+    if(pErr||!profile){
+      showAuthErr('Pseudo introuvable ❌');return;
+    }
+    if(!profile.email){
+      showAuthErr('Compte incomplet — recrée ton compte');return;
+    }
+
+    const{error}=await supa.auth.signInWithPassword({email:profile.email,password:pass});
+    if(error){
+      if(error.message.includes('Invalid')||error.message.includes('invalid')){
+        showAuthErr('Mot de passe incorrect ❌');
+      }else{
+        showAuthErr(error.message);
+      }
+    }
+  }catch(e){
+    showAuthErr('Erreur : '+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=st.lang==='fr'?'Se connecter →':'Sign in →';}
   }
 }
 
