@@ -1755,8 +1755,7 @@ function sHome(){
       const searchOk=!searchQ||norm(f.t).includes(searchQ)||norm(f.dir||'').includes(searchQ)||norm(f.g).includes(searchQ)||norm(f.s||'').includes(searchQ);
       return genreOk&&searchOk;
     });
-    return header+`
-      <div style="padding:8px 18px 0;flex-shrink:0;">
+    return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div style="padding:8px 18px 0;flex-shrink:0;">
         <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;">
           ${genres.map(([id,lb])=>`<div onclick="setGenre('${id}')" style="border-radius:20px;padding:6px 12px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;border:1px solid ${st.genre===id?AC:BD};background:${st.genre===id?AC:'rgba(255,255,255,0.03)'};color:${st.genre===id?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join('')}
         </div>
@@ -1853,10 +1852,9 @@ function sHome(){
     <div class="serif" style="font-size:clamp(15px,4.6vw,20px);">${T('aucuneSortie')}</div>
     <div style="font-size:clamp(10px,3vw,13px);color:${MU};line-height:1.5;">${T('aucuneSortieDesc').replace('\\n','<br>')}</div>
     <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:clamp(11px,3.3vw,14px);font-weight:700;cursor:pointer;color:#fff;">${T('creerSortieBtn').replace('🍿 ','+ ')}</div>
-  </div>`;
+  </div></div>`;
 
-  return header+`
-    <div style="flex:1;overflow-y:auto;padding-top:12px;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div style="flex:1;overflow-y:auto;padding-top:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:10px;">
         <div style="font-size:clamp(9px,2.8vw,12px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;">${T('sorties_publiques')}</div>
         <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="display:flex;align-items:center;gap:5px;background:${AC};border-radius:20px;padding:6px 12px;cursor:pointer;font-size:clamp(9px,2.8vw,12px);font-weight:700;color:#fff;">${T('creer')}</div>
@@ -1886,7 +1884,7 @@ function sHome(){
     </div>
     <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
       ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
-    </div>`;
+    </div></div>`;
 }
 
 
@@ -1979,7 +1977,7 @@ function sCinemas(){
   const chains=['ugc','pathe','gaumont'];
   const chain=st.cinFilter==='tous'?null:st.cinFilter;
   const list=sortedCinemas(chain);
-  return `<div style="padding:52px 18px 12px;flex-shrink:0;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Cinémas Paris</div>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -2020,7 +2018,7 @@ function sCinemas(){
   </div>
   <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
-  </div>`;
+  </div></div>`;
 }
 
 function sCinemaDetail(){
@@ -2029,7 +2027,7 @@ function sCinemaDetail(){
   const col=CC[cinema.chain];
   const seancesAuj=(SEANCES[cinema.id]||{});
   const links_=CINEMA_LINKS[cinema.id]||{};
-  return `<div style="padding:52px 18px 10px;flex-shrink:0;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 10px;flex-shrink:0;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       <div onclick="go('cinemas')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div>
       <div style="flex:1;">
@@ -2075,7 +2073,7 @@ function sFilm(){
   const f=FILMS[st.film];if(!f)return'<div>Film introuvable</div>';
   const back=st.filmSrc==='cinema-detail'?()=>go('cinema-detail'):()=>go('home');
   const cinemaFilm=CINEMAS.filter(c=>c.films.some(fi=>fi.id===st.film));
-  return `<div style="flex:1;overflow-y:auto;">
+  return `<div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;">
     <div style="height:220px;position:relative;overflow:hidden;background:${f.bg};">
       ${posters[st.film]?'<img src="'+posters[st.film]+'" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.6);">':''}
       <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.3),rgba(7,7,15,0.95));"></div>
@@ -2525,7 +2523,7 @@ function sProfile(){
   const groupesActifs=mesGroupes.length;
   const groupesConfirmes=mesGroupes.filter(g=>g.confirmed_heure).length;
   const wantCount=getWantToSee().filter(id=>FILMS[id]).length;
-  return `<div style="padding:52px 18px 12px;flex-shrink:0;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;">
     <div class="serif" style="font-size:clamp(18px,5.6vw,24px);margin-bottom:14px;">Mon profil</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
       <div onclick="st.showAvatarPicker=!st.showAvatarPicker;render();" style="width:62px;height:62px;border-radius:17px;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;font-size:34px;flex-shrink:0;cursor:pointer;position:relative;">
@@ -2570,7 +2568,7 @@ function sProfile(){
   </div>
   <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
-  </div>`;
+  </div></div>`;
 }
 
 function sMemberProfile(){
@@ -2731,3 +2729,4 @@ setInterval(()=>{
   </script>
 </body>
 </html>
+</div>
