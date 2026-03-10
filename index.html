@@ -415,6 +415,28 @@ function applyGenre(id, genre){
   FILMS[id].genre_enriched = true;
 }
 
+
+// ═══════════ RATE LIMITING ═══════════
+const _rl = {};
+function rateLimit(key, maxCalls, windowMs){
+  const now = Date.now();
+  if(!_rl[key]) _rl[key] = [];
+  // Nettoyer les appels hors fenêtre
+  _rl[key] = _rl[key].filter(t => now - t < windowMs);
+  if(_rl[key].length >= maxCalls){
+    const waitSec = Math.ceil((windowMs - (now - _rl[key][0])) / 1000);
+    toast(`⏳ Trop vite — réessaie dans ${waitSec}s`, 'error');
+    return false;
+  }
+  _rl[key].push(now);
+  return true;
+}
+// Limites :
+//  messages  → max 5 par 10s
+//  sorties   → max 3 par minute
+//  rejoindre → max 5 par minute
+//  votes     → max 10 par minute
+
 // ═══════════ SUPABASE ═══════════
 const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
 const _s1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2'),_s2=atob('SW1Gc2QyWmliV2x1YUdSM2FXNTRZMjk2YW14cUlpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpJNU9EQTFO'),_s3=atob('VFlzSW1WNGNDSTZNakE0T0RVMU5qVTFObjAuT1RyOGx5RHBSUXNtWFVDUEtzbTF3dk5QWWZDQTMyVUJRU2hSaWJJX2JEZw==');
@@ -568,6 +590,7 @@ async function loadSorties(){
 }
 
 async function creerSortie(filmId,cinemaId,heure,date,maxM){
+  if(!rateLimit('creer_'+st.userId, 3, 60000))return; // max 3 sorties / min
   if(!filmId||!cinemaId||!heure||!date){toast('Remplis tous les champs','error');return;}
   const film=FILMS[filmId];
   const{data,error}=await supa.from('groupes').insert({
@@ -585,6 +608,7 @@ async function creerSortie(filmId,cinemaId,heure,date,maxM){
 }
 
 async function rejoindreSortie(groupId,filmId){
+  if(!rateLimit('rejoindre_'+st.userId, 5, 60000))return; // max 5 / min
   await supa.from('groupe_membres').upsert({groupe:groupId,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});
   toast('Tu rejoins la sortie ! 🍿','success');
   await loadSorties();
@@ -617,6 +641,7 @@ async function loadMessages(){
 }
 
 async function sendMsg(){
+  if(!rateLimit('msg_'+st.userId, 5, 10000))return; // max 5 msgs / 10s
   const inp=document.getElementById('msg-input');
   if(!inp)return;
   const txt=inp.value.trim();
@@ -641,6 +666,7 @@ async function loadVotes(){
 }
 
 async function voterCinema(cinemaId){
+  if(!rateLimit('vote_'+st.userId, 10, 60000))return; // max 10 votes / min
   const cinema_=CINEMAS.find(c=>c.id===cinemaId);
   st.cinema=cinemaId;render();setTimeout(renderVotesDOM,50);
   if(cinema_)toast('Cinéma choisi : '+cinema_.name,'success',2000);
