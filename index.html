@@ -457,6 +457,12 @@ function rateLimit(key, maxCalls, windowMs){
 const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
 const _s1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2'),_s2=atob('SW1Gc2QyWmliV2x1YUdSM2FXNTRZMjk2YW14cUlpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpJNU9EQTFO'),_s3=atob('VFlzSW1WNGNDSTZNakE0T0RVMU5qVTFObjAuT1RyOGx5RHBSUXNtWFVDUEtzbTF3dk5QWWZDQTMyVUJRU2hSaWJJX2JEZw==');
 const SUPA_KEY=_s1+_s2+_s3;
+// Nettoyer les verrous Supabase bloqués dans localStorage avant init
+try{
+  const lockKeys=Object.keys(localStorage).filter(k=>k.includes('lock:sb-'));
+  lockKeys.forEach(k=>localStorage.removeItem(k));
+}catch(e){}
+
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{
   auth:{
     autoRefreshToken:true,
