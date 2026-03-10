@@ -468,18 +468,9 @@ const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{
 // ═══════════ STATE ═══════════
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
 
-// Détecter si Supabase a déjà une session stockée localement
-// (évite le flash de l'écran auth au rechargement)
-const _supaSession=(()=>{
-  try{
-    const keys=Object.keys(localStorage).filter(k=>k.startsWith('sb-')&&k.endsWith('-auth-token'));
-    if(keys.length){const s=JSON.parse(localStorage.getItem(keys[0]));return s?.access_token?s:null;}
-  }catch(e){}
-  return null;
-})();
 
 let st={
-  screen:_supaSession?'loading':'loading',  // toujours loading, mais on sait si session existe
+  screen:'loading',
   lang:_saved.lang||'fr',
   pseudo:_saved.pseudo||'',
   pseudoInput:'',
@@ -1135,25 +1126,16 @@ supa.auth.onAuthStateChange(async(event, session)=>{
       st.userId=null;st.userEmail='';
       st.screen='auth';st.authStep='email';render();
     }
-    // Sinon ignorer — peut être un faux SIGNED_OUT pendant un refresh
+    // Sinon ignorer — peut être un SIGNED_OUT pendant un refresh de token
   }
 });
 
-// Timeout de secours unique à 5s
+// Timeout de secours : si INITIAL_SESSION ne se déclenche pas dans 6s → auth
 setTimeout(()=>{
   if(st.screen==='loading'){
-    supa.auth.getSession().then(({data:{session}})=>{
-      if(session){
-        _sessionHandled=false;
-        handleSession(session);
-      } else {
-        st.screen='auth';st.authStep='email';render();
-      }
-    }).catch(()=>{
-      st.screen='auth';st.authStep='email';render();
-    });
+    st.screen='auth';st.authStep='login';render();
   }
-},5000);
+},6000);
 
 // Écran de chargement initial
 function sLoading(){
