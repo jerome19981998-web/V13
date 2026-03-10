@@ -24,26 +24,74 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
-    *{box-sizing:border-box;}
-    *{box-sizing:border-box;}
-    html,body{margin:0;padding:0;width:100%;height:100%;background:#07070f;font-family:'Outfit',sans-serif;overflow:hidden;}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{height:100%;overflow:hidden;position:fixed;width:100%;}
+    body{
+      margin:0;padding:0;
+      width:100%;height:100%;
+      background:#07070f;
+      font-family:'Outfit',sans-serif;
+      overflow:hidden;
+      position:fixed;
+      /* Empêche le scroll du body sur iOS */
+      -webkit-overflow-scrolling:touch;
+    }
     .serif{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;}
-    /* Sur desktop : simuler un téléphone centré */
-    @media(min-width:500px){
-      body{background:#04040a;display:flex;align-items:center;justify-content:center;}
-      .phone{width:390px;height:820px;border-radius:46px;border:1.5px solid #252535;box-shadow:0 30px 80px rgba(0,0,0,0.9);}
-      .notch{display:flex;}
+
+    /* MOBILE : vrai plein écran natif */
+    .phone{
+      width:100%;
+      height:100%;
+      height:100dvh; /* dynamic viewport height — respecte la barre Safari */
+      background:#07070f;
+      display:flex;
+      flex-direction:column;
+      color:#e8e0d4;
+      font-size:13px;
+      overflow:hidden;
+      position:fixed;
+      top:0;left:0;right:0;bottom:0;
     }
-    /* Sur mobile : plein écran natif */
-    @media(max-width:499px){
-      .phone{width:100%;height:100%;border-radius:0;border:none;box-shadow:none;}
-      .notch{display:none;}
-      #inner{padding-top:env(safe-area-inset-top, 0px);}
+    .notch{display:none;}
+
+    /* DESKTOP : cadre téléphone centré */
+    @media(min-width:600px){
+      body{display:flex;align-items:center;justify-content:center;background:#04040a;overflow:auto;position:static;}
+      html{overflow:auto;position:static;}
+      .phone{
+        position:relative;
+        width:390px;
+        height:844px;
+        height:min(844px,95vh);
+        border-radius:46px;
+        border:1.5px solid #252535;
+        box-shadow:0 30px 80px rgba(0,0,0,0.9);
+        top:auto;left:auto;right:auto;bottom:auto;
+      }
+      .notch{
+        display:flex;
+        position:absolute;top:12px;left:50%;
+        transform:translateX(-50%);
+        width:100px;height:28px;
+        background:#07070f;border-radius:28px;
+        z-index:100;align-items:center;justify-content:center;
+      }
+      .notch-bar{width:52px;height:5px;background:#1a1a2e;border-radius:3px;}
     }
-    .phone{background:#07070f;position:relative;display:flex;flex-direction:column;color:#e8e0d4;font-size:13px;overflow:hidden;}
-    .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:100px;height:28px;background:#07070f;border-radius:28px;z-index:100;align-items:center;justify-content:center;}
-    .notch-bar{width:52px;height:5px;background:#1a1a2e;border-radius:3px;}
-    #inner{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:40px;}
+
+    #inner{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      /* Safe area iPhone (notch, barre du bas) */
+      padding-top:max(env(safe-area-inset-top),0px);
+      padding-bottom:env(safe-area-inset-bottom,0px);
+    }
+    @media(min-width:600px){
+      #inner{padding-top:40px;padding-bottom:0;}
+    }
+
     .tap{transition:opacity .15s;}
     .tap:active{opacity:.6;}
     ::-webkit-scrollbar{width:3px;}
