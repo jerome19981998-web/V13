@@ -943,6 +943,58 @@ async function logoutApp(){
   st.screen='auth';st.authStep='email';render();
 }
 
+async function deleteAccount(){
+  // Confirmation en 2 étapes
+  const confirmEl=document.createElement('div');
+  confirmEl.style.cssText='position:fixed;inset:0;background:rgba(7,7,15,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  confirmEl.innerHTML=`<div style="background:#1a1a2e;border:1px solid rgba(255,63,91,0.4);border-radius:18px;padding:24px;max-width:290px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:12px;">⚠️</div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:8px;">Supprimer mon compte ?</div>
+    <div style="font-size:11px;color:#555570;margin-bottom:6px;line-height:1.6;">Toutes tes données seront effacées :<br>groupes, messages, votes, profil.</div>
+    <div style="font-size:11px;color:rgba(255,63,91,0.8);margin-bottom:18px;font-weight:600;">Cette action est irréversible.</div>
+    <div style="display:flex;gap:10px;">
+      <button id="del-cancel" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px;font-size:13px;color:#e8e0d4;cursor:pointer;font-family:inherit;">Annuler</button>
+      <button id="del-ok" style="flex:1;background:rgba(255,63,91,0.2);border:1px solid rgba(255,63,91,0.5);border-radius:12px;padding:11px;font-size:13px;color:#ff3f5b;cursor:pointer;font-weight:700;font-family:inherit;">Supprimer</button>
+    </div>
+  </div>`;
+  document.body.appendChild(confirmEl);
+  const ok=await new Promise(res=>{
+    confirmEl.querySelector('#del-ok').onclick=()=>{confirmEl.remove();res(true);};
+    confirmEl.querySelector('#del-cancel').onclick=()=>{confirmEl.remove();res(false);};
+  });
+  if(!ok)return;
+
+  if(!st.userId){alert('Erreur : pas de session active.');return;}
+  try{
+    // Supprimer toutes les données de l'utilisateur
+    await Promise.all([
+      supa.from('groupe_membres').delete().eq('user_id',st.userId),
+      supa.from('votes').delete().eq('user_id',st.userId),
+      supa.from('messages').delete().eq('user_id',st.userId),
+      supa.from('groupes').delete().eq('user_id',st.userId),
+      supa.from('profiles').delete().eq('id',st.userId),
+    ]);
+    // Déconnecter et supprimer le compte Supabase Auth
+    await supa.auth.signOut();
+    try{localStorage.removeItem('cm2');}catch(e){}
+    st.pseudo='';st.userId=null;st.userEmail='';
+    st.lbdPseudo='';st.avatar='🎬';
+    lbdSeen=new Set();lbdWatchlist=new Set();
+    st.screen='auth';st.authStep='email';
+    render();
+    // Afficher confirmation
+    setTimeout(()=>{
+      const toast=document.createElement('div');
+      toast.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 20px;font-size:12px;z-index:9999;color:#e8e0d4;';
+      toast.textContent='Compte supprimé. Au revoir 👋';
+      document.body.appendChild(toast);
+      setTimeout(()=>toast.remove(),3000);
+    },300);
+  }catch(e){
+    alert('Erreur lors de la suppression : '+e.message);
+  }
+}
+
 // ═══════════ AUTH STATE CHANGE ═══════════
 async function loadProfile(userId){
   const{data}=await supa.from('profiles').select('*').eq('id',userId).single();
@@ -2135,6 +2187,9 @@ function sProfile(){
   // Bouton déconnexion app
   const logoutBlock=`<button onclick="logoutApp()" style="width:100%;background:rgba(255,63,91,0.06);border:1px solid rgba(255,63,91,0.25);border-radius:14px;padding:12px;font-size:12px;color:${AC};cursor:pointer;text-align:left;margin-top:4px;">
     🚪 &nbsp;${T('deconnexion')}
+  </button>
+  <button onclick="deleteAccount()" style="width:100%;background:transparent;border:none;border-radius:14px;padding:10px;font-size:11px;color:rgba(255,63,91,0.4);cursor:pointer;text-align:center;margin-top:2px;">
+    Supprimer mon compte
   </button>`;
 
   const groupesActifs=mesGroupes.length;
