@@ -1359,6 +1359,27 @@ function sAuth(){
       </button>`;
   }
 
+  // Détecter iOS
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  const isAndroid=/Android/.test(navigator.userAgent);
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+
+  let installBanner='';
+  if(!isStandalone){
+    if(isIOS){
+      installBanner=`<div style="margin-top:24px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 16px;text-align:left;">
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px;">📲 ${lang==='fr'?'Installer CinéMatch':'Install CinéMatch'}</div>
+        <div style="font-size:11px;color:${MU};line-height:1.7;">${lang==='fr'?'Appuie sur':'Tap'} <span style="background:rgba(255,255,255,0.1);padding:2px 7px;border-radius:6px;font-size:12px;">⎙ Partager</span> ${lang==='fr'?'puis':'then'} <span style="background:rgba(255,255,255,0.1);padding:2px 7px;border-radius:6px;font-size:12px;">+ ${lang==='fr'?'Sur l\'écran d\'accueil':'Add to Home Screen'}</span></div>
+      </div>`;
+    }else if(isAndroid){
+      installBanner=`<div id="install-banner" style="margin-top:24px;display:none;background:rgba(255,63,91,0.08);border:1px solid rgba(255,63,91,0.25);border-radius:14px;padding:14px 16px;">
+        <button onclick="installPWA()" style="width:100%;background:transparent;border:none;color:${TX};font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          📲 ${lang==='fr'?'Installer CinéMatch sur mon téléphone':'Install CinéMatch on my phone'}
+        </button>
+      </div>`;
+    }
+  }
+
   return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
     <div style="position:absolute;top:16px;right:16px;">
       <select onchange="st.lang=this.value;save();render()" style="background:${S1};border:1px solid ${BD};border-radius:10px;padding:6px 10px;font-size:12px;color:${TX};cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;padding-right:24px;">
@@ -1368,7 +1389,10 @@ function sAuth(){
     </div>
     <div style="font-size:56px;margin-bottom:12px;">🎬</div>
     <div class="serif" style="font-size:28px;margin-bottom:20px;">CinéMatch</div>
-    <div style="width:100%;max-width:320px;">${body}</div>
+    <div style="width:100%;max-width:320px;">
+      ${body}
+      ${installBanner}
+    </div>
   </div>`;
 }
 
@@ -2525,18 +2549,19 @@ setInterval(()=>{
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       _deferredPrompt = e;
-      // Afficher un bouton discret après 30s si pas encore installé
-      setTimeout(() => {
-        if(_deferredPrompt && st.screen === 'home'){
-          const btn = document.createElement('div');
-          btn.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid rgba(255,63,91,0.3);border-radius:14px;padding:10px 18px;font-size:12px;color:#e8e0d4;cursor:pointer;z-index:999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
-          btn.innerHTML = '📲 Installer CinéMatch sur ton téléphone';
-          btn.onclick = () => { _deferredPrompt.prompt(); _deferredPrompt = null; btn.remove(); };
-          document.body.appendChild(btn);
-          setTimeout(() => btn.remove(), 8000);
-        }
-      }, 30000);
+      // Afficher le bouton dans l'écran auth
+      const banner = document.getElementById('install-banner');
+      if(banner) banner.style.display = 'block';
     });
+
+    window.installPWA = async () => {
+      if(!_deferredPrompt) return;
+      _deferredPrompt.prompt();
+      await _deferredPrompt.userChoice;
+      _deferredPrompt = null;
+      const banner = document.getElementById('install-banner');
+      if(banner) banner.style.display = 'none';
+    };
   </script>
 </body>
 </html>
