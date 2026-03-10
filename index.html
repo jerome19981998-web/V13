@@ -86,7 +86,7 @@
       overflow:hidden;
       /* Safe area iPhone (notch, barre du bas) */
       padding-top:max(env(safe-area-inset-top),0px);
-      padding-bottom:env(safe-area-inset-bottom,0px);
+      padding-bottom:0;
       font-size:var(--fs-md);
     }
     @media(min-width:600px){
@@ -1787,7 +1787,7 @@ function sHome(){
           </div>`).join('')}
         </div>
       </div>
-      <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
+      <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
         ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
       </div>`;
   }
@@ -1884,7 +1884,7 @@ function sHome(){
         return filtered.length===0?emptySorties:filtered.map(sortieCard).join('');
       })()}
     </div>
-    <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
+    <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
       ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
     </div>`;
 }
@@ -2018,7 +2018,7 @@ function sCinemas(){
       </div>`;
     }).join('')}
   </div>
-  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
+  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 }
@@ -2244,7 +2244,7 @@ function sCreateSortie(){
 
 
 function sGroup(){
-  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
+  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 
@@ -2568,7 +2568,7 @@ function sProfile(){
     ${changePseudoBlock}
     ${logoutBlock}
   </div>
-  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;">
+  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:10px 0;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 }
