@@ -773,23 +773,6 @@ function sHome(){
             </div>
           </div>`:''}
 
-          <!-- GENRES QUICKLINKS -->
-          <div style="padding:0 18px 20px;">
-            <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">Parcourir par genre</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              ${T('genres').filter(([id])=>id!=='tous').map(([id,lb])=>{
-                const emoji=genreEmoji(id);
-                const count=allFilms.filter(([fid,f])=>norm(f.g||'').includes(norm(id))||norm(f.g||'').includes(norm(id).replace('comedie','comedi'))).length;
-                return count>0?`<div onclick="setGenre('${id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:clamp(15px,4.6vw,20px);">${emoji}</span>
-                  <div>
-                    <div style="font-size:clamp(10px,3vw,13px);font-weight:600;">${lb}</div>
-                    <div style="font-size:9px;color:${MU};">${count} film${count>1?'s':''}</div>
-                  </div>
-                </div>`:'';
-              }).join('')}
-            </div>
-          </div>
         `}
         <!-- bottom padding -->
         <div style="height:10px;"></div>
