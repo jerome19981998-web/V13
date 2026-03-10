@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>CinéMatch</title>
   <link rel="manifest" href="/manifest.json"/>
   <meta name="theme-color" content="#07070f"/>
@@ -97,6 +97,18 @@
     .bottom-nav { padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
   }
   </style>
+  <script>
+  // Prevent pinch zoom and double-tap zoom on iOS
+  document.addEventListener('touchstart', function(e){
+    if(e.touches.length > 1) e.preventDefault();
+  }, {passive: false});
+  var lastTouch = 0;
+  document.addEventListener('touchend', function(e){
+    var now = Date.now();
+    if(now - lastTouch < 300) e.preventDefault();
+    lastTouch = now;
+  }, {passive: false});
+  </script>
   <script>
   // Run immediately and after every render to fix bottom nav safe area on iOS
   function fixBottomNav(){
