@@ -1025,7 +1025,10 @@ async function deleteAccount(){
       supa.from('groupes').delete().eq('user_id',st.userId),
       supa.from('profiles').delete().eq('id',st.userId),
     ]);
-    // Déconnecter et supprimer le compte Supabase Auth
+    // Supprimer le compte auth (l'utilisateur peut se réinscrire avec le même email)
+    await supa.rpc('delete_user');
+    // Déconnecter
+    _explicitLogout=true;
     await supa.auth.signOut();
     try{localStorage.removeItem('cm2');}catch(e){}
     st.pseudo='';st.userId=null;st.userEmail='';
