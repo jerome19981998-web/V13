@@ -679,7 +679,7 @@ function sHome(){
         </div>
       </div>
 
-      <div style="flex:1;overflow-y:auto;">
+      <div style="flex:1;overflow-y:auto;"><div style="display:flex;flex-direction:column;min-height:100%;">
         ${(isSearching||isFiltering)?`
           <!-- SEARCH / FILTERED RESULTS: grid view -->
           ${filtered.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:clamp(28px,9vw,40px);margin-bottom:10px;">🔍</div><div style="font-size:clamp(11px,3.3vw,14px);">${T('aucunFilmTrouve')}</div></div>`:''}
@@ -896,9 +896,9 @@ function sHome(){
         </div>
       </div>`:''}
 
-      <!-- Bottom breathing room -->
-      <div style="height:20px;flex-shrink:0;"></div>
-    </div>
+      <!-- spacer fills remaining height so no black gap -->
+      <div style="flex:1;min-height:20px;"></div>
+    </div></div>
     ${navbar}
   </div>`;
 }
