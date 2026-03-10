@@ -1,8 +1,21 @@
 {
-  "crons": [
+  "rewrites": [
+    { "source": "/", "destination": "/cinematch.html" },
+    { "source": "/index.html", "destination": "/cinematch.html" }
+  ],
+  "headers": [
     {
-      "path": "/api/programme",
-      "schedule": "0 6 * * 3"
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
     }
   ]
 }
