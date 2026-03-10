@@ -26,7 +26,7 @@
     /* Prevent phantom bottom space on iOS */
     html{height:-webkit-fill-available;}body{min-height:-webkit-fill-available;height:100%;}
     .serif{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;}
-    .phone{width:100%;height:100%;height:100dvh;background:#07070f;display:flex;flex-direction:column;color:#e8e0d4;font-size:13px;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0;}
+    .phone{width:100%;background:#07070f;display:flex;flex-direction:column;color:#e8e0d4;font-size:13px;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0;}
     .notch{display:none;}
 
     @media(min-width:600px){
@@ -38,11 +38,15 @@
     }
     #inner{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:max(env(safe-area-inset-top),0px);padding-bottom:0;font-size:var(--fs-md);}
     @media(min-width:600px){#inner{padding-top:40px;padding-bottom:0;}}
+    @supports(padding-bottom:env(safe-area-inset-bottom)){
+      .pb-safe{padding-bottom:env(safe-area-inset-bottom)!important;}
+    }
     .tap{transition:opacity .15s;}
     .tap:active{opacity:.6;}
     ::-webkit-scrollbar{width:3px;}
     ::-webkit-scrollbar-thumb{background:#252535;border-radius:3px;}
     :root{
+      --safe-bottom:env(safe-area-inset-bottom,0px);
       --fs-xs:10px;--fs-sm:11px;--fs-md:13px;--fs-lg:15px;--fs-xl:18px;--fs-2xl:24px;--fs-3xl:28px;
       --sp-xs:6px;--sp-sm:10px;--sp-md:14px;--sp-lg:18px;--sp-xl:24px;
       --btn-h:48px;--nav-h:64px;--radius:14px;
@@ -88,7 +92,25 @@
     .fade-up{animation:fadeUp 0.3s ease forwards;}
 
     @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  /* ─ iOS bottom safe area: guaranteed fix ─ */
+  @media screen and (max-width: 430px) {
+    .bottom-nav { padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
+  }
   </style>
+  <script>
+  // Run immediately and after every render to fix bottom nav safe area on iOS
+  function fixBottomNav(){
+    document.querySelectorAll('.bottom-nav').forEach(function(el){
+      el.style.setProperty('padding-bottom','env(safe-area-inset-bottom,0px)','important');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', fixBottomNav);
+  // Observe DOM mutations to re-apply after dynamic renders
+  var _obs = new MutationObserver(fixBottomNav);
+  document.addEventListener('DOMContentLoaded', function(){
+    _obs.observe(document.getElementById('inner')||document.body, {childList:true,subtree:true});
+  });
+  </script>
 <script>
 function applyScale(){
   const h=window.innerHeight,w=window.innerWidth;
@@ -572,7 +594,7 @@ function sHome(){
   const mySortieIds=new Set(mesGroupes.map(g=>g.id));
 
   // ── Bottom navbar (shared) ──
-  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
+  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;" class="bottom-nav">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc||tab==='sorties'&&sc==='home'?1:0.45};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 
@@ -897,7 +919,7 @@ function sCinemas(){
       </div>`;
     }).join('')}
   </div>
-  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">
+  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;" class="bottom-nav">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div></div>`;
 }
@@ -1091,7 +1113,7 @@ function sCreateSortie(){
 </script>
 <script>
 function sGroup(){
-  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div>`;
+  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;" class="bottom-nav">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div>`;
   if(!st.groupe){
     if(mesGroupes.length===0)return `<div style="flex:1;display:flex;flex-direction:column;"><div style="padding:52px 18px 16px;flex-shrink:0;"><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes groupes</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;gap:12px;"><div style="font-size:52px;">🎬</div><div class="serif" style="font-size:clamp(15px,4.6vw,20px);">Aucun groupe</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};line-height:1.6;">Rejoins une sortie ou crée un groupe<br>depuis un film pour commencer</div><div onclick="go('home')" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:clamp(11px,3.3vw,14px);font-weight:700;cursor:pointer;color:#fff;">Voir les sorties 🍿</div></div>${navbar}</div>`;
     return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;"><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes groupes</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};margin-top:2px;">${mesGroupes.length} conversation${mesGroupes.length>1?'s':''}</div></div>
@@ -1176,7 +1198,7 @@ function sProfile(){
     <button onclick="logoutApp()" style="width:100%;background:rgba(255,63,91,0.06);border:1px solid rgba(255,63,91,0.25);border-radius:14px;padding:12px;font-size:clamp(10px,3vw,13px);color:${AC};cursor:pointer;text-align:left;margin-top:4px;">🚪 &nbsp;${T('deconnexion')}</button>
     <button onclick="deleteAccount()" style="width:100%;background:transparent;border:none;border-radius:14px;padding:10px;font-size:clamp(9px,2.8vw,12px);color:rgba(255,63,91,0.4);cursor:pointer;text-align:center;margin-top:2px;">Supprimer mon compte</button>
   </div>
-  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div></div>`;
+  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;" class="bottom-nav">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div></div>`;
 }
 
 function sMemberProfile(){
