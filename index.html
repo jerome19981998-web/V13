@@ -2,8 +2,24 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>CinéMatch</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#07070f"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="CinéMatch"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png"/>
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png"/>
+
+  <!-- Open Graph (partage) -->
+  <meta property="og:title" content="CinéMatch"/>
+  <meta property="og:description" content="Trouve des gens pour aller au cinéma avec toi"/>
+  <meta property="og:type" content="website"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -2368,5 +2384,32 @@ setInterval(()=>{
   });
 },30*1000);
 </script>
+  <script>
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(r => console.log('SW enregistré:', r.scope))
+          .catch(e => console.log('SW erreur:', e));
+      });
+    }
+
+    // Prompt d'installation PWA (Android Chrome)
+    let _deferredPrompt;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      // Afficher un bouton discret après 30s si pas encore installé
+      setTimeout(() => {
+        if(_deferredPrompt && st.screen === 'home'){
+          const btn = document.createElement('div');
+          btn.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid rgba(255,63,91,0.3);border-radius:14px;padding:10px 18px;font-size:12px;color:#e8e0d4;cursor:pointer;z-index:999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
+          btn.innerHTML = '📲 Installer CinéMatch sur ton téléphone';
+          btn.onclick = () => { _deferredPrompt.prompt(); _deferredPrompt = null; btn.remove(); };
+          document.body.appendChild(btn);
+          setTimeout(() => btn.remove(), 8000);
+        }
+      }, 30000);
+    });
+  </script>
 </body>
 </html>
