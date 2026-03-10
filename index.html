@@ -647,7 +647,7 @@ async function voterCinema(cinemaId){
   const g=st.groupe||'general';
   await supa.from('groupe_membres')
     .update({cinema_pref:cinemaId})
-    .eq('groupe',g).eq('pseudo',st.pseudo);
+    .eq('groupe',g).eq('user_id',st.userId);
   await loadMembres();
   renderVotesDOM();
 }
@@ -656,7 +656,7 @@ async function voter(heure){
   const k=st.date+' '+heure;
   const dejàVoté=(votesData[k]||[]).some(v=>v.pseudo===st.pseudo);
   // Toujours supprimer le vote existant d'abord
-  await supa.from('votes').delete().eq('groupe',g).eq('pseudo',st.pseudo);
+  await supa.from('votes').delete().eq('groupe',g).eq('user_id',st.userId);
   if(!dejàVoté){
     await supa.from('votes').insert({groupe:g,pseudo:st.pseudo,heure,date:st.date,user_id:st.userId});
     st.voted=k;
@@ -696,7 +696,7 @@ async function annulerConfirmation(){
 
 async function setStatut(s){
   if(!st.groupe||!st.pseudo)return;
-  await supa.from('groupe_membres').update({statut:s}).eq('groupe',st.groupe).eq('pseudo',st.pseudo);
+  await supa.from('groupe_membres').update({statut:s}).eq('groupe',st.groupe).eq('user_id',st.userId);
   await loadMembres();
 }
 
@@ -705,7 +705,7 @@ async function postAvis(note){
   const input=document.getElementById('avis-input');
   const commentaire=input?input.value.trim():'';
   const avis=JSON.stringify({note,commentaire,ts:Date.now()});
-  await supa.from('groupe_membres').update({avis}).eq('groupe',st.groupe).eq('pseudo',st.pseudo);
+  await supa.from('groupe_membres').update({avis}).eq('groupe',st.groupe).eq('user_id',st.userId);
   await loadMembres();
   render();if(st.tab==='vote')renderVotesDOM();
 }
@@ -923,7 +923,7 @@ async function quitterGroupe(){
   const {error}=await supa.from('groupe_membres')
     .delete()
     .eq('groupe',st.groupe)
-    .eq('pseudo',st.pseudo);
+    .eq('user_id',st.userId);
   if(error){toast('Erreur : '+error.message,'error');return;}
   if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
   if(votesChannel){supa.removeChannel(votesChannel);votesChannel=null;}
