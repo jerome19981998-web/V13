@@ -1116,7 +1116,7 @@ return `<div style="margin-bottom:18px;">
   <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances disponibles</div>
   ${orderedSeances.map(({cinema:c,seances})=>`<div style="margin-bottom:10px;">
     <div style="font-size:clamp(9px,2.8vw,12px);font-weight:500;margin-bottom:6px;color:${CC[c.chain]||MU};display:flex;align-items:center;gap:6px;">${c.name}${originCinema&&c.id===st.cinema?`<span style="font-size:8px;background:rgba(255,63,91,0.15);border:1px solid rgba(255,63,91,0.3);border-radius:6px;padding:1px 5px;color:${AC};">Ce cinéma</span>`:''}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`<div onclick="createSortieScroll=0;st.newSortie={film:'${st.film}',cinema:'${c.id}',heure:'${h}'};st.screen='create-sortie';render()" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`${seances.map(h=>`<div onclick="createSortieScroll=0;st.newSortie={film:'${st.film}',cinema:'${c.id}',heure:'"+h+"'};st.screen='create-sortie';render()" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;">${h}</div>`).join('')} class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>
   </div>`).join('')}
 </div>`;
       })()}
