@@ -251,11 +251,12 @@ async function pushToSupabase(allData) {
 
   // Cinémas
   await supa.from('cinemas_dyn').upsert(
-    Object.entries(CINEMAS).map(([id, c]) => ({
-      id, name: c.name, chain: c.chain, lat: c.lat, lng: c.lng,
-      addr: c.addr, metro: c.metro, allocine_id: c.allocineId,
-    })), { onConflict: 'id' }
-  );
+  Object.entries(CINEMAS).map(([id, c]) => ({
+    id, name: c.name, chain: c.chain, lat: c.lat, lng: c.lng,
+    addr: c.addr, metro: c.metro, allocine_id: c.allocineId,
+    salles: c.salles,
+  })), { onConflict: 'id' }
+);
 
   // Films
   const allFilms = {};
