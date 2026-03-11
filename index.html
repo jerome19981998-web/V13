@@ -974,21 +974,9 @@ function sCinemas(){
     <div style="display:flex;gap:6px;margin-bottom:12px;">
       ${[['tous','Tous'],['ugc','UGC'],['pathe','Pathé'],['gaumont','Gaumont']].map(([id,lb])=>`<div onclick="st.cinFilter='${id}';render();" style="padding:5px 12px;border-radius:20px;font-size:clamp(9px,2.8vw,12px);cursor:pointer;border:1px solid ${st.cinFilter===id?CC[id]||AC:BD};background:${st.cinFilter===id?(CC[id]||AC)+'18':'rgba(255,255,255,0.03)'};color:${st.cinFilter===id?CC[id]||AC:MU};">${lb}</div>`).join('')}
     </div>
-  function sCinemas(){
-  // ...
-  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="padding:52px 18px 12px;flex-shrink:0;">
-      <!-- header + filtres -->
-    </div>
-    <div style="flex-shrink:0;">
-      ${dayPicker()}
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
-      <!-- liste cinémas -->
-    </div>
-    <!-- bottom nav -->
-  </div>`;
-}
+  </div>
+  ${dayPicker()}
+  <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
     ${list.map(c=>{
       const col=CC[c.chain];
       const dist=(userPos&&c.lat)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
@@ -1116,7 +1104,7 @@ return `<div style="margin-bottom:18px;">
   <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances disponibles</div>
   ${orderedSeances.map(({cinema:c,seances})=>`<div style="margin-bottom:10px;">
     <div style="font-size:clamp(9px,2.8vw,12px);font-weight:500;margin-bottom:6px;color:${CC[c.chain]||MU};display:flex;align-items:center;gap:6px;">${c.name}${originCinema&&c.id===st.cinema?`<span style="font-size:8px;background:rgba(255,63,91,0.15);border:1px solid rgba(255,63,91,0.3);border-radius:6px;padding:1px 5px;color:${AC};">Ce cinéma</span>`:''}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`${seances.map(h=>`<div onclick="createSortieScroll=0;st.newSortie={film:'${st.film}',cinema:'${c.id}',heure:'"+h+"'};st.screen='create-sortie';render()" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;">${h}</div>`).join('')} class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`<div onclick="createSortieScroll=0;st.newSortie={film:'${st.film}',cinema:'${c.id}',heure:'"+h+"'};st.screen='create-sortie';render()" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>
   </div>`).join('')}
 </div>`;
       })()}
@@ -1388,17 +1376,6 @@ function sProfile(){
   <div style="display:flex;background:${S1};border-top:1px solid ${BD};position:fixed;bottom:0;left:0;right:0;z-index:1000;" class="bottom-nav">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div></div>`;
 }
 
-return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="padding:52px 18px 12px;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-        <div onclick="st.screen='group';render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
-        <div class="serif" style="font-size:clamp(17px,5vw,22px);">${pseudo}</div>
-      </div>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
-      <!-- contenu identique -->
-    </div>
-  </div>`;
   <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
     <div style="display:flex;justify-content:center;margin-bottom:20px;">${avatarEl(pseudo,72,'18px')}</div>
     <div style="text-align:center;margin-bottom:20px;"><div style="font-size:clamp(17px,5vw,22px);font-weight:600;">${pseudo}</div></div>
@@ -1421,6 +1398,27 @@ async function openGroup(filmId,groupeId){
 function openMemberProfile(pseudo){st.viewedMember=pseudo;st.screen='member-profile';render();loadMemberLbd(pseudo).then(()=>render());}
 async function doSync(){st.syncing=true;render();await new Promise(r=>setTimeout(r,1200));st.syncing=false;st.syncLabel="à l'instant";render();}
 
+  function sMemberProfile(){
+  const pseudo=st.viewedMember;
+  const lbd=membresLbd[pseudo];
+  let commonFilms=[];
+  if(lbd&&st.lbdPseudo)commonFilms=Object.entries(FILMS).filter(([id])=>isVu(id)&&filmInLbd(id,lbd.seen)).map(([id,f])=>f.t);
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:52px 18px 12px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <div onclick="st.screen='group';render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+        <div class="serif" style="font-size:clamp(17px,5vw,22px);">${pseudo}</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
+      <div style="display:flex;justify-content:center;margin-bottom:20px;">${avatarEl(pseudo,72,'18px')}</div>
+      <div style="text-align:center;margin-bottom:20px;"><div style="font-size:clamp(17px,5vw,22px);font-weight:600;">${pseudo}</div></div>
+      ${(()=>{const moi=membresData.find(m=>m.pseudo===pseudo);const statut=moi?.statut||'maybe';const STATUTS={yes:{e:'✅',l:T('jeViens')},maybe:{e:'❓',l:T('peutEtre')},no:{e:'❌',l:T('jePeuxPas')}};const s=STATUTS[statut];const cinema_pref=moi?.cinema_pref?CINEMAS.find(c=>c.id===moi.cinema_pref)?.name:'';return `<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:14px;"><div style="display:flex;gap:12px;align-items:center;"><span style="font-size:clamp(11px,3.3vw,14px);padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid ${BD};">${s.e} ${s.l}</span>${cinema_pref?`<span style="font-size:clamp(9px,2.8vw,12px);color:${MU};">🏛 ${cinema_pref}</span>`:''}</div></div>`;})()}
+      ${lbd?`<div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px;margin-bottom:14px;"><div style="font-size:clamp(9px,2.8vw,12px);color:${LB};font-weight:600;margin-bottom:10px;">Letterboxd</div><div style="display:flex;gap:12px;margin-bottom:${commonFilms.length?'10px':'0'};">${chip('✓ '+lbd.seen.size+' vus',LB,'rgba(0,192,48,0.12)','rgba(0,192,48,0.3)',10)}${chip('🔖 '+lbd.wl.size+' watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',10)}</div>${commonFilms.length?`<div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-bottom:6px;">Films que vous avez tous les deux vus :</div>${commonFilms.slice(0,5).map(t=>`<div style="font-size:clamp(9px,2.8vw,12px);padding:4px 0;border-bottom:1px solid ${BD};">✓ ${t}</div>`).join('')}${commonFilms.length>5?`<div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-top:4px;">+${commonFilms.length-5} autres</div>`:''}</div>`:''}</div>`:`<div style="text-align:center;padding:20px;color:${MU};font-size:clamp(10px,3vw,13px);background:${S1};border:1px solid ${BD};border-radius:14px;margin-bottom:14px;">Letterboxd non connecté</div>`}
+    </div>
+  </div>`;
+}
+  
 // ═══════════ RENDER ═══════════
 function render(){
   const inner=document.getElementById('inner');if(!inner)return;
