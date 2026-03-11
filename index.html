@@ -894,7 +894,7 @@ function sHome(){
 
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     ${header}
-    <div style="padding-top:12px;">
+    <div style="flex:1;overflow-y:auto;padding-top:12px;">
       <!-- Top row: label + create button -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:10px;">
         <div style="font-size:clamp(9px,2.8vw,12px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;">${T('sorties_publiques')}</div>
@@ -1082,11 +1082,11 @@ function sFilm(){
           <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances</div>
           ${seancesJour.map(({cinema:c,seances})=>`<div style="margin-bottom:10px;">
             <div style="font-size:clamp(9px,2.8vw,12px);font-weight:500;margin-bottom:6px;color:${CC[c.chain]||MU};">${c.name}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`<div onclick="st.cinema='${c.id}';openGroup('${st.film}')" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`<div onclick="createSortieScroll=0;st.newSortie={film:'${st.film}',cinema:'${c.id}',heure:'"+h+"'};st.screen='create-sortie';render()" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>
           </div>`).join('')}
         </div>`;
       })()}
-      <button onclick="openGroup('${st.film}')" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:clamp(12px,3.6vw,15px);font-weight:600;cursor:pointer;">Rejoindre le groupe →</button>
+      <button onclick="createSortieScroll=0;st.newSortie={film:'${st.film}'};st.screen='create-sortie';render()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:clamp(12px,3.6vw,15px);font-weight:600;cursor:pointer;">Rejoindre le groupe →</button>
     </div>
   </div>`;
 }
