@@ -1158,87 +1158,113 @@ function sCreateSortie(){
   const heuresForDate=(filmId&&cinemaId&&SEANCES[cinemaId]?.[filmId])||[];
   const canCreate=filmId&&cinemaId&&heure&&selectedDate&&isPublic!==null;
 
-  // Auto-scroll helper — called after each selection
-  const scrollTo=(id)=>`setTimeout(()=>{const el=document.getElementById('${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);`;
+  const scrollTo=(id)=>'setTimeout(()=>{const el=document.getElementById("'+id+'");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},80);';
 
-  return \`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="padding:50px 18px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid \${BD};">
-      <div onclick="createSortieScroll=0;st.screen='home';st.newSortie=null;render()" style="width:36px;height:36px;border-radius:50%;background:\${S1};border:1px solid \${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:clamp(13px,4vw,17px);">←</div>
-      <div><div style="font-size:clamp(13px,4vw,17px);font-weight:700;">\${T('creerSortie')}</div><div style="font-size:clamp(9px,2.8vw,12px);color:\${MU};">\${T('creerSortieDesc')}</div></div>
-    </div>
+  // ── ÉTAPE 0 : Public ou Privé ──
+  let html='<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">';
+  html+='<div style="padding:50px 18px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid '+BD+';">';
+  html+='<div onclick="createSortieScroll=0;st.screen=\'home\';st.newSortie=null;render()" style="width:36px;height:36px;border-radius:50%;background:'+S1+';border:1px solid '+BD+';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:clamp(13px,4vw,17px);">←</div>';
+  html+='<div><div style="font-size:clamp(13px,4vw,17px);font-weight:700;">'+T('creerSortie')+'</div><div style="font-size:clamp(9px,2.8vw,12px);color:'+MU+';">'+T('creerSortieDesc')+'</div></div>';
+  html+='</div>';
 
-    <div id="create-sortie-scroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 40px;" onscroll="createSortieScroll=this.scrollTop">
+  html+='<div id="create-sortie-scroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 40px;" onscroll="createSortieScroll=this.scrollTop">';
 
-      <!-- ÉTAPE 0 : Public ou Privé -->
-      <div style="margin-bottom:20px;">
-        <div style="font-size:clamp(8px,2.5vw,11px);color:\${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">0 · Groupe public ou privé ?</div>
-        <div style="display:flex;gap:10px;">
-          <div onclick="st.newSortie={...(st.newSortie||{}),isPublic:true};\${scrollTo('step-film')}render()" style="flex:1;padding:14px;border-radius:14px;cursor:pointer;text-align:center;background:\${isPublic===true?'rgba(255,63,91,0.15)':\${S1}};border:2px solid \${isPublic===true?AC:BD};">
-            <div style="font-size:22px;margin-bottom:6px;">🌍</div>
-            <div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:\${isPublic===true?AC:TX};">Public</div>
-            <div style="font-size:9px;color:\${MU};margin-top:3px;">Visible par tous</div>
-          </div>
-          <div onclick="st.newSortie={...(st.newSortie||{}),isPublic:false};\${scrollTo('step-film')}render()" style="flex:1;padding:14px;border-radius:14px;cursor:pointer;text-align:center;background:\${isPublic===false?'rgba(255,63,91,0.15)':\${S1}};border:2px solid \${isPublic===false?AC:BD};">
-            <div style="font-size:22px;margin-bottom:6px;">🔒</div>
-            <div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:\${isPublic===false?AC:TX};">Privé</div>
-            <div style="font-size:9px;color:\${MU};margin-top:3px;">Sur invitation</div>
-          </div>
-        </div>
-      </div>
+  // Étape 0 — public/privé
+  html+='<div style="margin-bottom:20px;">';
+  html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">0 · Groupe public ou privé ?</div>';
+  html+='<div style="display:flex;gap:10px;">';
+  html+='<div onclick="st.newSortie={...(st.newSortie||{}),isPublic:true};'+scrollTo('step-film')+'render()" style="flex:1;padding:14px;border-radius:14px;cursor:pointer;text-align:center;background:'+(isPublic===true?'rgba(255,63,91,0.15)':S1)+';border:2px solid '+(isPublic===true?AC:BD)+';">';
+  html+='<div style="font-size:22px;margin-bottom:6px;">🌍</div>';
+  html+='<div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:'+(isPublic===true?AC:TX)+';">Public</div>';
+  html+='<div style="font-size:9px;color:'+MU+';margin-top:3px;">Visible par tous</div></div>';
+  html+='<div onclick="st.newSortie={...(st.newSortie||{}),isPublic:false};'+scrollTo('step-film')+'render()" style="flex:1;padding:14px;border-radius:14px;cursor:pointer;text-align:center;background:'+(isPublic===false?'rgba(255,63,91,0.15)':S1)+';border:2px solid '+(isPublic===false?AC:BD)+';">';
+  html+='<div style="font-size:22px;margin-bottom:6px;">🔒</div>';
+  html+='<div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:'+(isPublic===false?AC:TX)+';">Privé</div>';
+  html+='<div style="font-size:9px;color:'+MU+';margin-top:3px;">Sur invitation</div></div>';
+  html+='</div></div>';
 
-      <!-- ÉTAPE 1 : Film -->
-      \${isPublic!==null?\`
-      <div id="step-film" style="margin-bottom:16px;">
-        <div style="font-size:clamp(8px,2.5vw,11px);color:\${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">\${T('choisisFilm')}</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          \${availFilms.map(f=>{const fid=f._id;const sel=filmId===fid;return \`<div onclick="st.newSortie={...(st.newSortie||{}),film:'\${fid}',cinema:null,heure:null};\${scrollTo('step-cinema')}render()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;cursor:pointer;background:\${sel?'rgba(255,63,91,0.12)':S1};border:1px solid \${sel?AC:BD};">\${posters[fid]?\`<img src="\${posters[fid]}" style="width:32px;height:44px;object-fit:cover;border-radius:6px;">\`:\`<span style="font-size:clamp(20px,6.2vw,28px);width:32px;text-align:center;">\${f.e}</span>\`}<div style="flex:1;min-width:0;"><div style="font-size:clamp(10px,3vw,13px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">\${f.t}</div><div style="font-size:clamp(8px,2.5vw,11px);color:\${MU};">\${f.g?f.g.charAt(0)+f.g.slice(1).toLowerCase():''}\${f.tmdbNote?\` · ★ \${f.tmdbNote}\`:''}</div></div>\${sel?\`<span style="color:\${AC};font-size:clamp(12px,3.6vw,15px);">✓</span>\`:''}</div>\`;}).join('')}
-        </div>
-      </div>\`:''}
+  // Étape 1 — Film (visible seulement si public/privé choisi)
+  if(isPublic!==null){
+    html+='<div id="step-film" style="margin-bottom:16px;">';
+    html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">'+T('choisisFilm')+'</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:6px;">';
+    availFilms.forEach(function(f){
+      const fid=f._id;const sel=filmId===fid;
+      html+='<div onclick="st.newSortie={...(st.newSortie||{}),film:\''+fid+'\',cinema:null,heure:null};'+scrollTo('step-cinema')+'render()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;cursor:pointer;background:'+(sel?'rgba(255,63,91,0.12)':S1)+';border:1px solid '+(sel?AC:BD)+';">';
+      if(posters[fid]){html+='<img src="'+posters[fid]+'" style="width:32px;height:44px;object-fit:cover;border-radius:6px;">';}
+      else{html+='<span style="font-size:clamp(20px,6.2vw,28px);width:32px;text-align:center;">'+f.e+'</span>';}
+      html+='<div style="flex:1;min-width:0;"><div style="font-size:clamp(10px,3vw,13px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.t+'</div>';
+      html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';">'+(f.g?f.g.charAt(0)+f.g.slice(1).toLowerCase():'')+(f.tmdbNote?' · ★ '+f.tmdbNote:'')+'</div></div>';
+      if(sel){html+='<span style="color:'+AC+';font-size:clamp(12px,3.6vw,15px);">✓</span>';}
+      html+='</div>';
+    });
+    html+='</div></div>';
+  }
 
-      <!-- ÉTAPE 2 : Cinéma -->
-      \${filmId?\`
-      <div id="step-cinema" style="margin-bottom:16px;">
-        <div style="font-size:clamp(8px,2.5vw,11px);color:\${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">\${T('choisisCinema')}</div>
-        \${cinForFilm.length===0?\`<div style="font-size:clamp(10px,3vw,13px);color:\${MU};padding:10px;">\${T('aucunFilmDispo')}</div>\`:''}
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          \${cinForFilm.map(c=>{const sel=cinemaId===c.id;return \`<div onclick="st.newSortie={...(st.newSortie||{}),cinema:'\${c.id}',heure:null};\${scrollTo('step-seance')}render()" style="padding:10px 12px;border-radius:12px;cursor:pointer;background:\${sel?'rgba(255,63,91,0.12)':S1};border:1px solid \${sel?AC:BD};display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:clamp(10px,3vw,13px);font-weight:600;">\${c.name}</div><div style="font-size:clamp(8px,2.5vw,11px);color:\${CC[c.chain]||MU};">\${c.chain?.toUpperCase()||''} · \${c.metro||c.addr||''}</div></div>\${sel?\`<span style="color:\${AC};">✓</span>\`:''}</div>\`;}).join('')}
-        </div>
-      </div>\`:''}
+  // Étape 2 — Cinéma
+  if(filmId){
+    html+='<div id="step-cinema" style="margin-bottom:16px;">';
+    html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">'+T('choisisCinema')+'</div>';
+    if(cinForFilm.length===0){html+='<div style="font-size:clamp(10px,3vw,13px);color:'+MU+';padding:10px;">'+T('aucunFilmDispo')+'</div>';}
+    html+='<div style="display:flex;flex-direction:column;gap:6px;">';
+    cinForFilm.forEach(function(c){
+      const sel=cinemaId===c.id;
+      html+='<div onclick="st.newSortie={...(st.newSortie||{}),cinema:\''+c.id+'\',heure:null};'+scrollTo('step-seance')+'render()" style="padding:10px 12px;border-radius:12px;cursor:pointer;background:'+(sel?'rgba(255,63,91,0.12)':S1)+';border:1px solid '+(sel?AC:BD)+';display:flex;align-items:center;justify-content:space-between;">';
+      html+='<div><div style="font-size:clamp(10px,3vw,13px);font-weight:600;">'+c.name+'</div>';
+      html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+(CC[c.chain]||MU)+';">'+(c.chain?c.chain.toUpperCase():'')+(c.metro?' · '+c.metro:c.addr?' · '+c.addr:'')+'</div></div>';
+      if(sel){html+='<span style="color:'+AC+';">✓</span>';}
+      html+='</div>';
+    });
+    html+='</div></div>';
+  }
 
-      <!-- ÉTAPE 3 : Séance -->
-      \${filmId&&cinemaId?\`
-      <div id="step-seance" style="margin-bottom:16px;">
-        <div style="font-size:clamp(8px,2.5vw,11px);color:\${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">\${T('choisisSeance')}</div>
-        \${AVAILABLE_DATES.length>1?\`<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;">\${AVAILABLE_DATES.map(d=>{const dd=new Date(d+'T12:00:00');const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];const months=['jan','fév','mar','avr','mai','jun','jul','aoû'];const sel=(ns.date||AVAILABLE_DATES[0])===d;return \`<div onclick="(async()=>{st.newSortie={...(st.newSortie||{}),date:'\${d}',heure:null};await initDynamicData('\${d}');render();})()" style="flex-shrink:0;width:44px;text-align:center;padding:6px 4px;border-radius:10px;cursor:pointer;background:\${sel?AC:'rgba(255,255,255,0.03)'};border:1px solid \${sel?AC:BD};"><div style="font-size:9px;color:\${sel?'#fff':MU};">\${days[dd.getDay()]}</div><div style="font-size:clamp(12px,3.6vw,15px);font-weight:600;color:\${sel?'#fff':TX};">\${dd.getDate()}</div><div style="font-size:9px;color:\${sel?'rgba(255,255,255,0.7)':MU};">\${months[dd.getMonth()]}</div></div>\`;}).join('')}</div>\`:''}
-        \${heuresForDate.length===0?\`<div style="font-size:clamp(10px,3vw,13px);color:\${MU};padding:10px;">\${T('aucuneSeance')}</div>\`:''}
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          \${heuresForDate.map(h=>\`<div onclick="st.newSortie={...(st.newSortie||{}),heure:'\${h}'};\${scrollTo('step-size')}render()" style="padding:8px 14px;border-radius:12px;cursor:pointer;background:\${heure===h?AC:'rgba(255,255,255,0.05)'};border:1px solid \${heure===h?AC:BD};font-size:clamp(11px,3.3vw,14px);font-weight:600;color:\${heure===h?'#fff':TX};">\${h}</div>\`).join('')}
-        </div>
-      </div>\`:''}
+  // Étape 3 — Séance
+  if(filmId&&cinemaId){
+    html+='<div id="step-seance" style="margin-bottom:16px;">';
+    html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">'+T('choisisSeance')+'</div>';
+    if(AVAILABLE_DATES.length>1){
+      html+='<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;">';
+      const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+      const months=['jan','fév','mar','avr','mai','jun','jul','aoû'];
+      AVAILABLE_DATES.forEach(function(d){
+        const dd=new Date(d+'T12:00:00');const sel=(ns.date||AVAILABLE_DATES[0])===d;
+        html+='<div onclick="(async()=>{st.newSortie={...(st.newSortie||{}),date:\''+d+'\',heure:null};await initDynamicData(\''+d+'\');render();})()" style="flex-shrink:0;width:44px;text-align:center;padding:6px 4px;border-radius:10px;cursor:pointer;background:'+(sel?AC:'rgba(255,255,255,0.03)')+';border:1px solid '+(sel?AC:BD)+';">';
+        html+='<div style="font-size:9px;color:'+(sel?'#fff':MU)+';">'+days[dd.getDay()]+'</div>';
+        html+='<div style="font-size:clamp(12px,3.6vw,15px);font-weight:600;color:'+(sel?'#fff':TX)+';">'+dd.getDate()+'</div>';
+        html+='<div style="font-size:9px;color:'+(sel?'rgba(255,255,255,0.7)':MU)+';">'+months[dd.getMonth()]+'</div></div>';
+      });
+      html+='</div>';
+    }
+    if(heuresForDate.length===0){html+='<div style="font-size:clamp(10px,3vw,13px);color:'+MU+';padding:10px;">'+T('aucuneSeance')+'</div>';}
+    html+='<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    heuresForDate.forEach(function(h){
+      html+='<div onclick="st.newSortie={...(st.newSortie||{}),heure:\''+h+'\'};'+scrollTo('step-size')+'render()" style="padding:8px 14px;border-radius:12px;cursor:pointer;background:'+(heure===h?AC:'rgba(255,255,255,0.05)')+';border:1px solid '+(heure===h?AC:BD)+';font-size:clamp(11px,3.3vw,14px);font-weight:600;color:'+(heure===h?'#fff':TX)+';">'+h+'</div>';
+    });
+    html+='</div></div>';
+  }
 
-      <!-- ÉTAPE 4 : Taille du groupe -->
-      \${filmId&&cinemaId&&heure?\`
-      <div id="step-size" style="margin-bottom:20px;">
-        <div style="font-size:clamp(8px,2.5vw,11px);color:\${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">\${T('combienPersonnes')}</div>
-        <div style="display:flex;align-items:center;gap:16px;">
-          <div onclick="st.newSortie={...(st.newSortie||{}),max:Math.max(2,(st.newSortie?.max||6)-1)};render()" style="width:36px;height:36px;border-radius:50%;background:\${S1};border:1px solid \${BD};display:flex;align-items:center;justify-content:center;font-size:clamp(15px,4.6vw,20px);cursor:pointer;">−</div>
-          <div style="font-size:clamp(18px,5.6vw,24px);font-weight:700;min-width:32px;text-align:center;">\${maxM}</div>
-          <div onclick="st.newSortie={...(st.newSortie||{}),max:Math.min(12,(st.newSortie?.max||6)+1)};render()" style="width:36px;height:36px;border-radius:50%;background:\${S1};border:1px solid \${BD};display:flex;align-items:center;justify-content:center;font-size:clamp(15px,4.6vw,20px);cursor:pointer;">+</div>
-          <div style="font-size:clamp(9px,2.8vw,12px);color:\${MU};">\${T('personnesInclus')}</div>
-        </div>
-      </div>\`:''}
+  // Étape 4 — Taille du groupe
+  if(filmId&&cinemaId&&heure){
+    html+='<div id="step-size" style="margin-bottom:20px;">';
+    html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">'+T('combienPersonnes')+'</div>';
+    html+='<div style="display:flex;align-items:center;gap:16px;">';
+    html+='<div onclick="st.newSortie={...(st.newSortie||{}),max:Math.max(2,(st.newSortie?.max||6)-1)};render()" style="width:36px;height:36px;border-radius:50%;background:'+S1+';border:1px solid '+BD+';display:flex;align-items:center;justify-content:center;font-size:clamp(15px,4.6vw,20px);cursor:pointer;">−</div>';
+    html+='<div style="font-size:clamp(18px,5.6vw,24px);font-weight:700;min-width:32px;text-align:center;">'+maxM+'</div>';
+    html+='<div onclick="st.newSortie={...(st.newSortie||{}),max:Math.min(12,(st.newSortie?.max||6)+1)};render()" style="width:36px;height:36px;border-radius:50%;background:'+S1+';border:1px solid '+BD+';display:flex;align-items:center;justify-content:center;font-size:clamp(15px,4.6vw,20px);cursor:pointer;">+</div>';
+    html+='<div style="font-size:clamp(9px,2.8vw,12px);color:'+MU+';">'+T('personnesInclus')+'</div>';
+    html+='</div></div>';
+  }
 
-      <!-- BOUTON CRÉER -->
-      \${canCreate?\`
-      <div onclick="creerSortie('\${filmId}','\${cinemaId}','\${heure}','\${selectedDate}',\${maxM},\${isPublic})" style="padding:14px;background:\${AC};border-radius:16px;text-align:center;font-size:clamp(12px,3.6vw,15px);font-weight:700;cursor:pointer;color:#fff;">
-        \${isPublic?'🌍 Créer la sortie publique':'🔒 Créer le groupe privé'}
-      </div>\`:''}
+  // Bouton créer
+  if(canCreate){
+    html+='<div onclick="creerSortie(\''+filmId+'\',\''+cinemaId+'\',\''+heure+'\',\''+selectedDate+'\','+maxM+','+(isPublic?'true':'false')+')" style="padding:14px;background:'+AC+';border-radius:16px;text-align:center;font-size:clamp(12px,3.6vw,15px);font-weight:700;cursor:pointer;color:#fff;">';
+    html+=(isPublic?'🌍 Créer la sortie publique':'🔒 Créer le groupe privé');
+    html+='</div>';
+  }
 
-    </div>
-  </div>\`;
+  html+='</div></div>';
+  return html;
 }
-</script>
-<script>
 function sGroup(){
   const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};position:fixed;bottom:0;left:0;right:0;z-index:1000;" class="bottom-nav">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div>`;
   if(!st.groupe){
