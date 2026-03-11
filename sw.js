@@ -1,16 +1,14 @@
 // CinéMatch Service Worker — auto-update
 const CACHE = 'cinematch-v2';
-
 const PRECACHE = [
   '/',
-  '/cinematch.html',
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
       .then(cache => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting()) // active immédiatement le nouveau SW
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -20,9 +18,8 @@ self.addEventListener('activate', e => {
       .then(keys => Promise.all(
         keys.filter(k => k !== CACHE).map(k => caches.delete(k))
       ))
-      .then(() => self.clients.claim()) // prend le contrôle de tous les onglets
+      .then(() => self.clients.claim())
       .then(() => {
-        // Notifier tous les onglets ouverts qu'une MAJ est disponible
         self.clients.matchAll({type:'window'}).then(clients => {
           clients.forEach(client => client.postMessage({type:'SW_UPDATED'}));
         });
@@ -32,15 +29,11 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-
-  // Jamais de cache pour Supabase et TMDB
   if(url.hostname.includes('supabase.co') ||
      url.hostname.includes('tmdb.org') ||
      url.hostname.includes('image.tmdb.org')){
     return;
   }
-
-  // Cache First pour les fonts
   if(url.hostname.includes('fonts.gstatic.com') ||
      url.hostname.includes('fonts.googleapis.com')){
     e.respondWith(
@@ -54,8 +47,6 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-
-  // Network First pour l'app — toujours la version la plus récente
   e.respondWith(
     fetch(e.request)
       .then(res => {
@@ -82,7 +73,6 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Répondre à SKIP_WAITING depuis le client
 self.addEventListener('message', e => {
   if(e.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
