@@ -1158,7 +1158,7 @@ function sCreateSortie(){
   const heuresForDate=(filmId&&cinemaId&&SEANCES[cinemaId]?.[filmId])||[];
   const canCreate=filmId&&cinemaId&&heure&&selectedDate&&isPublic!==null;
 
-  const scrollTo=(id)=>'setTimeout(()=>{const el=document.getElementById("'+id+'");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},80);';
+  const scrollTo=(id)=>'setTimeout(function(){var el=document.getElementById(\''+id+'\');if(el)el.scrollIntoView({behavior:\'smooth\',block:\'start\'});},80);';
 
   // ── ÉTAPE 0 : Public ou Privé ──
   let html='<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">';
