@@ -261,7 +261,7 @@ async function initDynamicData(dateStr){
       st.date=dateStr;
       FILMS={};
       for(const f of(filmsRes.data||[])){const[c,bg]=filmPalette(f.id);FILMS[f.id]={e:genreEmoji(f.genre),c,bg,g:(f.genre||'DIVERS').toUpperCase(),t:f.title,d:f.duration||'',dir:f.director||'',s:f.synopsis||'',poster:f.poster_url||null,tmdbNote:f.tmdb_note||null,trailerKey:f.trailer_key||null,lbd:false};}
-      CINEMAS=(cinemasRes.data||[]).map(c=>({id:c.id,lat:c.lat,lng:c.lng,chain:c.chain,icon:CHAIN_ICONS[c.chain]||'🎬',name:c.name,addr:c.addr||'',metro:c.metro||'',salles:null,tech:[],films:[]}));
+      CINEMAS=(cinemasRes.data||[]).map(c=>({id:c.id,lat:c.lat,lng:c.lng,chain:c.chain,icon:CHAIN_ICONS[c.chain]||'🎬',name:c.name,addr:c.addr||'',metro:c.metro||'',salles:c.salles||null,tech:[],films:[]}));
     }
     const targetDate=dateStr||st.date;
     const seancesRes=await supa.from('seances_dyn').select('*').eq('date',targetDate);
@@ -971,7 +971,7 @@ function sCinemas(){
           <div class="serif" style="font-size:clamp(11px,3.3vw,14px);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</div>
           <div style="font-size:9px;color:${MU};margin-bottom:5px;">${c.addr}${dist!==null?' · <span style="color:'+LB+';">📍 '+distLabel(dist)+'</span>':' · '+c.metro}</div>
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            ${chip(c.salles+' salle'+(c.salles>1?'s':''),TX,'rgba(255,255,255,0.06)',BD,9)}
+            ${c.salles!=null?chip(c.salles+' salle'+(c.salles>1?'s':''),TX,'rgba(255,255,255,0.06)',BD,9):''}
             ${c.tech.slice(0,2).map(t=>chip(t,col,col+'18',col+'35',9)).join('')}
             ${gc>0?chip(gc+' groupe'+(gc>1?'s':''),AC,'rgba(255,63,91,0.1)','rgba(255,63,91,0.25)',9):''}
           </div>
