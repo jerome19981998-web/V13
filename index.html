@@ -664,12 +664,12 @@ function sHome(){
 
     // Filter logic
     const filmGenre=id=>{const f=FILMS[id];return f?norm(f.g):'';};
-    const filtered=allFilms.filter(([id,f])=>{
-      const gn=norm(activeGenre);
-      const genreOk=activeGenre==='tous'||filmGenre(id).includes(gn)||filmGenre(id).includes(gn.replace('comedie','comedi'));
-      const searchOk=!searchQ||norm(f.t).includes(searchQ)||norm(f.dir||'').includes(searchQ)||norm(f.g).includes(searchQ)||norm(f.s||'').includes(searchQ);
-      return genreOk&&searchOk;
-    });
+   const filtered=allFilms.filter(([id,f])=>{
+  const gn=norm(activeGenre);
+  const genreOk=activeGenre==='tous'||filmGenre(id).includes(gn)||filmGenre(id).includes(gn.replace('comedie','comedi'));
+  const searchOk=!searchQ||norm(f.t).includes(searchQ)||norm(f.dir||'').includes(searchQ)||norm(f.g).includes(searchQ)||norm(f.s||'').includes(searchQ);
+  return genreOk&&searchOk;
+}).sort((a,b)=>a[1].t.localeCompare(b[1].t,'fr'));
 
     // Sort by rating for "Popular"
     const sortedByRating=[...allFilms].sort((a,b)=>{const ra=parseFloat(ratings[a[0]]?.note||0);const rb=parseFloat(ratings[b[0]]?.note||0);return rb-ra;});
@@ -684,7 +684,7 @@ function sHome(){
     const heroId=heroEntry?.[0],heroFilm=heroEntry?.[1];
 
     const isSearching=searchQ.length>0;
-    const isFiltering=activeGenre!=='tous';
+const isFiltering=activeGenre!=='tous'||isSearching;
 
     return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
       ${header}
