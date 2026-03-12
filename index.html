@@ -1075,36 +1075,8 @@ function sFilm(){
 
     <!-- Synopsis -->
     <div style="padding:16px 18px 0;">
-  <div id="synopsis-container" style="max-height:120px; overflow:hidden; position:relative; transition:max-height 0.4s ease;">
-    <p id="synopsis-text" style="font-size:clamp(10px,3vw,13px); line-height:1.7; color:${MU}; margin:0;">
-      ${f.s}
-    </p>
-  </div>
-  
-  <!-- Bouton "Lire plus" qui apparaît seulement si besoin -->
-  <div id="read-more-btn" onclick="document.getElementById('synopsis-container').style.maxHeight='none'; this.style.display='none';"
-       style="display:none; color:${AC}; font-size:clamp(11px,3vw,14px); font-weight:600; margin-top:8px; cursor:pointer; text-align:center;">
-    Lire la suite ↓
-  </div>
-</div>
-
-<script>
-// À ajouter dans sFilm() ou dans un init global
-setTimeout(() => {
-  const container = document.getElementById('synopsis-container');
-  const text = document.getElementById('synopsis-text');
-  const btn = document.getElementById('read-more-btn');
-  
-  if (!container || !text || !btn) return;
-  
-  // Si le texte dépasse la hauteur max → on affiche le bouton
-  if (text.scrollHeight > container.clientHeight + 10) {  // +10 pour marge
-    btn.style.display = 'block';
-  } else {
-    container.style.maxHeight = 'none'; // Pas besoin de couper si court
-  }
-}, 100);
-</script>
+      <p style="font-size:clamp(10px,3vw,13px);line-height:1.7;color:${MU};margin-bottom:16px;">${f.s}</p>
+    </div>
 
     <!-- Sortie dispo banner -->
     ${hasSortie?`<div onclick="st.homeTab='sorties';go('home')" style="margin:0 18px 14px;padding:10px 14px;border-radius:12px;background:rgba(255,63,91,0.08);border:1px solid rgba(255,63,91,0.2);font-size:clamp(9px,2.8vw,12px);color:${MU};cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
