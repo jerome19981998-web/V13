@@ -683,7 +683,7 @@ function sHome(){
     const heroEntry=allFilms.find(([id,f])=>posters[id])||allFilms[0];
     const heroId=heroEntry?.[0],heroFilm=heroEntry?.[1];
 
-    const isSearching=searchQ.length>0;
+const isSearching=searchQ.length>0;
 const isFiltering=activeGenre!=='tous'||isSearching;
 
     return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
@@ -708,7 +708,7 @@ const isFiltering=activeGenre!=='tous'||isSearching;
       </div>
 
       <div style="flex:1;overflow-y:auto;padding-bottom:80px;">
-        ${(isSearching||isFiltering)?`
+        ${(isSearching||activeGenre!=='tous')?`
           <!-- SEARCH / FILTERED RESULTS: grid view -->
           ${filtered.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:clamp(28px,9vw,40px);margin-bottom:10px;">🔍</div><div style="font-size:clamp(11px,3.3vw,14px);">${T('aucunFilmTrouve')}</div></div>`:''}
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 20px;">
