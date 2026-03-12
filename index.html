@@ -1082,37 +1082,14 @@ function sFilm(){
     </p>
   </div>
   
-  <div id="read-more-btn" onclick="document.getElementById('synopsis-container').style.maxHeight='none'; this.style.display='none'; document.getElementById('read-less-btn').style.display='block';"
-       style="display:none; color:${AC}; font-size:clamp(11px,3vw,14px); font-weight:600; margin-top:8px; cursor:pointer; text-align:center;">
+  <div id="read-more-btn" style="display:none; color:${AC}; font-size:clamp(11px,3vw,14px); font-weight:600; margin-top:8px; cursor:pointer; text-align:center;">
     Lire la suite ↓
   </div>
   
-  <div id="read-less-btn" onclick="document.getElementById('synopsis-container').style.maxHeight='120px'; this.style.display='none'; document.getElementById('read-more-btn').style.display='block';"
-       style="display:none; color:${AC}; font-size:clamp(11px,3vw,14px); font-weight:600; margin-top:8px; cursor:pointer; text-align:center;">
+  <div id="read-less-btn" style="display:none; color:${AC}; font-size:clamp(11px,3vw,14px); font-weight:600; margin-top:8px; cursor:pointer; text-align:center;">
     Réduire ↑
   </div>
 </div>
-
-<script>
-// Exécuté après rendu du film
-setTimeout(() => {
-  const container = document.getElementById('synopsis-container');
-  const text = document.getElementById('synopsis-text');
-  const moreBtn = document.getElementById('read-more-btn');
-  const lessBtn = document.getElementById('read-less-btn');
-  
-  if (!container || !text || !moreBtn) return;
-  
-  // Comparer la hauteur réelle du texte vs la hauteur visible
-  if (text.scrollHeight > container.clientHeight + 20) {  // +20 pour marge de sécurité
-    moreBtn.style.display = 'block';
-  } else {
-    container.style.maxHeight = 'none';           // Pas besoin de couper
-    moreBtn.style.display = 'none';
-    lessBtn.style.display = 'none';
-  }
-}, 150);  // 150ms → assez tard pour que le DOM soit vraiment peint
-</script>
 `
 
     <!-- Sortie dispo banner -->
