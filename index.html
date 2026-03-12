@@ -613,7 +613,7 @@ function getSearchHistory(){try{const key='cm_searches_'+(st.pseudo||'_');return
 function saveSearch(q){if(!q||q.trim().length<2)return;q=q.trim();try{const key='cm_searches_'+(st.pseudo||'_');let hist=getSearchHistory();hist=hist.filter(h=>h!==q);hist.unshift(q);hist=hist.slice(0,8);localStorage.setItem(key,JSON.stringify(hist));}catch(e){}}
 function clearSearchHistory(){try{localStorage.removeItem('cm_searches_'+(st.pseudo||'_'));}catch(e){}st.search='';render();}
 function useSearch(q){st.search=q;st.showSearchHistory=false;render();}
-function setGenre(g){st.genre=g;st.search='';st.showSearchHistory=false;render();}
+function setGenre(g){   if(g==='tous'&&st.genre==='tous'){st._showAllFilms=!st._showAllFilms;}   else{st._showAllFilms=g!=='tous'?false:true;st.genre=g;}   st.search='';st.showSearchHistory=false;render(); }
 
 // ═══════════ HOME — LETTERBOXD-INSPIRED ═══════════
 function sHome(){
@@ -684,7 +684,7 @@ function sHome(){
     const heroId=heroEntry?.[0],heroFilm=heroEntry?.[1];
 
 const isSearching=searchQ.length>0;
-const isFiltering=activeGenre!=='tous'||isSearching;
+const isFiltering=activeGenre!=='tous'||isSearching||st._showAllFilms;
 
     return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
       ${header}
