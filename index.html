@@ -1075,7 +1075,7 @@ function sFilm(){
 
     <!-- Synopsis -->
     <div style="padding:16px 18px 0;">
-      <p style="font-size:clamp(10px,3vw,13px);line-height:1.7;color:${MU};margin-bottom:16px;">${f.s}</p>
+      <div style="position:relative;margin-bottom:16px;">   <p id="synopsis-text" style="font-size:clamp(10px,3vw,13px);line-height:1.7;color:${MU};margin:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;">${f.s}</p>   <span onclick="const el=document.getElementById('synopsis-text');const btn=document.getElementById('synopsis-btn');if(el.style.webkitLineClamp==='4'||el.style['-webkit-line-clamp']==='4'){el.style.cssText='font-size:clamp(10px,3vw,13px);line-height:1.7;color:${MU};margin:0;';btn.textContent='Moins ↑';}else{el.style.cssText='font-size:clamp(10px,3vw,13px);line-height:1.7;color:${MU};margin:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;';btn.textContent='Lire la suite ↓';}" id="synopsis-btn" style="font-size:clamp(9px,2.8vw,12px);color:${AC};cursor:pointer;margin-top:4px;display:inline-block;">Lire la suite ↓</span> </div>
     </div>
 
     <!-- Sortie dispo banner -->
