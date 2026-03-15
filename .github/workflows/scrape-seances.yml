@@ -1,11 +1,7 @@
 name: 🎬 CinéMatch — Mise à jour séances
-
 on:
-  # Tous les jours à 3h00 du matin (heure Paris = UTC+1/+2)
   schedule:
     - cron: '0 2,8,14,20 * * *'
-  
-  # Possibilité de lancer manuellement depuis GitHub
   workflow_dispatch:
     inputs:
       dry_run:
@@ -19,7 +15,6 @@ jobs:
     name: Scraping AlloCiné → Supabase
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -34,6 +29,11 @@ jobs:
       - name: 📦 Installer les dépendances
         working-directory: scraper
         run: npm install
+
+      # ← NOUVEAU : installe Chromium pour Playwright
+      - name: 🌐 Installer Chromium (Playwright)
+        working-directory: scraper
+        run: npx playwright install chromium --with-deps
 
       - name: 🔍 Scraping + mise à jour Supabase
         working-directory: scraper
@@ -50,8 +50,8 @@ jobs:
 
       - name: ✅ Résumé
         if: success()
-        run: echo "✅ Séances mises à jour avec succès — $(date '+%d/%m/%Y %H:%M')"
+        run: echo "✅ Séances mises à jour — $(date '+%d/%m/%Y %H:%M')"
 
       - name: ❌ Notification d'échec
         if: failure()
-        run: echo "❌ Le scraping a échoué — vérifier les logs ci-dessus"
+        run: echo "❌ Le scraping a échoué — vérifier les logs"
