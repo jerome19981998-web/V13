@@ -184,7 +184,16 @@ const CINEMA_LINKS={
 const _t1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKaGRXUWlPaUl6TXpZME0yRXdNRFJpWkdNeVl6ZGxObUl5WVRGak9XTXpaV0k1WkRobFl5SXNJbQ=='),_t2=atob('NWlaaUk2TVRjM016QXdNVEl6Tnk0Mk9EWXNJbk4xWWlJNklqWTVZV1JrWVRFMU1tVm1OV014Wm1ZNU5XWmpZbU5sT0NJc0luTmpiM0JsYw=='),_t3=atob('eUk2V3lKaGNHbGZjbVZoWkNKZExDSjJaWEp6YVc5dUlqb3hmUS5iUlcyVVZxdTFwODl4UHVzS1Y1LW16VzRaZVJTazhpajgxMUZXT0l3b0JN');
 const TMDB_TOKEN=_t1+_t2+_t3;
 const TMDB_IMG='https://image.tmdb.org/t/p/w500';
-
+// ── XSS Protection ──
+function esc(s){
+  if(s==null)return'';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
 const ANIMAL_EMOJIS=['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦖','🦕','🐢','🐍','🦎','🦏','🦛','🐙','🦑','🦐','🦞','🦀','🐡','🐟','🐠','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦣','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐕‍🦺','🐈','🐈‍⬛','🪶','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿','🦔','🐾','🐉','🐲','🪸'];
 
 let FILMS={},CINEMAS=[],SEANCES={},AVAILABLE_DATES=[],DATA_LOADED=false;
@@ -1117,8 +1126,8 @@ function msgHTML(m){
   return `<div style="display:flex;gap:8px;margin-bottom:6px;align-items:flex-end;flex-direction:${me?'row-reverse':'row'};">
     ${avatarEl(m.pseudo,26)}
     <div style="max-width:195px;">
-      <div style="font-size:8px;color:${MU};margin-bottom:3px;text-align:${me?'right':'left'};">${m.pseudo} · ${t}</div>
-      <div style="padding:8px 12px;border-radius:14px;font-size:clamp(10px,3vw,13px);line-height:1.55;word-break:break-word;background:${me?AC:S2};border-bottom-left-radius:${me?'14px':'3px'};border-bottom-right-radius:${me?'3px':'14px'};">${m.texte}</div>
+      <div style="font-size:8px;color:${MU};margin-bottom:3px;text-align:${me?'right':'left'};">${esc(m.pseudo)} · ${t}</div>
+      <div style="padding:8px 12px;border-radius:14px;font-size:clamp(10px,3vw,13px);line-height:1.55;word-break:break-word;background:${me?AC:S2};border-bottom-left-radius:${me?'14px':'3px'};border-bottom-right-radius:${me?'3px':'14px'};">${esc(m.texte)}</div>
       <div data-reactions="${m.id}" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;justify-content:${me?'flex-end':'flex-start'};">${reactionsHTML(m.id)}</div>
     </div>
   </div>`;
