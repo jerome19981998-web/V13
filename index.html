@@ -252,7 +252,7 @@ async function initDynamicData(dateStr){
     const sm={};
     for(const s of(seancesRes.data||[])){if(!sm[s.cinema_id])sm[s.cinema_id]={};sm[s.cinema_id][s.film_id]=s.heures||[];}
     SEANCES=sm;
-    CINEMAS=CINEMAS.map(c=>({...c,films:Object.keys(sm[c.id]||{}).map(id=>({id})}));
+    CINEMAS=CINEMAS.map(c=>({...c,films:Object.keys(sm[c.id]||{}).map(id=>({id}))}));
     DATA_LOADED=true;
   }catch(e){console.error('initDynamicData:',e);}
 }
@@ -903,7 +903,7 @@ function sCinemas(){
       <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Cinémas Paris</div>
       <div style="display:flex;gap:8px;align-items:center;">
         ${userPos?`<span style="font-size:9px;color:${LB};">📍 Activée</span>`:`<button onclick="requestGeoLoc()" style="font-size:9px;color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:3px 8px;cursor:pointer;">📍 Proximité</button>`}
-        <div onclick="doSync()" style="display:flex;align-items:center;gap:5px;font-size:clamp(8px,2.5vw,11px);color:${st.syncing?'#ff8c42':LB};cursor:pointer;"><span>${st.syncing?'⟳':'✓'}</span><span>${st.syncing?T('synchro'):(st.syncLabel?T('misAJour')+' '+st.syncLabel:T('misAJour')}</span></div>
+        <div onclick="doSync()" style="display:flex;align-items:center;gap:5px;font-size:clamp(8px,2.5vw,11px);color:${st.syncing?'#ff8c42':LB};cursor:pointer;"><span>${st.syncing?'⟳':'✓'}</span><span>${st.syncing?T('synchro'):(st.syncLabel?T('misAJour')+' '+st.syncLabel:T('misAJour'))}</span></div>
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:12px;">
