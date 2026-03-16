@@ -30,11 +30,6 @@ jobs:
         working-directory: scraper
         run: npm install
 
-      # ← NOUVEAU : installe Chromium pour Playwright
-      - name: 🌐 Installer Chromium (Playwright)
-        working-directory: scraper
-        run: npx playwright install chromium --with-deps
-
       - name: 🔍 Scraping + mise à jour Supabase
         working-directory: scraper
         env:
