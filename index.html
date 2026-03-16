@@ -933,12 +933,18 @@ function sFilm(){
       ${(()=>{
         const seancesJour=cinemaFilm.map(c=>{const s=(SEANCES[c.id]||{})[st.film]||[];return{cinema:c,seances:s.filter(h=>!isPast(h))};}).filter(x=>x.seances.length);
         if(!seancesJour.length)return `<div style="text-align:center;padding:20px 0;color:${MU};font-size:clamp(10px,3vw,13px);">${T('aucuneSeanceJour')}</div>`;
-        return `<div style="margin-bottom:18px;">
-          <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances</div>
-          ${seancesJour.map(({cinema:c,seances})=>`<div style="margin-bottom:10px;">
+        const MAX_VISIBLE=3;
+        const visible=seancesJour.slice(0,MAX_VISIBLE);
+        const hidden=seancesJour.slice(MAX_VISIBLE);
+        const cinemaBlock=({cinema:c,seances})=>`<div style="margin-bottom:10px;">
             <div style="font-size:clamp(9px,2.8vw,12px);font-weight:500;margin-bottom:6px;color:${CC[c.chain]||MU};">${esc(c.name)}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`<div onclick="st.cinema='${c.id}';openGroup('${st.film}')" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;flex:0 0 auto;">${h}</div>`).join('')}</div>
-          </div>`).join('')}
+          </div>`;
+        return `<div style="margin-bottom:18px;">
+          <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances · ${seancesJour.length} cinéma${seancesJour.length>1?'s':''}</div>
+          ${visible.map(cinemaBlock).join('')}
+          ${hidden.length?`<div id="more-cinemas" style="display:none;">${hidden.map(cinemaBlock).join('')}</div>
+          <div id="show-more-btn" onclick="document.getElementById('more-cinemas').style.display='block';this.style.display='none';" style="text-align:center;padding:8px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid ${BD};font-size:clamp(9px,2.8vw,12px);color:${MU};cursor:pointer;margin-bottom:10px;">▼ Voir ${hidden.length} autre${hidden.length>1?'s':''} cinéma${hidden.length>1?'s':''}</div>`:''}
         </div>`;
       })()}
       <button onclick="openGroup('${st.film}')" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:clamp(12px,3.6vw,15px);font-weight:600;cursor:pointer;">Rejoindre le groupe →</button>
