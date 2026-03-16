@@ -1047,7 +1047,7 @@ function sCinemaDetail(){
             </div>
           </div>
         </div>
-        ${seances.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`<div onclick="openFilm('${fi.id}','cinema-detail');st.cinema='${cinema.id}';" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:4px 10px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>`:''}
+        ${seances.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;">${seances.map(h=>`<div onclick="openFilm('${fi.id}','cinema-detail');st.cinema='${cinema.id}';" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:4px 10px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>`:''}
       </div>`;
     }).join('')}
   </div>`;
