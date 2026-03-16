@@ -1,7 +1,6 @@
 /**
- * CinéMatch — Scraper v7
- * Sélecteurs mis à jour depuis le debug AlloCiné (16/03/2026)
- * Classes exactes: .movie-card-theater, .showtimes-hour-item-value
+ * CinéMatch — Scraper v7.1
+ * Fix: fermeture popup Didomi (cookies) avant extraction
  */
 
 const { chromium } = require('playwright');
@@ -56,23 +55,48 @@ function slugify(t) {
   return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-// ── EXTRACTION DANS LE NAVIGATEUR (sélecteurs exacts du debug) ────────────────
+// ── FERMER LA POPUP DIDOMI (cookies) ─────────────────────────────────────────
+async function closeCookiePopup(page) {
+  try {
+    await page.evaluate(() => {
+      // Méthode 1 : API Didomi directe
+      if (window.Didomi) {
+        window.Didomi.setUserAgreeToAll();
+        return;
+      }
+      // Méthode 2 : cliquer sur le bouton d'acceptation
+      const btn = document.querySelector(
+        '#didomi-notice-agree-button, ' +
+        'button[aria-label*="accepter" i], ' +
+        'button[aria-label*="accept" i], ' +
+        '.didomi-components-button--filled, ' +
+        '.didomi-continue-without-agreeing'
+      );
+      if (btn) btn.click();
+    });
+    // Attendre que la popup disparaisse
+    await page.waitForSelector('.didomi-popup-open', { state: 'detached', timeout: 5000 }).catch(() => {});
+    await sleep(1000); // laisser les horaires se recharger après fermeture
+  } catch (e) {
+    // La popup n'était peut-être pas là, on continue
+  }
+}
+
+// ── EXTRACTION DANS LE NAVIGATEUR ────────────────────────────────────────────
 async function extractFromPage(page) {
   return page.evaluate(() => {
     const results = [];
-
-    // Sélecteur exact trouvé par le debug : .movie-card-theater
     const cards = document.querySelectorAll('.movie-card-theater');
 
     cards.forEach(card => {
-      // Titre : lien vers /film/fichefilm
+      // Titre
       const titleEl = card.querySelector('a[href*="fichefilm"], .meta-title-link, h2 a, h3 a');
       const title = titleEl?.textContent?.trim();
       if (!title || title.length > 120) return;
 
       // Durée
       const durationEl = card.querySelector('.meta-body-item, [class*="duration"], [class*="runtime"]');
-      const duration = durationEl?.textContent?.trim().match(/\d+h\s*\d+/)?.[0]?.replace(/\s/g,'') || '';
+      const duration = durationEl?.textContent?.trim().match(/\d+h\s*\d+/)?.[0]?.replace(/\s/g, '') || '';
 
       // Réalisateur
       const dirEl = card.querySelector('[class*="director"], .meta-director');
@@ -82,51 +106,33 @@ async function extractFromPage(page) {
       const genreEl = card.querySelector('[class*="genre"]');
       const genre = genreEl?.textContent?.trim() || '';
 
-      // Horaires — sélecteur exact du debug : .showtimes-hour-item-value
+      // Horaires
       const heures = [];
 
-      // Format principal : texte dans .showtimes-hour-item-value
       card.querySelectorAll('.showtimes-hour-item-value').forEach(el => {
         const txt = el.textContent?.trim();
         const m = txt?.match(/(\d{1,2})h(\d{2})/i);
-        if (m) {
-          const h = parseInt(m[1]);
-          if (h >= 6 && h <= 23) heures.push(`${h}h${m[2]}`);
-        }
+        if (m) { const h = parseInt(m[1]); if (h >= 6 && h <= 23) heures.push(`${h}h${m[2]}`); }
       });
 
-      // Fallback : tous les éléments .showtimes-hour-item (bookable ou past)
       if (!heures.length) {
         card.querySelectorAll('.showtimes-hour-item').forEach(el => {
           const txt = el.textContent?.trim();
           const m = txt?.match(/(\d{1,2})h(\d{2})/i);
-          if (m) {
-            const h = parseInt(m[1]);
-            if (h >= 6 && h <= 23) heures.push(`${h}h${m[2]}`);
-          }
+          if (m) { const h = parseInt(m[1]); if (h >= 6 && h <= 23) heures.push(`${h}h${m[2]}`); }
         });
       }
 
-      // Fallback : <time datetime>
       if (!heures.length) {
         card.querySelectorAll('time[datetime]').forEach(el => {
           const dt = el.getAttribute('datetime') || el.textContent;
           const mISO = dt.match(/T(\d{2}):(\d{2})/);
-          if (mISO) {
-            const h = parseInt(mISO[1]);
-            if (h >= 6 && h <= 23) heures.push(`${h}h${mISO[2]}`);
-          }
+          if (mISO) { const h = parseInt(mISO[1]); if (h >= 6 && h <= 23) heures.push(`${h}h${mISO[2]}`); }
         });
       }
 
       if (heures.length > 0) {
-        results.push({
-          title,
-          director,
-          duration,
-          genre,
-          heures: [...new Set(heures)].sort(),
-        });
+        results.push({ title, director, duration, genre, heures: [...new Set(heures)].sort() });
       }
     });
 
@@ -145,31 +151,31 @@ async function scrapeCinema(browser, cinemaId, cinema) {
   });
   const page = await context.newPage();
 
-  // Bloquer médias pour accélérer
   await page.route('**/*', route => {
     const t = route.request().resourceType();
     if (['image', 'media', 'font'].includes(t)) return route.abort();
     route.continue();
   });
 
-  // Récupérer les dates disponibles depuis le data-attribute (page J)
   let availableDates = [];
   try {
     const baseUrl = `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html`;
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
     await page.waitForSelector('.movie-card-theater, .showtimes-list-holder', { timeout: 8000 }).catch(() => {});
 
-    // Lire les dates depuis data-showtimes-dates
+    // ── FERMER LA POPUP COOKIES ──
+    await closeCookiePopup(page);
+
+    // Lire les dates disponibles
     availableDates = await page.evaluate(() => {
       const section = document.querySelector('[data-showtimes-dates]');
       if (!section) return [];
       try { return JSON.parse(section.getAttribute('data-showtimes-dates') || '[]'); }
       catch { return []; }
     });
-
     console.log(`  📅 Dates dispo: ${availableDates.slice(0, DAYS).join(', ')}`);
 
-    // Extraire J (page déjà chargée)
+    // Extraire J
     const today = new Date().toISOString().slice(0, 10);
     const seancesJ = await extractFromPage(page);
     for (const { title, director, duration, genre, heures } of seancesJ) {
@@ -184,7 +190,7 @@ async function scrapeCinema(browser, cinemaId, cinema) {
     console.log(`    ✗ Page J: ${e.message}`);
   }
 
-  // Scraper J+1 à J+6 (ou jusqu'à DAYS dates)
+  // Scraper J+1 à J+6
   const futureDates = availableDates
     .filter(d => d > new Date().toISOString().slice(0, 10))
     .slice(0, DAYS - 1);
@@ -194,7 +200,9 @@ async function scrapeCinema(browser, cinemaId, cinema) {
       const url = `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html?date=${dateISO}`;
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
       await page.waitForSelector('.movie-card-theater', { timeout: 6000 }).catch(() => {});
-      await sleep(500); // laisser le JS finir
+
+      // ── FERMER LA POPUP COOKIES (si elle réapparaît) ──
+      await closeCookiePopup(page);
 
       const seances = await extractFromPage(page);
       for (const { title, director, duration, genre, heures } of seances) {
@@ -310,7 +318,7 @@ async function pushToSupabase(allData) {
 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('🎬 CinéMatch Scraper v7 — ' + new Date().toLocaleString('fr-FR'));
+  console.log('🎬 CinéMatch Scraper v7.1 — ' + new Date().toLocaleString('fr-FR'));
   console.log(DRY_RUN ? '🔍 DRY-RUN' : '🚀 PRODUCTION');
 
   const browser = await chromium.launch({ headless: true });
