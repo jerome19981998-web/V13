@@ -1,3 +1,0 @@
-- name: 🔍 Debug sélecteurs
-  working-directory: scraper
-  run: node scraper-debug.js
