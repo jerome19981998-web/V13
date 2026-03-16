@@ -55,58 +55,69 @@ function slugify(t) {
   return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-// ── INJECTION CONSENTEMENT DIDOMI (avant chargement page) ────────────────────
-// Injecte le consentement dans localStorage AVANT que la page se charge
-// → AlloCiné ne montre jamais la popup et charge les séances directement
+// ── BYPASS DIDOMI COMPLET ────────────────────────────────────────────────────
+// On remplace l'objet window.Didomi par un faux qui retourne toujours "consenti"
+// avant même que le SDK Didomi se charge → AlloCiné pense que l'utilisateur
+// a déjà tout accepté et charge les séances directement
 const DIDOMI_CONSENT_SCRIPT = `
-  // Consentement Didomi pré-injecté pour AlloCiné
-  try {
-    const consent = {
-      user_id: 'cinematch-bot',
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-      vendors: { enabled: [], disabled: [] },
-      purposes: { enabled: [], disabled: [] },
-      version: 1,
+  (function() {
+    // Stocker le consentement dans localStorage (lu par Didomi au démarrage)
+    try {
+      localStorage.setItem('didomi_token', JSON.stringify({
+        purposes_consent: 'all', vendors_consent: 'all',
+        created: new Date().toISOString(), updated: new Date().toISOString()
+      }));
+      localStorage.setItem('euconsent-v2', 'CPAAAAAAAAAAAAAAAAAAAAEgAAAAAAAAAAAA');
+    } catch(e) {}
+
+    // Créer un faux objet Didomi qui répond "tout accepté" à toutes les questions
+    const fakeDidomi = {
+      setUserAgreeToAll: function() {},
+      setUserDisagreeToAll: function() {},
+      getUserConsentStatusForPurpose: function() { return true; },
+      getUserConsentStatusForVendor: function() { return true; },
+      getUserStatus: function() { return { purposes: { consent: { enabled: [] } } }; },
+      isReady: function() { return true; },
+      on: function(event, cb) { if (event === 'ready') { try { cb(); } catch(e) {} } return function(){}; },
+      off: function() {},
+      notice: { isVisible: function() { return false; } },
+      preferences: {},
     };
-    // Clé utilisée par Didomi sur allocine.fr
-    localStorage.setItem('didomi_token', JSON.stringify({ purposes_consent: 'all' }));
-    localStorage.setItem('euconsent-v2', 'consent-all');
-    localStorage.setItem('didomi-auth', JSON.stringify(consent));
-    // Supprimer la classe bloquante sur le body si présente
-    document.documentElement.classList.remove('didomi-popup-open');
-    document.body && document.body.classList.remove('didomi-popup-open');
-    // Masquer la popup visuellement si elle existe
-    const popup = document.getElementById('didomi-popup');
-    if (popup) popup.style.display = 'none';
-    const notice = document.getElementById('didomi-notice');
-    if (notice) notice.style.display = 'none';
-    // Forcer via API si disponible
-    if (window.Didomi) window.Didomi.setUserAgreeToAll();
-  } catch(e) {}
+
+    // Injecter avant que le vrai Didomi se charge
+    if (!window.Didomi) window.Didomi = fakeDidomi;
+
+    // Intercepter la définition de window.Didomi pour garder notre faux
+    Object.defineProperty(window, 'Didomi', {
+      get: function() { return fakeDidomi; },
+      set: function(v) {
+        // Le vrai SDK essaie de se définir — on ignore et on garde le faux
+      },
+      configurable: true,
+    });
+
+    // Supprimer la classe bloquante dès que le DOM est prêt
+    function removeBlockingClass() {
+      document.documentElement.classList.remove('didomi-popup-open');
+      document.body && document.body.classList.remove('didomi-popup-open');
+    }
+    removeBlockingClass();
+    document.addEventListener('DOMContentLoaded', removeBlockingClass);
+  })();
 `;
 
 async function closeCookiePopup(page) {
+  // Avec le faux Didomi injecté via addInitScript, la popup ne devrait plus bloquer.
+  // On supprime quand même la classe au cas où AlloCiné la remet après coup.
   try {
-    // Méthode 1 : clic Playwright sur le bouton "Accepter" (déclenche les requêtes réseau)
-    const btn = await page.$('#didomi-notice-agree-button, .didomi-components-button--filled, button[aria-label*="accepter" i]');
-    if (btn) {
-      await btn.click();
-      console.log('    🍪 Popup cookies cliquée');
-      // Attendre que les horaires se chargent via réseau
-      await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-      await sleep(1000);
-      return;
-    }
-    // Méthode 2 : forcer via JS si bouton pas trouvé
     await page.evaluate(() => {
-      try {
-        if (window.Didomi) { window.Didomi.setUserAgreeToAll(); return; }
-        document.documentElement.classList.remove('didomi-popup-open');
-      } catch(e) {}
+      document.documentElement.classList.remove('didomi-popup-open');
+      document.body && document.body.classList.remove('didomi-popup-open');
+      const popup = document.getElementById('didomi-popup');
+      if (popup) popup.style.display = 'none';
     });
-    await sleep(1500);
-  } catch (e) {}
+    await sleep(500);
+  } catch(e) {}
 }
 
 // ── EXTRACTION DANS LE NAVIGATEUR ────────────────────────────────────────────
