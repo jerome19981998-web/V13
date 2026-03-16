@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>CinéMatch</title>
   <link rel="manifest" href="/manifest.json"/>
   <meta name="theme-color" content="#07070f"/>
@@ -24,11 +24,18 @@
     html{height:100%;overflow:hidden;position:fixed;width:100%;}
     body{margin:0;padding:0;width:100%;height:100%;background:#07070f;font-family:'Outfit',sans-serif;overflow:hidden;position:fixed;-webkit-overflow-scrolling:touch;}
     /* Prevent phantom bottom space on iOS */
-    html{height:-webkit-fill-available;}body{min-height:-webkit-fill-available;height:100%;}
+    html,body{height:100%;height:-webkit-fill-available;}
     .serif{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;}
-    .phone{width:100%;background:#07070f;display:flex;flex-direction:column;color:#e8e0d4;font-size:13px;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0;}
+    .phone{width:100%;height:100%;height:100dvh;height:-webkit-fill-available;background:#07070f;display:flex;flex-direction:column;color:#e8e0d4;font-size:13px;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0;}
     .notch{display:none;}
-
+    /* Fix bottom safe-area overflow */
+    .navbar-safe{
+      padding-bottom:env(safe-area-inset-bottom,0px);
+      padding-bottom:max(env(safe-area-inset-bottom,0px),0px);
+    }
+    @supports(padding-bottom:env(safe-area-inset-bottom)){
+      .navbar-safe{padding-bottom:env(safe-area-inset-bottom);}
+    }
     @media(min-width:600px){
       body{display:flex;align-items:center;justify-content:center;background:#04040a;overflow:auto;position:static;}
       html{overflow:auto;position:static;}
@@ -38,15 +45,11 @@
     }
     #inner{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:max(env(safe-area-inset-top),0px);padding-bottom:0;font-size:var(--fs-md);}
     @media(min-width:600px){#inner{padding-top:40px;padding-bottom:0;}}
-    @supports(padding-bottom:env(safe-area-inset-bottom)){
-      .pb-safe{padding-bottom:env(safe-area-inset-bottom)!important;}
-    }
     .tap{transition:opacity .15s;}
     .tap:active{opacity:.6;}
     ::-webkit-scrollbar{width:3px;}
     ::-webkit-scrollbar-thumb{background:#252535;border-radius:3px;}
     :root{
-      --safe-bottom:env(safe-area-inset-bottom,0px);
       --fs-xs:10px;--fs-sm:11px;--fs-md:13px;--fs-lg:15px;--fs-xl:18px;--fs-2xl:24px;--fs-3xl:28px;
       --sp-xs:6px;--sp-sm:10px;--sp-md:14px;--sp-lg:18px;--sp-xl:24px;
       --btn-h:48px;--nav-h:64px;--radius:14px;
@@ -92,37 +95,7 @@
     .fade-up{animation:fadeUp 0.3s ease forwards;}
 
     @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
-  /* ─ iOS bottom safe area: guaranteed fix ─ */
-  @media screen and (max-width: 430px) {
-    .bottom-nav { padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
-  }
   </style>
-  <script>
-  // Prevent pinch zoom and double-tap zoom on iOS
-  document.addEventListener('touchstart', function(e){
-    if(e.touches.length > 1) e.preventDefault();
-  }, {passive: false});
-  var lastTouch = 0;
-  document.addEventListener('touchend', function(e){
-    var now = Date.now();
-    if(now - lastTouch < 300) e.preventDefault();
-    lastTouch = now;
-  }, {passive: false});
-  </script>
-  <script>
-  // Run immediately and after every render to fix bottom nav safe area on iOS
-  function fixBottomNav(){
-    document.querySelectorAll('.bottom-nav').forEach(function(el){
-      el.style.setProperty('padding-bottom','env(safe-area-inset-bottom,0px)','important');
-    });
-  }
-  document.addEventListener('DOMContentLoaded', fixBottomNav);
-  // Observe DOM mutations to re-apply after dynamic renders
-  var _obs = new MutationObserver(fixBottomNav);
-  document.addEventListener('DOMContentLoaded', function(){
-    _obs.observe(document.getElementById('inner')||document.body, {childList:true,subtree:true});
-  });
-  </script>
 <script>
 function applyScale(){
   const h=window.innerHeight,w=window.innerWidth;
@@ -181,10 +154,8 @@ const CINEMA_LINKS={
   'gaumont-convention':{tickets:'https://www.gaumont.fr/fr/cinemas/gaumont-convention.html',maps:'https://maps.google.com/?q=Gaumont+Convention+27+rue+Alain-Chartier+Paris'},
   'gaumont-aquaboulevard':{tickets:'https://www.gaumont.fr/fr/cinemas/gaumont-aquaboulevard.html',maps:'https://maps.google.com/?q=Gaumont+Aquaboulevard+8+rue+Colonel+Pierre+Avia+Paris'},
 };
-const _t1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKaGRXUWlPaUl6TXpZME0yRXdNRFJpWkdNeVl6ZGxObUl5WVRGak9XTXpaV0k1WkRobFl5SXNJbQ=='),_t2=atob('NWlaaUk2TVRjM016QXdNVEl6Tnk0Mk9EWXNJbk4xWWlJNklqWTVZV1JrWVRFMU1tVm1OV014Wm1ZNU5XWmpZbU5sT0NJc0luTmpiM0JsYw=='),_t3=atob('eUk2V3lKaGNHbGZjbVZoWkNKZExDSjJaWEp6YVc5dUlqb3hmUS5iUlcyVVZxdTFwODl4UHVzS1Y1LW16VzRaZVJTazhpajgxMUZXT0l3b0JN');
-const TMDB_TOKEN=_t1+_t2+_t3;
-const TMDB_IMG='https://image.tmdb.org/t/p/w500';
-// ── XSS Protection ──
+
+// ── XSS Protection: escape all user-generated content ──
 function esc(s){
   if(s==null)return'';
   return String(s)
@@ -194,6 +165,10 @@ function esc(s){
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#39;');
 }
+const _t1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKaGRXUWlPaUl6TXpZME0yRXdNRFJpWkdNeVl6ZGxObUl5WVRGak9XTXpaV0k1WkRobFl5SXNJbQ=='),_t2=atob('NWlaaUk2TVRjM016QXdNVEl6Tnk0Mk9EWXNJbk4xWWlJNklqWTVZV1JrWVRFMU1tVm1OV014Wm1ZNU5XWmpZbU5sT0NJc0luTmpiM0JsYw=='),_t3=atob('eUk2V3lKaGNHbGZjbVZoWkNKZExDSjJaWEp6YVc5dUlqb3hmUS5iUlcyVVZxdTFwODl4UHVzS1Y1LW16VzRaZVJTazhpajgxMUZXT0l3b0JN');
+const TMDB_TOKEN=_t1+_t2+_t3;
+const TMDB_IMG='https://image.tmdb.org/t/p/w500';
+
 const ANIMAL_EMOJIS=['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦖','🦕','🐢','🐍','🦎','🦏','🦛','🐙','🦑','🦐','🦞','🦀','🐡','🐟','🐠','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦣','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐕‍🦺','🐈','🐈‍⬛','🪶','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿','🦔','🐾','🐉','🐲','🪸'];
 
 let FILMS={},CINEMAS=[],SEANCES={},AVAILABLE_DATES=[],DATA_LOADED=false;
@@ -233,11 +208,11 @@ function posterCardLg(id,f,onClick){
   const vu=isVu(id),wl=isWatchlist(id)&&!isVu(id);
   return `<div class="poster-card-lg tap fade-up" onclick="${onClick||`openFilm('${id}','home')`}">
     <div class="poster-img" style="background:${f.bg};">
-      ${hasP?`<img src="${posters[id]}" alt="${f.t}" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:44px;">${f.e}</span>`}
+      ${hasP?`<img src="${posters[id]}" alt="${esc(f.t)}" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:44px;">${f.e}</span>`}
       ${vu?'<div style="position:absolute;top:5px;right:5px;background:rgba(0,192,48,0.85);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;">✓</div>':''}
       ${wl?'<div style="position:absolute;top:5px;right:5px;background:rgba(240,192,96,0.85);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;">🔖</div>':''}
     </div>
-    <div class="poster-title" style="font-size:10px;font-weight:500;margin-top:4px;">${f.t}</div>
+    <div class="poster-title" style="font-size:10px;font-weight:500;margin-top:4px;">${esc(f.t)}</div>
     ${note?`<div style="margin-top:2px;">${starsHTML(note,5,9)}</div>`:`<div style="font-size:9px;color:#555570;margin-top:2px;">${f.g||''}</div>`}
   </div>`;
 }
@@ -248,7 +223,7 @@ function posterCardSm(id,f){
     <div style="width:60px;height:90px;border-radius:7px;overflow:hidden;background:${f.bg};position:relative;">
       ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:26px;">${f.e}</span>`}
     </div>
-    <div style="font-size:9px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.t}</div>
+    <div style="font-size:9px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(f.t)}</div>
   </div>`;
 }
 </script>
@@ -269,21 +244,15 @@ async function initDynamicData(dateStr){
       if(!dateStr||!AVAILABLE_DATES.includes(dateStr))dateStr=AVAILABLE_DATES[0]||todayStr();
       st.date=dateStr;
       FILMS={};
-      for(const f of(filmsRes.data||[])){const[c,bg]=filmPalette(f.id);FILMS[f.id]={e:genreEmoji(f.genre),c,bg,g:(f.genre||'DIVERS').toUpperCase(),t:f.title,d:f.duration||'',dir:f.director||'',s:f.synopsis||'',poster:f.poster_url||null,tmdbNote:f.tmdb_note||null,trailerKey:f.trailer_key||null,lbd:false};}
-      CINEMAS=(cinemasRes.data||[]).map(c=>({
-  id:c.id, lat:c.lat, lng:c.lng, chain:c.chain,
-  icon:CHAIN_ICONS[c.chain]||'🎬', name:c.name,
-  addr:c.addr||'', metro:c.metro||'',
-  salles:c.salles||null,
-  tech:[], films:[]
-}));
+      for(const f of(filmsRes.data||[])){const[c,bg]=filmPalette(f.id);FILMS[f.id]={e:genreEmoji(f.genre),c,bg,g:(f.genre||'DIVERS').toUpperCase(),t:f.title,d:(()=>{const dur=f.duration||'';return /^\d+h\d+$/.test(dur)?dur:'';})(),dir:f.director||'',s:f.synopsis||'',poster:f.poster_url||null,tmdbNote:f.tmdb_note||null,trailerKey:f.trailer_key||null,lbd:false};}
+      CINEMAS=(cinemasRes.data||[]).map(c=>({id:c.id,lat:c.lat,lng:c.lng,chain:c.chain,icon:CHAIN_ICONS[c.chain]||'🎬',name:c.name,addr:c.addr||'',metro:c.metro||'',salles:null,tech:[],films:[]}));
     }
     const targetDate=dateStr||st.date;
     const seancesRes=await supa.from('seances_dyn').select('*').eq('date',targetDate);
     const sm={};
     for(const s of(seancesRes.data||[])){if(!sm[s.cinema_id])sm[s.cinema_id]={};sm[s.cinema_id][s.film_id]=s.heures||[];}
     SEANCES=sm;
-    CINEMAS=CINEMAS.map(c=>({...c,films:Object.keys(sm[c.id]||{}).map(id=>({id}))}));
+    CINEMAS=CINEMAS.map(c=>({...c,films:Object.keys(sm[c.id]||{}).map(id=>({id})}));
     DATA_LOADED=true;
   }catch(e){console.error('initDynamicData:',e);}
 }
@@ -320,7 +289,23 @@ async function enrichGenresFromTMDB(){
     const batch=toFetch.slice(i,i+5);
     await Promise.all(batch.map(async([id,f])=>{
       if(tmdbGenreCache[id]){applyGenre(id,tmdbGenreCache[id]);return;}
-      try{const q=encodeURIComponent(f.t);const r=await fetch(`https://api.themoviedb.org/3/search/movie?query=${q}&language=fr-FR&page=1`,{headers:{Authorization:'Bearer '+TMDB_TOKEN}});const data=await r.json();const movie=data.results?.[0];if(movie?.genre_ids?.length){const genre=TMDB_GENRE_MAP[movie.genre_ids[0]]||'divers';tmdbGenreCache[id]=genre;applyGenre(id,genre);if(!posters[id]&&movie.poster_path)posters[id]=TMDB_IMG+movie.poster_path;if(!ratings[id]&&movie.vote_average>0)ratings[id]={note:movie.vote_average.toFixed(1)};}}catch(e){}
+      try{const q=encodeURIComponent(f.t);const r=await fetch(`https://api.themoviedb.org/3/search/movie?query=${q}&language=fr-FR&page=1`,{headers:{Authorization:'Bearer '+TMDB_TOKEN}});const data=await r.json();const results=data.results||[];
+          // Scorer pour trouver le bon film (évite les remakes/homonymes)
+          const norm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+          const titleN=norm(f.t);
+          const currentYear=new Date().getFullYear();
+          const scored=results.map(r=>{
+            let sc=0;
+            if(norm(r.title)===titleN||norm(r.original_title)===titleN)sc+=100;
+            else if(norm(r.title).startsWith(titleN)||titleN.startsWith(norm(r.title)))sc+=30;
+            const ry=r.release_date?parseInt(r.release_date.slice(0,4)):0;
+            if(ry>=currentYear-1&&ry<=currentYear+1)sc+=50;
+            if(r.poster_path)sc+=10;
+            sc+=Math.min(20,(r.popularity||0)/5);
+            return{...r,_sc:sc};
+          }).sort((a,b)=>b._sc-a._sc);
+          const movie=scored[0];
+          if(movie?.genre_ids?.length){const genre=TMDB_GENRE_MAP[movie.genre_ids[0]]||'divers';tmdbGenreCache[id]=genre;applyGenre(id,genre);if(!posters[id]&&movie.poster_path)posters[id]=TMDB_IMG+movie.poster_path;if(!ratings[id]&&movie.vote_average>0)ratings[id]={note:movie.vote_average.toFixed(1)};}}catch(e){}
     }));
   }
   try{localStorage.setItem('cm_genres',JSON.stringify(tmdbGenreCache));}catch(e){}
@@ -338,8 +323,8 @@ try{const lockKeys=Object.keys(localStorage).filter(k=>k.includes('lock:sb-'));l
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
 
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
-let st={screen:'loading',lang:_saved.lang||'fr',pseudo:_saved.pseudo||'',pseudoInput:'',avatar:_saved.avatar||'🎬',userId:null,userEmail:'',authStep:'login',cinema:null,film:null,filmSrc:'home',groupe:null,search:'',genre:'tous',cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',tab:'chat',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',msgs:[],date:todayStr(),lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',viewedMember:null,showAvatarPicker:false,_inviteGroupe:null,_inviteFilm:null,_changingPseudo:false,_showAllFilms:false};
-function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang}))}catch(e){}}
+let st={screen:'loading',lang:_saved.lang||'fr',pseudo:_saved.pseudo||'',pseudoInput:'',avatar:_saved.avatar||'🎬',userId:null,userEmail:'',authStep:'login',cinema:null,film:null,filmSrc:'home',groupe:null,search:'',genre:'tous',cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',tab:'chat',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',msgs:[],date:todayStr(),lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',viewedMember:null,showAvatarPicker:false,_inviteGroupe:null,_inviteFilm:null,_changingPseudo:false};
+function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang})}catch(e){}}
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
 
 let lbdSeen=new Set(),lbdWatchlist=new Set();
@@ -376,11 +361,11 @@ async function loadSorties(){
   if(st.screen==='home')render();
 }
 
-async function creerSortie(filmId,cinemaId,heure,date,maxM,isPublic){
+async function creerSortie(filmId,cinemaId,heure,date,maxM){
   if(!rateLimit('creer_'+st.userId,3,60000))return;
   if(!filmId||!cinemaId||!heure||!date){toast('Remplis tous les champs','error');return;}
   const film=FILMS[filmId];
-  const{data,error}=await supa.from('groupes').insert({film_id:filmId,nom:film?.t||filmId,createur:st.pseudo,user_id:st.userId,is_public:isPublic===true,max_membres:maxM||8,confirmed_cinema:cinemaId,confirmed_heure:heure,confirmed_date:date}).select('id').single();
+  const{data,error}=await supa.from('groupes').insert({film_id:filmId,nom:film?.t||filmId,createur:st.pseudo,user_id:st.userId,is_public:true,max_membres:maxM||8,confirmed_cinema:cinemaId,confirmed_heure:heure,confirmed_date:date}).select('id').single();
   if(error){toast('Erreur création','error');console.error(error);return;}
   await supa.from('groupe_membres').upsert({groupe:data.id,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});
   toast('Sortie créée ! 🎉','success');st.newSortie=null;await loadSorties();await loadMesGroupes();openGroup(filmId,data.id);
@@ -509,19 +494,9 @@ async function handleSession(session){
 }
 
 supa.auth.onAuthStateChange((event,session)=>{
-  if(event==='INITIAL_SESSION'){
-    handleSession(session);
-  } else if(event==='SIGNED_IN'){
-    if(!st.userId){
-      _authDone=false;
-      handleSession(session);
-    }
-  } else if(event==='SIGNED_OUT'&&_explicitLogout){
-    _explicitLogout=false;_authDone=false;
-    st.userId=null;st.userEmail='';
-    st.screen='auth';st.authStep='login';
-    render();
-  }
+  if(event==='INITIAL_SESSION')handleSession(session);
+  else if(event==='SIGNED_IN'){_authDone=false;handleSession(session);}
+  else if(event==='SIGNED_OUT'&&_explicitLogout){_explicitLogout=false;_authDone=false;st.userId=null;st.userEmail='';st.screen='auth';st.authStep='login';render();}
 });
 setTimeout(()=>{if(st.screen==='loading'){st.screen='auth';st.authStep='login';render();}},4000);
 </script>
@@ -622,7 +597,7 @@ function getSearchHistory(){try{const key='cm_searches_'+(st.pseudo||'_');return
 function saveSearch(q){if(!q||q.trim().length<2)return;q=q.trim();try{const key='cm_searches_'+(st.pseudo||'_');let hist=getSearchHistory();hist=hist.filter(h=>h!==q);hist.unshift(q);hist=hist.slice(0,8);localStorage.setItem(key,JSON.stringify(hist));}catch(e){}}
 function clearSearchHistory(){try{localStorage.removeItem('cm_searches_'+(st.pseudo||'_'));}catch(e){}st.search='';render();}
 function useSearch(q){st.search=q;st.showSearchHistory=false;render();}
-function setGenre(g){   if(g==='tous'&&st.genre==='tous'){st._showAllFilms=!st._showAllFilms;}   else{st._showAllFilms=g!=='tous'?false:true;st.genre=g;}   st.search='';st.showSearchHistory=false;render(); }
+function setGenre(g){st.genre=g;st.search='';st.showSearchHistory=false;render();}
 
 // ═══════════ HOME — LETTERBOXD-INSPIRED ═══════════
 function sHome(){
@@ -631,7 +606,7 @@ function sHome(){
   const mySortieIds=new Set(mesGroupes.map(g=>g.id));
 
   // ── Bottom navbar (shared) ──
-  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};position:fixed;bottom:0;left:0;right:0;z-index:1000;" class="bottom-nav">
+  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:max(env(safe-area-inset-bottom,0px),0px);padding-bottom:env(safe-area-inset-bottom,0px);">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="${sc==='group'?`go('group')`:`go('${sc}')`}" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc||tab==='sorties'&&sc==='home'?1:0.45};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.length?`<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:${AC};border:1.5px solid #07070f;"></div>`:''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div>`;
 
@@ -641,7 +616,7 @@ function sHome(){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div>
           <div style="font-size:clamp(9px,2.8vw,12px);color:${MU};letter-spacing:2px;text-transform:uppercase;">${T('bonsoir')}</div>
-          <div class="serif" style="font-size:clamp(18px,5.6vw,24px);display:flex;align-items:center;gap:8px;">${st.pseudo} <span style="color:${AC}">👋</span>
+          <div class="serif" style="font-size:clamp(18px,5.6vw,24px);display:flex;align-items:center;gap:8px;">${esc(st.pseudo)} <span style="color:${AC}">👋</span>
             <div style="position:relative;display:inline-flex;align-items:center;">
               <select onchange="st.lang=this.value;save();render()" style="background:${S1};border:1px solid ${BD};border-radius:8px;padding:3px 20px 3px 6px;font-size:clamp(9px,2.8vw,12px);color:${TX};cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;font-family:inherit;">
                 <option value="fr" ${st.lang==='fr'?'selected':''}>🇫🇷</option>
@@ -673,12 +648,12 @@ function sHome(){
 
     // Filter logic
     const filmGenre=id=>{const f=FILMS[id];return f?norm(f.g):'';};
-   const filtered=allFilms.filter(([id,f])=>{
-  const gn=norm(activeGenre);
-  const genreOk=activeGenre==='tous'||filmGenre(id).includes(gn)||filmGenre(id).includes(gn.replace('comedie','comedi'));
-  const searchOk=!searchQ||norm(f.t).includes(searchQ)||norm(f.dir||'').includes(searchQ)||norm(f.g).includes(searchQ)||norm(f.s||'').includes(searchQ);
-  return genreOk&&searchOk;
-}).sort((a,b)=>a[1].t.localeCompare(b[1].t,'fr'));
+    const filtered=allFilms.filter(([id,f])=>{
+      const gn=norm(activeGenre);
+      const genreOk=activeGenre==='tous'||filmGenre(id).includes(gn)||filmGenre(id).includes(gn.replace('comedie','comedi'));
+      const searchOk=!searchQ||norm(f.t).includes(searchQ)||norm(f.dir||'').includes(searchQ)||norm(f.g).includes(searchQ)||norm(f.s||'').includes(searchQ);
+      return genreOk&&searchOk;
+    });
 
     // Sort by rating for "Popular"
     const sortedByRating=[...allFilms].sort((a,b)=>{const ra=parseFloat(ratings[a[0]]?.note||0);const rb=parseFloat(ratings[b[0]]?.note||0);return rb-ra;});
@@ -692,8 +667,8 @@ function sHome(){
     const heroEntry=allFilms.find(([id,f])=>posters[id])||allFilms[0];
     const heroId=heroEntry?.[0],heroFilm=heroEntry?.[1];
 
-const isSearching=searchQ.length>0;
-const isFiltering=activeGenre!=='tous'||isSearching||st._showAllFilms;
+    const isSearching=searchQ.length>0;
+    const isFiltering=activeGenre!=='tous';
 
     return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
       ${header}
@@ -716,8 +691,8 @@ const isFiltering=activeGenre!=='tous'||isSearching||st._showAllFilms;
         </div>
       </div>
 
-      <div style="flex:1;overflow-y:auto;padding-bottom:80px;">
-        ${(isFiltering)?`
+      <div style="flex:1;overflow-y:auto;">
+        ${(isSearching||isFiltering)?`
           <!-- SEARCH / FILTERED RESULTS: grid view -->
           ${filtered.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:clamp(28px,9vw,40px);margin-bottom:10px;">🔍</div><div style="font-size:clamp(11px,3.3vw,14px);">${T('aucunFilmTrouve')}</div></div>`:''}
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 20px;">
@@ -729,7 +704,7 @@ const isFiltering=activeGenre!=='tous'||isSearching||st._showAllFilms;
                   ${isVu(id)?'<div style="position:absolute;top:4px;right:4px;background:rgba(0,192,48,0.9);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:8px;">✓</div>':''}
                 </div>
                 <div style="padding:4px 2px;">
-                  <div style="font-size:9px;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${f.t}</div>
+                  <div style="font-size:9px;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${esc(f.t)}</div>
                   ${ratings[id]?`<div style="margin-top:2px;">${starsHTML(ratings[id].note,5,8)}</div>`:''}
                 </div>
               </div>`).join('')}
@@ -791,13 +766,30 @@ const isFiltering=activeGenre!=='tous'||isSearching||st._showAllFilms;
           <div style="margin-bottom:20px;">
             <div class="section-header">
               <div class="section-title">🔖 Votre watchlist</div>
-              <div class="section-more" style="color:${GD};">@${st.lbdPseudo}</div>
+              <div class="section-more" style="color:${GD};">@${esc(st.lbdPseudo)}</div>
             </div>
             <div class="row-scroll">
               ${allFilms.filter(([id])=>isWatchlist(id)).slice(0,8).map(([id,f])=>posterCardLg(id,f)).join('')}
             </div>
           </div>`:''}
 
+          <!-- GENRES QUICKLINKS -->
+          <div style="padding:0 18px 20px;">
+            <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">Parcourir par genre</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              ${T('genres').filter(([id])=>id!=='tous').map(([id,lb])=>{
+                const emoji=genreEmoji(id);
+                const count=allFilms.filter(([fid,f])=>norm(f.g||'').includes(norm(id))||norm(f.g||'').includes(norm(id).replace('comedie','comedi'))).length;
+                return count>0?`<div onclick="setGenre('${id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:clamp(15px,4.6vw,20px);">${emoji}</span>
+                  <div>
+                    <div style="font-size:clamp(10px,3vw,13px);font-weight:600;">${lb}</div>
+                    <div style="font-size:9px;color:${MU};">${count} film${count>1?'s':''}</div>
+                  </div>
+                </div>`:'';
+              }).join('')}
+            </div>
+          </div>
         `}
         <!-- bottom padding -->
         <div style="height:10px;"></div>
@@ -833,7 +825,7 @@ const isFiltering=activeGenre!=='tous'||isSearching||st._showAllFilms;
         </div>
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:3px;">
-            <div class="serif" style="font-size:clamp(13px,3.8vw,16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${film.t}</div>
+            <div class="serif" style="font-size:clamp(13px,3.8vw,16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${esc(film.t)}</div>
             ${isHot?`<div style="background:rgba(255,100,0,0.15);border:1px solid rgba(255,100,0,0.4);border-radius:8px;padding:2px 6px;font-size:9px;font-weight:700;color:#ff6400;white-space:nowrap;flex-shrink:0;">🔥</div>`:''}
           </div>
           <div style="font-size:clamp(8px,2.5vw,11px);font-weight:600;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">
@@ -860,39 +852,6 @@ const isFiltering=activeGenre!=='tous'||isSearching||st._showAllFilms;
         ${isMine&&!isCreator?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(0,192,48,0.1);border:1px solid rgba(0,192,48,0.3);font-size:clamp(9px,2.8vw,12px);color:${LB};font-weight:600;">${T('jeParticipe')}</div>`:''}
         ${!isMine&&!isFull?`<div onclick="event.stopPropagation();rejoindreSortie('${s.id}','${s.film_id}')" style="flex:1;text-align:center;padding:8px;border-radius:12px;background:${AC};font-size:clamp(10px,3vw,13px);font-weight:700;color:#fff;">${T('rejoindre')}</div>`:''}
         ${!isMine&&isFull?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid ${BD};font-size:clamp(9px,2.8vw,12px);color:${MU};">${T('complet')}</div>`:''}
-      </div>
-    </div>`;
-  };
-
-  // ── Compact card for horizontal scroll ──
-  const sortieCardH=(s)=>{
-    const film=FILMS[s.film_id]||{t:s.nom,e:'🎬',g:'',d:'',bg:'#111'};
-    const cinema=CINEMAS.find(c=>c.id===s.confirmed_cinema);
-    const chainColor=CC[cinema?.chain]||MU;
-    const nb=s._nb||0,max=s.max_membres||8,restantes=max-nb;
-    const isMine=mySortieIds.has(s.id),isFull=nb>=max,isCreator=s.createur===st.pseudo;
-    const isHot=!isFull&&restantes<=2&&restantes>0;
-    const pct=Math.round((nb/max)*100);
-    const dist=(userPos&&cinema?.lat&&cinema?.lng)?getDistance(userPos.lat,userPos.lng,cinema.lat,cinema.lng):null;
-    const distStr=dist!==null?distLabel(dist):null;
-    return `<div onclick="openGroup('${s.film_id}','${s.id}')" class="tap" style="flex-shrink:0;width:160px;background:${S1};border:1px solid ${isHot?'rgba(255,100,0,0.4)':BD};border-radius:16px;overflow:hidden;cursor:pointer;">
-      <div style="position:relative;height:100px;background:${film.bg};">
-        ${posters[s.film_id]?`<img src="${posters[s.film_id]}" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.6);" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;">${film.e}</span>`}
-        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(7,7,15,0.95));"></div>
-        <div style="position:absolute;bottom:6px;left:8px;right:8px;">
-          <div class="serif" style="font-size:12px;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${film.t}</div>
-        </div>
-        ${isCreator?`<div style="position:absolute;top:6px;right:6px;font-size:10px;">👑</div>`:''}
-        ${isMine&&!isCreator?`<div style="position:absolute;top:6px;right:6px;font-size:10px;">✓</div>`:''}
-      </div>
-      <div style="padding:8px;">
-        <div style="font-size:9px;font-weight:600;color:${chainColor};margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cinema?.name||'Cinéma'}</div>
-        <div style="font-size:10px;font-weight:700;margin-bottom:4px;">${s.confirmed_heure} <span style="font-size:8px;color:${MU};font-weight:400;">${formatDate(s.confirmed_date)}</span></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <span style="font-size:9px;color:${isFull?AC:MU};">${isFull?T('complet'):`${restantes} place${restantes>1?'s':''}`}</span>
-          ${distStr?`<span style="font-size:8px;color:${MU};">📍${distStr}</span>`:''}
-        </div>
-        <div style="height:2px;border-radius:1px;background:rgba(255,255,255,0.06);overflow:hidden;"><div style="height:100%;width:${pct}%;background:${isFull?AC:chainColor};border-radius:1px;"></div></div>
       </div>
     </div>`;
   };
@@ -925,47 +884,14 @@ const isFiltering=activeGenre!=='tous'||isSearching||st._showAllFilms;
         <div style="font-size:clamp(9px,2.8vw,12px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;">${T('sorties_publiques')}</div>
         <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="display:flex;align-items:center;gap:5px;background:${AC};border-radius:20px;padding:6px 12px;cursor:pointer;font-size:clamp(9px,2.8vw,12px);font-weight:700;color:#fff;">${T('creer')}</div>
       </div>
-      <!-- 🔥 TOP 10 POPULAIRES — horizontal scroll -->
-      ${(()=>{
-        const top10=[...sortiesPubliques].sort((a,b)=>(b._nb||0)-(a._nb||0)).slice(0,10);
-        if(!top10.length) return '';
-        return `<div style="margin-bottom:20px;">
-          <div style="padding:0 18px 10px;font-size:clamp(9px,2.8vw,12px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;">🔥 Les plus populaires</div>
-          <div class="row-scroll" style="padding:0 18px 8px;">${top10.map(sortieCardH).join('')}</div>
-        </div>`;
-      })()}
-
-      <!-- ⚡ PRESQUE COMPLET — horizontal scroll -->
-      ${(()=>{
-        const hot=[...sortiesPubliques].filter(s=>{const r=(s.max_membres||8)-(s._nb||0);return r>0&&r<=2;});
-        if(!hot.length) return '';
-        return `<div style="margin-bottom:20px;">
-          <div style="padding:0 18px 10px;font-size:clamp(9px,2.8vw,12px);color:rgba(255,100,0,0.8);letter-spacing:1.5px;text-transform:uppercase;">🔥 Presque complet</div>
-          <div class="row-scroll" style="padding:0 18px 8px;">${hot.map(sortieCardH).join('')}</div>
-        </div>`;
-      })()}
-
-      <!-- 📍 TOUTES PAR DISTANCE — horizontal scroll -->
-      ${(()=>{
-        const byDist=[...sortiesPubliques].sort((a,b)=>{
-          const ca=CINEMAS.find(c=>c.id===a.confirmed_cinema);
-          const cb=CINEMAS.find(c=>c.id===b.confirmed_cinema);
-          const da=(userPos&&ca?.lat)?getDistance(userPos.lat,userPos.lng,ca.lat,ca.lng):99999;
-          const db=(userPos&&cb?.lat)?getDistance(userPos.lat,userPos.lng,cb.lat,cb.lng):99999;
-          return da-db;
-        });
-        if(!byDist.length) return emptySorties;
-        return `<div style="margin-bottom:20px;">
-          <div style="padding:0 18px 10px;font-size:clamp(9px,2.8vw,12px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;">📍 Toutes les sorties</div>
-          <div class="row-scroll" style="padding:0 18px 8px;">${byDist.map(sortieCardH).join('')}</div>
-        </div>`;
-      })()}
-
-
-
+      <!-- Filter chips -->
+      <div style="display:flex;gap:6px;overflow-x:auto;padding:0 18px 10px;scrollbar-width:none;">
+        ${[['all','🍿 Toutes'],['near','📍 Près de moi'],['tonight','🎬 Ce soir'],['week','📅 Cette semaine'],['hot','🔥 Presque complet']].map(([f,lb])=>`<div onclick="st.sortieFilter='${f}';render()" style="border-radius:20px;padding:5px 11px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;border:1px solid ${st.sortieFilter===f?AC:BD};background:${st.sortieFilter===f?AC:'rgba(255,255,255,0.03)'};color:${st.sortieFilter===f?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join('')}
+      </div>
+      ${filtered_sorties.length===0?emptySorties:filtered_sorties.map(sortieCard).join('')}
     </div>
     ${navbar}
-  </div></div>`;
+  </div>`;
 }
 </script>
 <script>
@@ -977,7 +903,7 @@ function sCinemas(){
       <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Cinémas Paris</div>
       <div style="display:flex;gap:8px;align-items:center;">
         ${userPos?`<span style="font-size:9px;color:${LB};">📍 Activée</span>`:`<button onclick="requestGeoLoc()" style="font-size:9px;color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:3px 8px;cursor:pointer;">📍 Proximité</button>`}
-        <div onclick="doSync()" style="display:flex;align-items:center;gap:5px;font-size:clamp(8px,2.5vw,11px);color:${st.syncing?'#ff8c42':LB};cursor:pointer;"><span>${st.syncing?'⟳':'✓'}</span><span>${st.syncing?T('synchro'):(st.syncLabel?T('misAJour')+' '+st.syncLabel:T('misAJour'))}</span></div>
+        <div onclick="doSync()" style="display:flex;align-items:center;gap:5px;font-size:clamp(8px,2.5vw,11px);color:${st.syncing?'#ff8c42':LB};cursor:pointer;"><span>${st.syncing?'⟳':'✓'}</span><span>${st.syncing?T('synchro'):(st.syncLabel?T('misAJour')+' '+st.syncLabel:T('misAJour')}</span></div>
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:12px;">
@@ -985,7 +911,7 @@ function sCinemas(){
     </div>
   </div>
   ${dayPicker()}
-  <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
+  <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
     ${list.map(c=>{
       const col=CC[c.chain];
       const dist=(userPos&&c.lat)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
@@ -993,10 +919,10 @@ function sCinemas(){
       return `<div onclick="openCinema('${c.id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:13px;padding:12px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;">
         <div style="width:38px;height:38px;border-radius:9px;background:${col}18;border:1px solid ${col}30;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${c.icon}</div>
         <div style="flex:1;min-width:0;">
-          <div class="serif" style="font-size:clamp(11px,3.3vw,14px);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</div>
+          <div class="serif" style="font-size:clamp(11px,3.3vw,14px);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}</div>
           <div style="font-size:9px;color:${MU};margin-bottom:5px;">${c.addr}${dist!==null?' · <span style="color:'+LB+';">📍 '+distLabel(dist)+'</span>':' · '+c.metro}</div>
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            ${c.salles!=null?chip(c.salles+' salle'+(c.salles>1?'s':''),TX,'rgba(255,255,255,0.06)',BD,9):''}
+            ${chip(c.salles+' salle'+(c.salles>1?'s':''),TX,'rgba(255,255,255,0.06)',BD,9)}
             ${c.tech.slice(0,2).map(t=>chip(t,col,col+'18',col+'35',9)).join('')}
             ${gc>0?chip(gc+' groupe'+(gc>1?'s':''),AC,'rgba(255,63,91,0.1)','rgba(255,63,91,0.25)',9):''}
           </div>
@@ -1005,7 +931,7 @@ function sCinemas(){
       </div>`;
     }).join('')}
   </div>
-  <div style="display:flex;background:${S1};border-top:1px solid ${BD};position:fixed;bottom:0;left:0;right:0;z-index:1000;" class="bottom-nav">
+  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:max(env(safe-area-inset-bottom,0px),0px);padding-bottom:env(safe-area-inset-bottom,0px);">
     ${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}
   </div></div>`;
 }
@@ -1019,7 +945,7 @@ function sCinemaDetail(){
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 10px;flex-shrink:0;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       <div onclick="go('cinemas')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div>
-      <div style="flex:1;"><div class="serif" style="font-size:17px;">${cinema.name}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};">${cinema.addr} · ${cinema.metro}</div></div>
+      <div style="flex:1;"><div class="serif" style="font-size:17px;">${esc(cinema.name)}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};">${cinema.addr} · ${cinema.metro}</div></div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:2px;">
       ${links_.maps?`<a href="${links_.maps}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.25);border-radius:10px;padding:8px;font-size:clamp(9px,2.8vw,12px);font-weight:600;color:#4a9eff;text-decoration:none;">${T('yAller')}</a>`:''}
@@ -1029,7 +955,7 @@ function sCinemaDetail(){
     </div>
   </div>
   ${dayPicker()}
-  <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
+  <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
     ${cinema.films.map(fi=>{
       const f=FILMS[fi.id];if(!f)return'';
       const seances=(seancesAuj[fi.id]||[]).filter(h=>!isPast(h));
@@ -1039,7 +965,7 @@ function sCinemaDetail(){
             ${posters[fi.id]?'<img src="'+posters[fi.id]+'" style="width:100%;height:100%;object-fit:cover;">':f.e}
           </div>
           <div style="flex:1;">
-            <div class="serif" style="font-size:clamp(12px,3.6vw,15px);margin-bottom:3px;">${f.t}</div>
+            <div class="serif" style="font-size:clamp(12px,3.6vw,15px);margin-bottom:3px;">${esc(f.t)}</div>
             <div style="font-size:9px;color:${MU};margin-bottom:5px;">${f.g} · ${f.d}${ratings[fi.id]?' · <span style="color:'+GD+';">★ '+ratings[fi.id].note+'</span>':''}</div>
             <div style="display:flex;gap:4px;flex-wrap:wrap;">
               ${isVu(fi.id)?chip('✓ Vu',LB,'rgba(0,192,48,0.15)','rgba(0,192,48,0.3)',9):''}
@@ -1047,7 +973,7 @@ function sCinemaDetail(){
             </div>
           </div>
         </div>
-        ${seances.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;">${seances.map(h=>`<div onclick="openFilm('${fi.id}','cinema-detail');st.cinema='${cinema.id}';" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:4px 10px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>`:''}
+        ${seances.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`<div onclick="openFilm('${fi.id}','cinema-detail');st.cinema='${cinema.id}';" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:4px 10px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;flex:0 0 auto;">${h}</div>`).join('')}</div>`:''}
       </div>`;
     }).join('')}
   </div>`;
@@ -1059,21 +985,25 @@ function sFilm(){
   const wantList=getWantToSee();
   const isWanted=wantList.includes(st.film);
   const hasSortie=sortiesPubliques.some(s=>s.film_id===st.film);
-  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-   <!-- Hero poster (LBD-style full bleed) -->
-<div style="height:240px;position:relative;overflow:hidden;background:linear-gradient(135deg,${f.bg},${f.c||'#1a1a2e'});">
-  ${posters[st.film]?'<img src="'+posters[st.film]+'" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.5);">':'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:80px;opacity:0.4;">'+f.e+'</div>'}
-  <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.2),rgba(7,7,15,0.85));"></div>
-  <div onclick="${st.filmSrc==='cinema-detail'?`go('cinema-detail')`:`go('home')`}" style="position:absolute;top:max(52px,env(safe-area-inset-top,52px));left:18px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px);z-index:10;font-size:18px;">←</div>
-  <div onclick="toggleWantToSee('${st.film}')" style="position:absolute;top:max(52px,env(safe-area-inset-top,52px));right:18px;width:32px;height:32px;border-radius:50%;background:${isWanted?'rgba(255,63,91,0.3)':'rgba(0,0,0,0.4)'};border:1px solid ${isWanted?AC:'rgba(255,255,255,0.1)'};display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px);font-size:16px;">${isWanted?'❤️':'🤍'}</div>
-  <div style="position:absolute;bottom:18px;left:18px;right:18px;">
-    <div style="font-size:9px;color:${GD};letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">${f.g}</div>
-    <div class="serif" style="font-size:clamp(20px,6.2vw,28px);line-height:1.2;margin-bottom:8px;">${f.t}</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      ${ratings[st.film]?`<div>${starsHTML(ratings[st.film].note,5,14)}</div><span style="font-size:clamp(9px,2.8vw,12px);color:${MU};">TMDB ${ratings[st.film].note}/10</span>`:''}
-    </div>
+  return `<div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;">
+    <!-- Hero poster (LBD-style full bleed) -->
+    <div style="height:240px;position:relative;overflow:hidden;background:${f.bg};">
+      ${posters[st.film]?'<img src="'+posters[st.film]+'" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.5);">':''}
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.2),rgba(7,7,15,0.97));"></div>
+      <!-- Back button -->
+      <div onclick="${st.filmSrc==='cinema-detail'?`go('cinema-detail')`:`go('home')`}" style="position:absolute;top:52px;left:18px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px);">←</div>
+      <!-- Want to see heart -->
+      <div onclick="toggleWantToSee('${st.film}')" style="position:absolute;top:52px;right:18px;width:32px;height:32px;border-radius:50%;background:${isWanted?'rgba(255,63,91,0.3)':'rgba(0,0,0,0.4)'};border:1px solid ${isWanted?AC:'rgba(255,255,255,0.1)'};display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px);font-size:16px;">${isWanted?'❤️':'🤍'}</div>
+      <!-- Film info overlay -->
+      <div style="position:absolute;bottom:18px;left:18px;right:18px;">
+        <div style="font-size:9px;color:${GD};letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">${f.g}</div>
+        <div class="serif" style="font-size:clamp(20px,6.2vw,28px);line-height:1.2;margin-bottom:8px;">${esc(f.t)}</div>
+        <!-- Inline rating (LBD-style stars) -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          ${ratings[st.film]?`<div>${starsHTML(ratings[st.film].note,5,14)}</div><span style="font-size:clamp(9px,2.8vw,12px);color:${MU};">TMDB ${ratings[st.film].note}/10</span>`:''}
+        </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
-          ${chip('⏱ '+f.d,TX,'rgba(255,255,255,0.08)',BD,9)}
+          ${f.d?chip('⏱ '+f.d,TX,'rgba(255,255,255,0.08)',BD,9):''}
           ${chip('🎭 '+f.dir,TX,'rgba(255,255,255,0.08)',BD,9)}
           ${isVu(st.film)?chip('✓ Vu',LB,'rgba(0,192,48,0.18)','rgba(0,192,48,0.35)',9):''}
           ${isWatchlist(st.film)&&!isVu(st.film)?chip('🔖 Watchlist',GD,'rgba(240,192,96,0.14)','rgba(240,192,96,0.35)',9):''}
@@ -1084,7 +1014,7 @@ function sFilm(){
 
     <!-- Synopsis -->
     <div style="padding:16px 18px 0;">
-      <div style="position:relative;margin-bottom:16px;">   <p id="synopsis-text" style="font-size:clamp(10px,3vw,13px);line-height:1.7;color:${MU};margin:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;">${f.s}</p>   <span onclick="const el=document.getElementById('synopsis-text');const btn=document.getElementById('synopsis-btn');if(el.style.webkitLineClamp==='4'||el.style['-webkit-line-clamp']==='4'){el.style.cssText='font-size:clamp(10px,3vw,13px);line-height:1.7;color:${MU};margin:0;';btn.textContent='Moins ↑';}else{el.style.cssText='font-size:clamp(10px,3vw,13px);line-height:1.7;color:${MU};margin:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;';btn.textContent='Lire la suite ↓';}" id="synopsis-btn" style="font-size:clamp(9px,2.8vw,12px);color:${AC};cursor:pointer;margin-top:4px;display:inline-block;">Lire la suite ↓</span> </div>
+      <p style="font-size:clamp(10px,3vw,13px);line-height:1.7;color:${MU};margin-bottom:16px;">${esc(f.s)}</p>
     </div>
 
     <!-- Sortie dispo banner -->
@@ -1097,23 +1027,17 @@ function sFilm(){
     ${dayPicker()}
     <div style="padding:0 18px 20px;">
       ${(()=>{
-        const seancesJour=cinemaFilm.map(c=>{const s=(SEANCES[c.id]||{})[st.film]||[];return{cinema:c,seances:s.filter(h=>!isPast(h))};}).filter(x=>x.seances.length);
+        const seancesJour=cinemaFilm.map(c=>{const s=(SEANCES[c.id]||{})[st.film]||[];return{cinema:c,seances:s.filter(h=>!isPast(h)};}).filter(x=>x.seances.length);
         if(!seancesJour.length)return `<div style="text-align:center;padding:20px 0;color:${MU};font-size:clamp(10px,3vw,13px);">${T('aucuneSeanceJour')}</div>`;
-        const originCinema = st.filmSrc==='cinema-detail' && st.cinema 
-  ? seancesJour.find(x=>x.cinema.id===st.cinema) 
-  : null;
-const orderedSeances = originCinema 
-  ? [originCinema, ...seancesJour.filter(x=>x.cinema.id!==st.cinema)]
-  : seancesJour;
-return `<div style="margin-bottom:18px;">
-  <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances disponibles</div>
-  ${orderedSeances.map(({cinema:c,seances})=>`<div style="margin-bottom:10px;">
-    <div style="font-size:clamp(9px,2.8vw,12px);font-weight:500;margin-bottom:6px;color:${CC[c.chain]||MU};display:flex;align-items:center;gap:6px;">${c.name}${originCinema&&c.id===st.cinema?`<span style="font-size:8px;background:rgba(255,63,91,0.15);border:1px solid rgba(255,63,91,0.3);border-radius:6px;padding:1px 5px;color:${AC};">Ce cinéma</span>`:''}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`<div onclick="createSortieScroll=0;st.newSortie={film:'${st.film}',cinema:'${c.id}',heure:'"+h+"'};st.screen='create-sortie';render()" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;">${h}</div>`).join('')}</div>
-  </div>`).join('')}
-</div>`;
+        return `<div style="margin-bottom:18px;">
+          <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Séances</div>
+          ${seancesJour.map(({cinema:c,seances})=>`<div style="margin-bottom:10px;">
+            <div style="font-size:clamp(9px,2.8vw,12px);font-weight:500;margin-bottom:6px;color:${CC[c.chain]||MU};">${esc(c.name)}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">${seances.map(h=>`<div onclick="st.cinema='${c.id}';openGroup('${st.film}')" class="tap" style="background:${S2};border:1px solid ${BD};border-radius:8px;padding:5px 12px;font-size:clamp(10px,3vw,13px);font-weight:500;cursor:pointer;flex:0 0 auto;">${h}</div>`).join('')}</div>
+          </div>`).join('')}
+        </div>`;
       })()}
-      <button onclick="createSortieScroll=0;st.newSortie={film:'${st.film}'};st.screen='create-sortie';render()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:clamp(12px,3.6vw,15px);font-weight:600;cursor:pointer;">Rejoindre le groupe →</button>
+      <button onclick="openGroup('${st.film}')" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:clamp(12px,3.6vw,15px);font-weight:600;cursor:pointer;">Rejoindre le groupe →</button>
     </div>
   </div>`;
 }
@@ -1122,7 +1046,7 @@ return `<div style="margin-bottom:18px;">
 function msgHTML(m){
   const me=m.pseudo===st.pseudo;
   const t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  if(m.pseudo==='📢 CinéMatch'){return `<div style="text-align:center;margin:10px 0;"><div style="display:inline-block;background:rgba(0,192,48,0.08);border:1px solid rgba(0,192,48,0.25);border-radius:12px;padding:7px 14px;font-size:clamp(9px,2.8vw,12px);color:#00c030;max-width:90%;">${m.texte}</div><div style="font-size:9px;color:${MU};margin-top:3px;">${t}</div></div>`;}
+  if(m.pseudo==='📢 CinéMatch'){return `<div style="text-align:center;margin:10px 0;"><div style="display:inline-block;background:rgba(0,192,48,0.08);border:1px solid rgba(0,192,48,0.25);border-radius:12px;padding:7px 14px;font-size:clamp(9px,2.8vw,12px);color:#00c030;max-width:90%;">${esc(m.texte)}</div><div style="font-size:9px;color:${MU};margin-top:3px;">${t}</div></div>`;}
   return `<div style="display:flex;gap:8px;margin-bottom:6px;align-items:flex-end;flex-direction:${me?'row-reverse':'row'};">
     ${avatarEl(m.pseudo,26)}
     <div style="max-width:195px;">
@@ -1142,9 +1066,9 @@ function renderMembresDOM(){
   el.innerHTML=statutPicker+membresData.map(m=>{
     const s=STATUTS[m.statut||'maybe'];const cinema_pref=m.cinema_pref?CINEMAS.find(c=>c.id===m.cinema_pref)?.name:'';
     const vote_heure=Object.entries(votesData).find(([k,vs])=>vs.some(v=>v.pseudo===m.pseudo));const voteLabel=vote_heure?vote_heure[0].split(' ')[1]:'';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid ${BD};cursor:pointer;" onclick="${m.pseudo===st.pseudo?`go('profile')`:`openMemberProfile('${m.pseudo}')`}">
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid ${BD};cursor:pointer;" onclick="${m.pseudo===st.pseudo?`go('profile')`:`openMemberProfile('${esc(m.pseudo)}')`}">
       ${avatarEl(m.pseudo,42)}
-      <div style="flex:1;"><div style="font-size:clamp(11px,3.3vw,14px);font-weight:500;margin-bottom:3px;">${m.pseudo}${m.pseudo===st.pseudo?` <span style="color:${LB};font-size:clamp(8px,2.5vw,11px);">Vous</span>`:''}</div><div style="display:flex;gap:4px;flex-wrap:wrap;"><span style="font-size:9px;padding:1px 6px;border-radius:8px;background:${s.c};border:1px solid ${s.b};">${s.e} ${s.l}</span>${cinema_pref?`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid ${BD};color:${MU};">🏛 ${cinema_pref}</span>`:''}${voteLabel?`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(255,63,91,0.1);border:1px solid rgba(255,63,91,0.3);color:${AC};">🕐 ${voteLabel}</span>`:''}</div></div>
+      <div style="flex:1;"><div style="font-size:clamp(11px,3.3vw,14px);font-weight:500;margin-bottom:3px;">${esc(m.pseudo)}${m.pseudo===st.pseudo?` <span style="color:${LB};font-size:clamp(8px,2.5vw,11px);">Vous</span>`:''}</div><div style="display:flex;gap:4px;flex-wrap:wrap;"><span style="font-size:9px;padding:1px 6px;border-radius:8px;background:${s.c};border:1px solid ${s.b};">${s.e} ${s.l}</span>${cinema_pref?`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid ${BD};color:${MU};">🏛 ${cinema_pref}</span>`:''}${voteLabel?`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(255,63,91,0.1);border:1px solid rgba(255,63,91,0.3);color:${AC};">🕐 ${voteLabel}</span>`:''}</div></div>
       ${m.pseudo!==st.pseudo?`<span style="color:${MU};font-size:clamp(12px,3.6vw,15px);">›</span>`:''}
     </div>`;
   }).join('');
@@ -1157,167 +1081,55 @@ function renderVotesDOM(){
   const heuresVues=new Set(),allSeances=[];
   cinemasActifs.forEach(c=>{((SEANCES[c.id]||{})[st.film]||[]).forEach(h=>{if(!heuresVues.has(h)){heuresVues.add(h);allSeances.push(h);}});});
   allSeances.sort();
-  if(!allSeances.length){
-    el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:clamp(10px,3vw,13px);">${T('aucuneSeanceJour')}</div>`;
-    return;
-  }
+  if(!allSeances.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:clamp(10px,3vw,13px);">${T('aucuneSeanceJour')}</div>`;return;}
   let maxVotes=0,bestHeure=null;
   allSeances.forEach(h=>{const k=st.date+' '+h;const n=(votesData[k]||[]).length;if(n>maxVotes){maxVotes=n;bestHeure=h;}});
   const majority=membresData.length>0&&maxVotes>=Math.ceil(membresData.length/2);
-  const confirmBtn=(majority&&bestHeure&&!groupeInfo.confirmed_heure)?`
-    <div onclick="confirmerPlan('${st.cinema}','${bestHeure}','${st.date}')"
-      style="margin-bottom:16px;padding:12px 14px;border-radius:14px;background:rgba(0,192,48,0.12);border:1px solid rgba(0,192,48,0.4);cursor:pointer;text-align:center;">
-      <div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:${LB};">${T('cestDecide')}</div>
-      <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-top:2px;">Confirmer ${bestHeure} · ${maxVotes} vote${maxVotes>1?'s':''}</div>
-    </div>`:'';
-
-  // Grille responsive selon le nombre de séances
-  const cols=allSeances.length<=4?1:allSeances.length<=8?2:3;
-
-  const items=allSeances.map(h=>{
+  const confirmBtn=(majority&&bestHeure&&!groupeInfo.confirmed_heure)?`<div onclick="confirmerPlan('${st.cinema}','${bestHeure}','${st.date}')" style="margin-bottom:12px;padding:12px 14px;border-radius:14px;background:rgba(0,192,48,0.12);border:1px solid rgba(0,192,48,0.4);cursor:pointer;text-align:center;"><div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:${LB};">${T('cestDecide')}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-top:2px;">Confirmer ${bestHeure} · ${maxVotes} vote${maxVotes>1?'s':''}</div></div>`:'';
+  el.innerHTML=confirmBtn+allSeances.map(h=>{
     const past=isPast(h);const k=st.date+' '+h;const voters=votesData[k]||[];const voted=voters.some(v=>v.pseudo===st.pseudo);
-    const avatars=voters.slice(0,4).map(v=>`<div style="width:20px;height:20px;border-radius:50%;background:${pseudoColor(v.pseudo)};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:10px;margin-left:-4px;flex-shrink:0;">${v.pseudo===st.pseudo?st.avatar:pseudoInitial(v.pseudo)}</div>`).join('');
-    return `<div onclick="${past?'':"voter('"+h+"')"}" class="${past?'':'tap'}" style="opacity:${past?'0.4':'1'};background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:10px 12px;cursor:${past?'default':'pointer'};display:flex;flex-direction:column;gap:6px;min-width:0;overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-        <div style="font-size:clamp(14px,4.2vw,18px);font-weight:700;color:${voted?AC:past?MU:TX};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h}${past?`<span style="font-size:9px;margin-left:4px;opacity:0.7;">${T('seancesPassee')}</span>`:''}</div>
-        <div style="width:24px;height:24px;border-radius:50%;flex-shrink:0;background:${voted?AC:'rgba(255,255,255,0.06)'};border:1px solid ${voted?AC:BD};display:flex;align-items:center;justify-content:center;font-size:13px;">${voted?'✓':'+'}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;min-height:22px;">
-        <div style="display:flex;align-items:center;">${avatars}</div>
-        ${voters.length>0?`<span style="font-size:clamp(8px,2.5vw,11px);color:${MU};">${voters.length} vote${voters.length!==1?'s':''}</span>`:''}
-      </div>
+    return `<div onclick="${past?'':"voter('"+h+"')"}" class="${past?'':'tap'}" style="opacity:${past?'0.4':'1'};background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:${past?'default':'pointer'};display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;"><div style="font-size:clamp(15px,4.6vw,20px);font-weight:600;color:${voted?AC:past?MU:TX};">${h}${past?`<span style="font-size:9px;">${T('seancesPassee')}</span>`:''}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-top:2px;">${voters.length} vote${voters.length!==1?'s':''}</div></div>
+      <div style="display:flex;">${voters.slice(0,5).map(v=>`<div style="width:22px;height:22px;border-radius:50%;background:${pseudoColor(v.pseudo)};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:clamp(9px,2.8vw,12px);margin-left:-4px;">${v.pseudo===st.pseudo?st.avatar:pseudoInitial(v.pseudo)}</div>`).join('')}</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:${voted?AC:'rgba(255,255,255,0.06)'};border:1px solid ${voted?AC:BD};display:flex;align-items:center;justify-content:center;font-size:clamp(12px,3.6vw,15px);">${voted?'✓':'+'}</div>
     </div>`;
   }).join('');
-
-  el.innerHTML=confirmBtn+`<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;width:100%;box-sizing:border-box;">${items}</div>`;
 }
 
 function sCreateSortie(){
-  const ns=st.newSortie||{};
-  const isPublic=ns.isPublic!==undefined?ns.isPublic:null;
-  const filmId=ns.film||null;
-  const cinemaId=ns.cinema||null;
-  const heure=ns.heure||null;
-  const maxM=ns.max||6;
+  const ns=st.newSortie||{};const filmId=ns.film||null;const cinemaId=ns.cinema||null;const heure=ns.heure||null;const maxM=ns.max||6;
   const availFilms=Object.entries(FILMS).map(([id,f])=>({...f,_id:id})).sort((a,b)=>a.t.localeCompare(b.t));
   const cinForFilm=filmId?CINEMAS.filter(c=>Object.keys(SEANCES[c.id]||{}).includes(filmId)):[];
   const selectedDate=ns.date||AVAILABLE_DATES[0]||todayStr();
   const heuresForDate=(filmId&&cinemaId&&SEANCES[cinemaId]?.[filmId])||[];
-  const canCreate=filmId&&cinemaId&&heure&&selectedDate&&isPublic!==null;
-
-  const scrollTo=(id)=>'setTimeout(function(){var el=document.getElementById(\''+id+'\');if(el)el.scrollIntoView({behavior:\'smooth\',block:\'start\'});},80);';
-
-  // ── ÉTAPE 0 : Public ou Privé ──
-  let html='<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">';
-  html+='<div style="padding:50px 18px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid '+BD+';">';
-  html+='<div onclick="createSortieScroll=0;st.screen=\'home\';st.newSortie=null;render()" style="width:36px;height:36px;border-radius:50%;background:'+S1+';border:1px solid '+BD+';display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:clamp(13px,4vw,17px);">←</div>';
-  html+='<div><div style="font-size:clamp(13px,4vw,17px);font-weight:700;">'+T('creerSortie')+'</div><div style="font-size:clamp(9px,2.8vw,12px);color:'+MU+';">'+T('creerSortieDesc')+'</div></div>';
-  html+='</div>';
-
-  html+='<div id="create-sortie-scroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 40px;" onscroll="createSortieScroll=this.scrollTop">';
-
-  // Étape 0 — public/privé
-  html+='<div style="margin-bottom:20px;">';
-  html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">0 · Groupe public ou privé ?</div>';
-  html+='<div style="display:flex;gap:10px;">';
-  html+='<div onclick="st.newSortie={...(st.newSortie||{}),isPublic:true};'+scrollTo('step-film')+'render()" style="flex:1;padding:14px;border-radius:14px;cursor:pointer;text-align:center;background:'+(isPublic===true?'rgba(255,63,91,0.15)':S1)+';border:2px solid '+(isPublic===true?AC:BD)+';">';
-  html+='<div style="font-size:22px;margin-bottom:6px;">🌍</div>';
-  html+='<div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:'+(isPublic===true?AC:TX)+';">Public</div>';
-  html+='<div style="font-size:9px;color:'+MU+';margin-top:3px;">Visible par tous</div></div>';
-  html+='<div onclick="st.newSortie={...(st.newSortie||{}),isPublic:false};'+scrollTo('step-film')+'render()" style="flex:1;padding:14px;border-radius:14px;cursor:pointer;text-align:center;background:'+(isPublic===false?'rgba(255,63,91,0.15)':S1)+';border:2px solid '+(isPublic===false?AC:BD)+';">';
-  html+='<div style="font-size:22px;margin-bottom:6px;">🔒</div>';
-  html+='<div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:'+(isPublic===false?AC:TX)+';">Privé</div>';
-  html+='<div style="font-size:9px;color:'+MU+';margin-top:3px;">Sur invitation</div></div>';
-  html+='</div></div>';
-
-  // Étape 1 — Film (visible seulement si public/privé choisi)
-  if(isPublic!==null){
-    html+='<div id="step-film" style="margin-bottom:16px;">';
-    html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">'+T('choisisFilm')+'</div>';
-    html+='<div style="display:flex;flex-direction:column;gap:6px;">';
-    availFilms.forEach(function(f){
-      const fid=f._id;const sel=filmId===fid;
-      html+='<div onclick="st.newSortie={...(st.newSortie||{}),film:\''+fid+'\',cinema:null,heure:null};'+scrollTo('step-cinema')+'render()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;cursor:pointer;background:'+(sel?'rgba(255,63,91,0.12)':S1)+';border:1px solid '+(sel?AC:BD)+';">';
-      if(posters[fid]){html+='<img src="'+posters[fid]+'" style="width:32px;height:44px;object-fit:cover;border-radius:6px;">';}
-      else{html+='<span style="font-size:clamp(20px,6.2vw,28px);width:32px;text-align:center;">'+f.e+'</span>';}
-      html+='<div style="flex:1;min-width:0;"><div style="font-size:clamp(10px,3vw,13px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+f.t+'</div>';
-      html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';">'+(f.g?f.g.charAt(0)+f.g.slice(1).toLowerCase():'')+(f.tmdbNote?' · ★ '+f.tmdbNote:'')+'</div></div>';
-      if(sel){html+='<span style="color:'+AC+';font-size:clamp(12px,3.6vw,15px);">✓</span>';}
-      html+='</div>';
-    });
-    html+='</div></div>';
-  }
-
-  // Étape 2 — Cinéma
-  if(filmId){
-    html+='<div id="step-cinema" style="margin-bottom:16px;">';
-    html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">'+T('choisisCinema')+'</div>';
-    if(cinForFilm.length===0){html+='<div style="font-size:clamp(10px,3vw,13px);color:'+MU+';padding:10px;">'+T('aucunFilmDispo')+'</div>';}
-    html+='<div style="display:flex;flex-direction:column;gap:6px;">';
-    cinForFilm.forEach(function(c){
-      const sel=cinemaId===c.id;
-      html+='<div onclick="st.newSortie={...(st.newSortie||{}),cinema:\''+c.id+'\',heure:null};'+scrollTo('step-seance')+'render()" style="padding:10px 12px;border-radius:12px;cursor:pointer;background:'+(sel?'rgba(255,63,91,0.12)':S1)+';border:1px solid '+(sel?AC:BD)+';display:flex;align-items:center;justify-content:space-between;">';
-      html+='<div><div style="font-size:clamp(10px,3vw,13px);font-weight:600;">'+c.name+'</div>';
-      html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+(CC[c.chain]||MU)+';">'+(c.chain?c.chain.toUpperCase():'')+(c.metro?' · '+c.metro:c.addr?' · '+c.addr:'')+'</div></div>';
-      if(sel){html+='<span style="color:'+AC+';">✓</span>';}
-      html+='</div>';
-    });
-    html+='</div></div>';
-  }
-
-  // Étape 3 — Séance
-  if(filmId&&cinemaId){
-    html+='<div id="step-seance" style="margin-bottom:16px;">';
-    html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">'+T('choisisSeance')+'</div>';
-    if(AVAILABLE_DATES.length>1){
-      html+='<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;">';
-      const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-      const months=['jan','fév','mar','avr','mai','jun','jul','aoû'];
-      AVAILABLE_DATES.forEach(function(d){
-        const dd=new Date(d+'T12:00:00');const sel=(ns.date||AVAILABLE_DATES[0])===d;
-        html+='<div onclick="(async()=>{st.newSortie={...(st.newSortie||{}),date:\''+d+'\',heure:null};await initDynamicData(\''+d+'\');render();})()" style="flex-shrink:0;width:44px;text-align:center;padding:6px 4px;border-radius:10px;cursor:pointer;background:'+(sel?AC:'rgba(255,255,255,0.03)')+';border:1px solid '+(sel?AC:BD)+';">';
-        html+='<div style="font-size:9px;color:'+(sel?'#fff':MU)+';">'+days[dd.getDay()]+'</div>';
-        html+='<div style="font-size:clamp(12px,3.6vw,15px);font-weight:600;color:'+(sel?'#fff':TX)+';">'+dd.getDate()+'</div>';
-        html+='<div style="font-size:9px;color:'+(sel?'rgba(255,255,255,0.7)':MU)+';">'+months[dd.getMonth()]+'</div></div>';
-      });
-      html+='</div>';
-    }
-    if(heuresForDate.length===0){html+='<div style="font-size:clamp(10px,3vw,13px);color:'+MU+';padding:10px;">'+T('aucuneSeance')+'</div>';}
-    html+='<div style="display:flex;flex-wrap:wrap;gap:8px;">';
-    heuresForDate.forEach(function(h){
-      html+='<div onclick="st.newSortie={...(st.newSortie||{}),heure:\''+h+'\'};'+scrollTo('step-size')+'render()" style="padding:8px 14px;border-radius:12px;cursor:pointer;background:'+(heure===h?AC:'rgba(255,255,255,0.05)')+';border:1px solid '+(heure===h?AC:BD)+';font-size:clamp(11px,3.3vw,14px);font-weight:600;color:'+(heure===h?'#fff':TX)+';">'+h+'</div>';
-    });
-    html+='</div></div>';
-  }
-
-  // Étape 4 — Taille du groupe
-  if(filmId&&cinemaId&&heure){
-    html+='<div id="step-size" style="margin-bottom:20px;">';
-    html+='<div style="font-size:clamp(8px,2.5vw,11px);color:'+MU+';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">'+T('combienPersonnes')+'</div>';
-    html+='<div style="display:flex;align-items:center;gap:16px;">';
-    html+='<div onclick="st.newSortie={...(st.newSortie||{}),max:Math.max(2,(st.newSortie?.max||6)-1)};render()" style="width:36px;height:36px;border-radius:50%;background:'+S1+';border:1px solid '+BD+';display:flex;align-items:center;justify-content:center;font-size:clamp(15px,4.6vw,20px);cursor:pointer;">−</div>';
-    html+='<div style="font-size:clamp(18px,5.6vw,24px);font-weight:700;min-width:32px;text-align:center;">'+maxM+'</div>';
-    html+='<div onclick="st.newSortie={...(st.newSortie||{}),max:Math.min(12,(st.newSortie?.max||6)+1)};render()" style="width:36px;height:36px;border-radius:50%;background:'+S1+';border:1px solid '+BD+';display:flex;align-items:center;justify-content:center;font-size:clamp(15px,4.6vw,20px);cursor:pointer;">+</div>';
-    html+='<div style="font-size:clamp(9px,2.8vw,12px);color:'+MU+';">'+T('personnesInclus')+'</div>';
-    html+='</div></div>';
-  }
-
-  // Bouton créer
-  if(canCreate){
-    html+='<div onclick="creerSortie(\''+filmId+'\',\''+cinemaId+'\',\''+heure+'\',\''+selectedDate+'\','+maxM+','+(isPublic?'true':'false')+')" style="padding:14px;background:'+AC+';border-radius:16px;text-align:center;font-size:clamp(12px,3.6vw,15px);font-weight:700;cursor:pointer;color:#fff;">';
-    html+=(isPublic?'🌍 Créer la sortie publique':'🔒 Créer le groupe privé');
-    html+='</div>';
-  }
-
-  html+='</div></div>';
-  return html;
+  const canCreate=filmId&&cinemaId&&heure&&selectedDate;
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:50px 18px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid ${BD};">
+      <div onclick="createSortieScroll=0;st.screen='home';st.newSortie=null;render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:clamp(13px,4vw,17px);">←</div>
+      <div><div style="font-size:clamp(13px,4vw,17px);font-weight:700;">${T('creerSortie')}</div><div style="font-size:clamp(9px,2.8vw,12px);color:${MU};">${T('creerSortieDesc')}</div></div>
+    </div>
+    <div id="create-sortie-scroll" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 24px;" onscroll="createSortieScroll=this.scrollTop">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisFilm')}</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${availFilms.map(f=>{const fid=f._id;const sel=filmId===fid;return `<div onclick="st.newSortie={...(st.newSortie||{}),film:'${fid}',cinema:null,heure:null};render()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;cursor:pointer;background:${sel?'rgba(255,63,91,0.12)':S1};border:1px solid ${sel?AC:BD};">${posters[fid]?`<img src="${posters[fid]}" style="width:32px;height:44px;object-fit:cover;border-radius:6px;">`:`<span style="font-size:clamp(20px,6.2vw,28px);width:32px;text-align:center;">${f.e}</span>`}<div style="flex:1;min-width:0;"><div style="font-size:clamp(10px,3vw,13px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(f.t)}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};">${f.g?f.g.charAt(0)+f.g.slice(1).toLowerCase():''} ${f.tmdbNote?`· ★ ${f.tmdbNote}`:''}</div></div>${sel?`<span style="color:${AC};font-size:clamp(12px,3.6vw,15px);">✓</span>`:''}</div>`;}).join('')}
+        </div>
+      </div>
+      ${filmId?`<div style="margin-bottom:16px;"><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisCinema')}</div>${cinForFilm.length===0?`<div style="font-size:clamp(10px,3vw,13px);color:${MU};padding:10px;">${T('aucunFilmDispo')}</div>`:''}<div style="display:flex;flex-direction:column;gap:6px;">${cinForFilm.map(c=>{const sel=cinemaId===c.id;return `<div onclick="st.newSortie={...(st.newSortie||{}),cinema:'${c.id}',heure:null};render()" style="padding:10px 12px;border-radius:12px;cursor:pointer;background:${sel?'rgba(255,63,91,0.12)':S1};border:1px solid ${sel?AC:BD};display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:clamp(10px,3vw,13px);font-weight:600;">${esc(c.name)}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${CC[c.chain]||MU};">${c.chain?.toUpperCase()||''} · ${c.metro||c.addr||''}</div></div>${sel?`<span style="color:${AC};">✓</span>`:''}</div>`;}).join('')}</div></div>`:''}
+      ${filmId&&cinemaId?`<div style="margin-bottom:16px;"><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisSeance')}</div>${AVAILABLE_DATES.length>1?`<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;">${AVAILABLE_DATES.map(d=>{const dd=new Date(d+'T12:00:00');const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];const months=['jan','fév','mar','avr','mai','jun','jul','aoû'];const sel=(ns.date||AVAILABLE_DATES[0])===d;return `<div onclick="(async()=>{st.newSortie={...(st.newSortie||{}),date:'${d}',heure:null};await initDynamicData('${d}');render();})()" style="flex-shrink:0;width:44px;text-align:center;padding:6px 4px;border-radius:10px;cursor:pointer;background:${sel?AC:'rgba(255,255,255,0.03)'};border:1px solid ${sel?AC:BD};"><div style="font-size:9px;color:${sel?'#fff':MU};">${days[dd.getDay()]}</div><div style="font-size:clamp(12px,3.6vw,15px);font-weight:600;color:${sel?'#fff':TX};">${dd.getDate()}</div><div style="font-size:9px;color:${sel?'rgba(255,255,255,0.7)':MU};">${months[dd.getMonth()]}</div></div>`;}).join('')}</div>`:''}${heuresForDate.length===0?`<div style="font-size:clamp(10px,3vw,13px);color:${MU};padding:10px;">${T('aucuneSeance')}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:8px;">${heuresForDate.map(h=>`<div onclick="st.newSortie={...(st.newSortie||{}),heure:'${h}'};render()" style="padding:8px 14px;border-radius:12px;cursor:pointer;background:${heure===h?AC:'rgba(255,255,255,0.05)'};border:1px solid ${heure===h?AC:BD};font-size:clamp(11px,3.3vw,14px);font-weight:600;color:${heure===h?'#fff':TX};">${h}</div>`).join('')}</div></div>`:''}
+      ${filmId&&cinemaId&&heure?`<div style="margin-bottom:20px;"><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('combienPersonnes')}</div><div style="display:flex;align-items:center;gap:16px;"><div onclick="st.newSortie={...(st.newSortie||{}),max:Math.max(2,(st.newSortie?.max||6)-1)};render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;font-size:clamp(15px,4.6vw,20px);cursor:pointer;">−</div><div style="font-size:clamp(18px,5.6vw,24px);font-weight:700;min-width:32px;text-align:center;">${maxM}</div><div onclick="st.newSortie={...(st.newSortie||{}),max:Math.min(12,(st.newSortie?.max||6)+1)};render()" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;font-size:clamp(15px,4.6vw,20px);cursor:pointer;">+</div><div style="font-size:clamp(9px,2.8vw,12px);color:${MU};">${T('personnesInclus')}</div></div></div>`:''}
+      ${canCreate?`<div onclick="creerSortie('${filmId}','${cinemaId}','${heure}','${selectedDate}',${maxM})" style="padding:14px;background:${AC};border-radius:16px;text-align:center;font-size:clamp(12px,3.6vw,15px);font-weight:700;cursor:pointer;color:#fff;">${T('creerSortieBtn')}</div>`:''}
+    </div>
+  </div>`;
 }
+</script>
+<script>
 function sGroup(){
-  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};position:fixed;bottom:0;left:0;right:0;z-index:1000;" class="bottom-nav">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div>`;
+  const navbar=`<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:max(env(safe-area-inset-bottom,0px),0px);padding-bottom:env(safe-area-inset-bottom,0px);">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div>`;
   if(!st.groupe){
-    if(mesGroupes.length===0)return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 16px;flex-shrink:0;"><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes groupes</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;gap:12px;"><div style="font-size:52px;">🎬</div><div class="serif" style="font-size:clamp(15px,4.6vw,20px);">Aucun groupe</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};line-height:1.6;">Rejoins une sortie ou crée un groupe<br>depuis un film pour commencer</div><div onclick="go('home')" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:clamp(11px,3.3vw,14px);font-weight:700;cursor:pointer;color:#fff;">Voir les sorties 🍿</div></div>${navbar}</div>`;
+    if(mesGroupes.length===0)return `<div style="flex:1;display:flex;flex-direction:column;"><div style="padding:52px 18px 16px;flex-shrink:0;"><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes groupes</div></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;gap:12px;"><div style="font-size:52px;">🎬</div><div class="serif" style="font-size:clamp(15px,4.6vw,20px);">Aucun groupe</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};line-height:1.6;">Rejoins une sortie ou crée un groupe<br>depuis un film pour commencer</div><div onclick="go('home')" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:clamp(11px,3.3vw,14px);font-weight:700;cursor:pointer;color:#fff;">Voir les sorties 🍿</div></div>${navbar}</div>`;
     return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;"><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes groupes</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};margin-top:2px;">${mesGroupes.length} conversation${mesGroupes.length>1?'s':''}</div></div>
-      <div style="">${mesGroupes.map(g=>{
+      <div style="flex:1;overflow-y:auto;">${mesGroupes.map(g=>{
         const gf=FILMS[g.film_id]||{t:g.nom||'Film',e:'🎬',bg:'#222'};const hasConfirmed=g.confirmed_cinema&&g.confirmed_heure&&g.confirmed_date;
         return `<div onclick="selectGroupe('${g.film_id}','${g.id}')" class="tap" style="display:flex;align-items:center;gap:12px;padding:10px 18px;cursor:pointer;background:${st.groupe===g.id?'rgba(255,255,255,0.04)':'transparent'};border-bottom:1px solid ${BD};">
           <div style="width:var(--poster-sm);height:var(--poster-sm);border-radius:12px;overflow:hidden;background:${gf.bg};flex-shrink:0;position:relative;">
@@ -1325,7 +1137,7 @@ function sGroup(){
             ${hasConfirmed?`<div style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#00c030;border:2px solid ${BG};"></div>`:''}
           </div>
           <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px;"><div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">${gf.t}</div>${hasConfirmed?`<div style="font-size:9px;color:#00c030;font-weight:600;flex-shrink:0;margin-left:6px;">${formatDate(g.confirmed_date)}</div>`:''}</div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px;"><div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;">${esc(gf.t)}</div>${hasConfirmed?`<div style="font-size:9px;color:#00c030;font-weight:600;flex-shrink:0;margin-left:6px;">${formatDate(g.confirmed_date)}</div>`:''}</div>
             <div style="font-size:clamp(9px,2.8vw,12px);color:${MU};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${hasConfirmed?`✅ ${g.confirmed_heure} · ${g.confirmed_cinema?CINEMAS.find(c=>c.id===g.confirmed_cinema)?.name||g.confirmed_cinema:''}`:'💬 Tapez pour rejoindre le chat'}</div>
           </div>
           <div style="color:${MU};font-size:clamp(13px,4vw,17px);flex-shrink:0;">›</div>
@@ -1338,31 +1150,31 @@ function sGroup(){
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       <div onclick="st.groupe=null;st.tab='chat';render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:clamp(13px,4vw,17px);">←</div>
       <div style="width:36px;height:36px;border-radius:10px;overflow:hidden;background:${f.bg||'#222'};flex-shrink:0;">${posters[st.film]?`<img src="${posters[st.film]}" style="width:100%;height:100%;object-fit:cover;">`:`<span style="font-size:clamp(15px,4.6vw,20px);">${f.e||'🎬'}</span>`}</div>
-      <div style="flex:1;min-width:0;"><div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.t||'Groupe'}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${isConfirmed?'#00c030':MU};">${isConfirmed?`✅ ${gc.confirmed_heure} · ${formatDate(gc.confirmed_date)}`:`${membresData.length} membre${membresData.length!==1?'s':''} · Vote en cours`}</div></div>
+      <div style="flex:1;min-width:0;"><div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(f.t||'Groupe')}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${isConfirmed?'#00c030':MU};">${isConfirmed?`✅ ${gc.confirmed_heure} · ${formatDate(gc.confirmed_date)}`:`${membresData.length} membre${membresData.length!==1?'s':''} · Vote en cours`}</div></div>
       <button onclick="shareGroupe()" style="width:30px;height:30px;border-radius:50%;background:${S2};border:1px solid ${BD};color:${TX};font-size:clamp(12px,3.6vw,15px);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">🔗</button>
       <button onclick="quitterGroupe()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,63,91,0.08);border:1px solid rgba(255,63,91,0.3);color:${AC};font-size:clamp(11px,3.3vw,14px);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">🚪</button>
     </div>
     ${isConfirmed&&!seancePassed?`<div style="margin-bottom:10px;background:rgba(0,192,48,0.07);border:1px solid rgba(0,192,48,0.25);border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:clamp(8px,2.5vw,11px);color:#00c030;font-weight:700;text-transform:uppercase;letter-spacing:1px;">✅ Plan confirmé</div><div style="font-size:clamp(10px,3vw,13px);font-weight:600;margin-top:1px;">${confirmedCinema?.name||gc.confirmed_cinema} · ${gc.confirmed_heure}</div></div><div style="display:flex;gap:6px;">${links.maps?`<a href="${links.maps}" target="_blank" style="padding:5px 10px;background:rgba(74,158,255,0.15);border:1px solid rgba(74,158,255,0.3);border-radius:8px;font-size:clamp(8px,2.5vw,11px);font-weight:600;color:#4a9eff;text-decoration:none;">🗺 Y aller</a>`:''}${links.tickets?`<a href="${links.tickets}" target="_blank" style="padding:5px 10px;background:rgba(240,192,96,0.12);border:1px solid rgba(240,192,96,0.3);border-radius:8px;font-size:clamp(8px,2.5vw,11px);font-weight:600;color:${GD};text-decoration:none;">🎟 Billets</a>`:''}</div></div>`:''}
     <div style="display:flex;gap:6px;margin-bottom:0;">${tabs.map(([id,lb])=>`<div onclick="st.tab='${id}';render();${id==='membres'?'renderMembresDOM();':id==='vote'?'renderVotesDOM();':id==='chat'?'loadMessages();':''}" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;background:${st.tab===id?AC:'rgba(255,255,255,0.03)'};border:1px solid ${st.tab===id?AC:BD};color:${st.tab===id?'#fff':MU};">${lb}</div>`).join('')}</div>
   </div>`;
-  if(st.tab==='chat')return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div id="chat-area" style="flex:1;overflow-y:auto;padding:14px 18px;"></div><div style="padding:10px 18px 14px;background:${BG};border-top:1px solid ${BD};display:flex;gap:8px;flex-shrink:0;position:sticky;bottom:0;"><input id="msg-input" placeholder="Message…" style="flex:1;background:${S1};border:1px solid ${BD};border-radius:20px;padding:9px 14px;font-size:clamp(11px,3.3vw,14px);color:${TX};outline:none;" onkeydown="if(event.key==='Enter')sendMsg()"><button onclick="sendMsg()" style="width:36px;height:36px;border-radius:50%;background:${AC};border:none;color:#fff;font-size:clamp(13px,4vw,17px);cursor:pointer;flex-shrink:0;">↑</button></div></div>`;
-  if(st.tab==='membres')return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div style="padding:12px 18px 20px;"><div id="membres-list"></div></div></div>`;
+  if(st.tab==='chat')return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div id="chat-area" style="flex:1;overflow-y:auto;padding:14px 18px;"></div><div style="padding:10px 18px 14px;background:${BG};border-top:1px solid ${BD};display:flex;gap:8px;flex-shrink:0;"><input id="msg-input" placeholder="Message…" style="flex:1;background:${S1};border:1px solid ${BD};border-radius:20px;padding:9px 14px;font-size:clamp(11px,3.3vw,14px);color:${TX};outline:none;" onkeydown="if(event.key==='Enter')sendMsg()"><button onclick="sendMsg()" style="width:36px;height:36px;border-radius:50%;background:${AC};border:none;color:#fff;font-size:clamp(13px,4vw,17px);cursor:pointer;flex-shrink:0;">↑</button></div></div>`;
+  if(st.tab==='membres')return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div style="flex:1;overflow-y:auto;padding:12px 18px 20px;"><div id="membres-list"></div></div></div>`;
   // Vote tab
   const cinemasFilm=CINEMAS.filter(c=>c.films.some(fi=>fi.id===st.film));
-  const cinemaSelector=`<div style="padding:12px 18px 0;"><div style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Choisir le cinéma</div><div style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px;">${cinemasFilm.map(c=>{const active=st.cinema===c.id;const col=CC[c.chain]||MU;const votes_c=membresData.filter(m=>m.cinema_pref===c.id).length;const pct=membresData.length>0?Math.round(votes_c/membresData.length*100):0;return `<div onclick="voterCinema('${c.id}')" style="padding:9px 12px;border-radius:12px;cursor:pointer;background:${active?'rgba(255,255,255,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${active?col:BD};"><div style="display:flex;align-items:center;gap:10px;margin-bottom:${votes_c>0?'7px':'0'};"><div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;"></div><div style="flex:1;font-size:clamp(10px,3vw,13px);font-weight:${active?'600':'400'};color:${active?TX:MU};">${c.name}</div>${votes_c>0?`<div style="font-size:clamp(8px,2.5vw,11px);color:${col};font-weight:600;">${votes_c} vote${votes_c>1?'s':''}</div>`:''}${active?`<div style="font-size:clamp(8px,2.5vw,11px);color:${col};">✓</div>`:''}</div>${votes_c>0?`<div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width 0.3s;"></div></div>`:''}</div>`;}).join('')}</div></div>`;
-  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div style="flex:1;overflow-y:auto;padding-bottom:80px;">${seancePassed?'':cinemaSelector+(st.cinema?dayPicker()+'<div style="padding:0 18px 20px;"><div id="votes-container"></div></div>':`<div style="text-align:center;padding:24px;color:${MU};font-size:clamp(9px,2.8vw,12px);">← Choisissez un cinéma pour voir les séances</div>`)}</div></div>`;
+  const cinemaSelector=`<div style="padding:12px 18px 0;"><div style="font-size:9px;color:${MU};letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Choisir le cinéma</div><div style="display:flex;flex-direction:column;gap:6px;margin-bottom:4px;">${cinemasFilm.map(c=>{const active=st.cinema===c.id;const col=CC[c.chain]||MU;const votes_c=membresData.filter(m=>m.cinema_pref===c.id).length;const pct=membresData.length>0?Math.round(votes_c/membresData.length*100):0;return `<div onclick="voterCinema('${c.id}')" style="padding:9px 12px;border-radius:12px;cursor:pointer;background:${active?'rgba(255,255,255,0.07)':'rgba(255,255,255,0.02)'};border:1px solid ${active?col:BD};"><div style="display:flex;align-items:center;gap:10px;margin-bottom:${votes_c>0?'7px':'0'};"><div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0;"></div><div style="flex:1;font-size:clamp(10px,3vw,13px);font-weight:${active?'600':'400'};color:${active?TX:MU};">${esc(c.name)}</div>${votes_c>0?`<div style="font-size:clamp(8px,2.5vw,11px);color:${col};font-weight:600;">${votes_c} vote${votes_c>1?'s':''}</div>`:''}${active?`<div style="font-size:clamp(8px,2.5vw,11px);color:${col};">✓</div>`:''}</div>${votes_c>0?`<div style="height:3px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:2px;transition:width 0.3s;"></div></div>`:''}</div>`;}).join('')}</div></div>`;
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${header}<div style="flex:1;overflow-y:auto;">${seancePassed?'':cinemaSelector+(st.cinema?dayPicker()+'<div style="padding:0 18px 20px;"><div id="votes-container"></div></div>':`<div style="text-align:center;padding:24px;color:${MU};font-size:clamp(9px,2.8vw,12px);">← Choisissez un cinéma pour voir les séances</div>`)}</div></div>`;
 }
 
 function sWantToSee(){
   const list=getWantToSee();const films=list.map(id=>({id,f:FILMS[id]})).filter(x=>x.f);
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;display:flex;align-items:center;gap:12px;"><div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:clamp(13px,4vw,17px);">←</div><div><div class="serif" style="font-size:clamp(18px,5.6vw,24px);">❤️ Je veux voir</div><div style="font-size:clamp(9px,2.8vw,12px);color:${MU};">${films.length} film${films.length!==1?'s':''}</div></div></div>
-  <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
+  <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
     ${films.length===0?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;gap:12px;"><div style="font-size:52px;">🎬</div><div class="serif" style="font-size:clamp(15px,4.6vw,20px);">Aucun film pour l'instant</div><div style="font-size:clamp(10px,3vw,13px);color:${MU};line-height:1.6;">Explore les films et appuie sur<br>❤️ pour les retrouver ici</div><div onclick="st.homeTab='films';go('home')" style="margin-top:8px;padding:10px 24px;background:${AC};border-radius:14px;font-size:clamp(11px,3.3vw,14px);font-weight:700;cursor:pointer;color:#fff;">Parcourir les films</div></div>`:`
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
       ${films.map(({id,f})=>{const hasSortie=sortiesPubliques.some(s=>s.film_id===id);return `<div style="cursor:pointer;">
         <div onclick="openFilm('${id}','home')" class="tap">
           <div style="height:120px;border-radius:10px;overflow:hidden;background:${f.bg};position:relative;">${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:36px;">${f.e}</span>`}${hasSortie?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(255,63,91,0.85);padding:2px 4px;font-size:8px;font-weight:700;color:#fff;text-align:center;">🍿 Sortie dispo</div>':''}</div>
-          <div style="padding:4px 2px;"><div style="font-size:9px;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${f.t}</div></div>
+          <div style="padding:4px 2px;"><div style="font-size:9px;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${esc(f.t)}</div></div>
         </div>
         <div style="display:flex;gap:4px;padding:0 2px 6px;">
           ${hasSortie?`<div onclick="st.homeTab='sorties';go('home')" style="flex:1;text-align:center;padding:4px;border-radius:8px;background:${AC};font-size:8px;font-weight:700;color:#fff;cursor:pointer;">Voir →</div>`:`<div onclick="createSortieScroll=0;st.newSortie={film:'${id}'};st.screen='create-sortie';render()" style="flex:1;text-align:center;padding:4px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid ${BD};font-size:8px;color:${MU};cursor:pointer;">+ Sortie</div>`}
@@ -1376,14 +1188,14 @@ function sWantToSee(){
 
 function sProfile(){
   const vuCount=Object.keys(FILMS).filter(id=>isVu(id)).length,wlCount=Object.keys(FILMS).filter(id=>isWatchlist(id)).length;
-  const lbdBlock=st.lbdPseudo?`<div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px;margin-bottom:14px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div><div style="font-size:clamp(9px,2.8vw,12px);color:${LB};font-weight:600;margin-bottom:2px;">Letterboxd connecté</div><div style="font-size:clamp(10px,3vw,13px);">@${st.lbdPseudo}</div></div><button onclick="disconnectLbd()" style="font-size:clamp(8px,2.5vw,11px);color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:4px 8px;cursor:pointer;">Déconnecter</button></div><div style="display:flex;gap:12px;">${chip('✓ '+vuCount+' vus',LB,'rgba(0,192,48,0.12)','rgba(0,192,48,0.3)',10)}${chip('🔖 '+wlCount+' watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',10)}</div></div>`:`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:14px;"><div style="font-size:clamp(10px,3vw,13px);font-weight:500;margin-bottom:4px;">Connecter Letterboxd</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-bottom:10px;">Synchronise tes films vus et watchlist</div><div style="display:flex;gap:8px;"><input id="lbd-input-field" placeholder="Pseudo Letterboxd" value="${st.lbdInput}" oninput="st.lbdInput=this.value" style="flex:1;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:clamp(10px,3vw,13px);color:${TX};outline:none;" onkeydown="if(event.key==='Enter')connectLbd()"><button onclick="connectLbd()" style="background:${LB};border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:clamp(10px,3vw,13px);cursor:pointer;">Connecter</button></div></div>`;
+  const lbdBlock=st.lbdPseudo?`<div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px;margin-bottom:14px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div><div style="font-size:clamp(9px,2.8vw,12px);color:${LB};font-weight:600;margin-bottom:2px;">Letterboxd connecté</div><div style="font-size:clamp(10px,3vw,13px);">@${esc(st.lbdPseudo)}</div></div><button onclick="disconnectLbd()" style="font-size:clamp(8px,2.5vw,11px);color:${MU};background:${S2};border:1px solid ${BD};border-radius:8px;padding:4px 8px;cursor:pointer;">Déconnecter</button></div><div style="display:flex;gap:12px;">${chip('✓ '+vuCount+' vus',LB,'rgba(0,192,48,0.12)','rgba(0,192,48,0.3)',10)}${chip('🔖 '+wlCount+' watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',10)}</div></div>`:`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:14px;"><div style="font-size:clamp(10px,3vw,13px);font-weight:500;margin-bottom:4px;">Connecter Letterboxd</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-bottom:10px;">Synchronise tes films vus et watchlist</div><div style="display:flex;gap:8px;"><input id="lbd-input-field" placeholder="Pseudo Letterboxd" value="${st.lbdInput}" oninput="st.lbdInput=this.value" style="flex:1;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:clamp(10px,3vw,13px);color:${TX};outline:none;" onkeydown="if(event.key==='Enter')connectLbd()"><button onclick="connectLbd()" style="background:${LB};border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:clamp(10px,3vw,13px);cursor:pointer;">Connecter</button></div></div>`;
   const changePseudoBlock=st._changingPseudo?`<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:10px;"><div style="font-size:clamp(10px,3vw,13px);font-weight:500;margin-bottom:10px;">Changer de pseudo</div><div style="display:flex;gap:8px;"><input id="new-pseudo-field" placeholder="Nouveau pseudo" maxlength="20" style="flex:1;background:${S2};border:1px solid ${BD};border-radius:10px;padding:8px 12px;font-size:clamp(10px,3vw,13px);color:${TX};outline:none;" onkeydown="if(event.key==='Enter')confirmChangePseudo()"><button onclick="confirmChangePseudo()" style="background:${AC};border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:clamp(10px,3vw,13px);cursor:pointer;">OK</button><button onclick="st._changingPseudo=false;render();" style="background:${S2};border:1px solid ${BD};color:${MU};border-radius:10px;padding:8px 12px;font-size:clamp(10px,3vw,13px);cursor:pointer;">✕</button></div></div>`:`<button onclick="st._changingPseudo=true;render();" style="width:100%;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px;font-size:clamp(10px,3vw,13px);color:${TX};cursor:pointer;text-align:left;margin-bottom:10px;">✏️ &nbsp;Changer de pseudo</button>`;
   const groupesActifs=mesGroupes.length,groupesConfirmes=mesGroupes.filter(g=>g.confirmed_heure).length,wantCount=getWantToSee().filter(id=>FILMS[id]).length;
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;"><div style="padding:52px 18px 12px;flex-shrink:0;">
     <div class="serif" style="font-size:clamp(18px,5.6vw,24px);margin-bottom:14px;">Mon profil</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
       <div onclick="st.showAvatarPicker=!st.showAvatarPicker;render();" style="width:62px;height:62px;border-radius:17px;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;font-size:34px;flex-shrink:0;cursor:pointer;position:relative;">${st.avatar}<div style="position:absolute;bottom:-4px;right:-4px;background:${S2};border:1px solid ${BD};border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:clamp(8px,2.5vw,11px);">✏️</div></div>
-      <div><div style="font-size:clamp(15px,4.6vw,20px);font-weight:600;">${st.pseudo}</div><div style="font-size:clamp(9px,2.8vw,12px);color:${MU};margin-bottom:6px;">@${st.pseudo.toLowerCase().replace(/\s+/g,'')}</div></div>
+      <div><div style="font-size:clamp(15px,4.6vw,20px);font-weight:600;">${esc(st.pseudo)}</div><div style="font-size:clamp(9px,2.8vw,12px);color:${MU};margin-bottom:6px;">@${st.pseudo.toLowerCase().replace(/\s+/g,'')}</div></div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:4px;">
       <div style="flex:1;background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px;text-align:center;"><div style="font-size:clamp(17px,5vw,22px);font-weight:700;color:${AC};">${groupesActifs}</div><div style="font-size:9px;color:${MU};">groupe${groupesActifs!==1?'s':''}</div></div>
@@ -1391,14 +1203,26 @@ function sProfile(){
       <div style="flex:1;background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px;text-align:center;"><div style="font-size:clamp(17px,5vw,22px);font-weight:700;color:${GD};">${vuCount}</div><div style="font-size:9px;color:${MU};">films vus</div></div>
     </div>
   </div>
-  <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
+  <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
     ${st.showAvatarPicker?buildPickerGrid():''}
     <div onclick="go('want-to-see')" style="display:flex;align-items:center;justify-content:space-between;background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px 16px;margin-bottom:12px;cursor:pointer;"><div style="display:flex;align-items:center;gap:10px;"><div style="font-size:clamp(17px,5vw,22px);">❤️</div><div><div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;">Je veux voir</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};">${wantCount} film${wantCount!==1?'s':''} dans ta liste</div></div></div><div style="font-size:clamp(12px,3.6vw,15px);color:${MU};">›</div></div>
     ${lbdBlock}${changePseudoBlock}
     <button onclick="logoutApp()" style="width:100%;background:rgba(255,63,91,0.06);border:1px solid rgba(255,63,91,0.25);border-radius:14px;padding:12px;font-size:clamp(10px,3vw,13px);color:${AC};cursor:pointer;text-align:left;margin-top:4px;">🚪 &nbsp;${T('deconnexion')}</button>
     <button onclick="deleteAccount()" style="width:100%;background:transparent;border:none;border-radius:14px;padding:10px;font-size:clamp(9px,2.8vw,12px);color:rgba(255,63,91,0.4);cursor:pointer;text-align:center;margin-top:2px;">Supprimer mon compte</button>
   </div>
-  <div style="display:flex;background:${S1};border-top:1px solid ${BD};position:fixed;bottom:0;left:0;right:0;z-index:1000;" class="bottom-nav">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div></div>`;
+  <div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:max(env(safe-area-inset-bottom,0px),0px);padding-bottom:env(safe-area-inset-bottom,0px);">${[['home','🍿',T('sorties').slice(3)],['cinemas','🏛',T('cinemas').slice(3)],['group','👥',T('groupes').slice(3)],['profile','👤',T('profil').slice(3)]].map(([sc,ic,lb])=>`<div onclick="go('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${st.screen===sc?1:0.5};"><div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}${sc==='group'&&mesGroupes.some(g=>g.confirmed_heure)?'<div style="position:absolute;top:-3px;right:-5px;width:7px;height:7px;border-radius:50%;background:#00c030;border:1.5px solid #07070f;"></div>':''}</div><div style="font-size:9px;color:${MU};">${lb}</div></div>`).join('')}</div></div>`;
+}
+
+function sMemberProfile(){
+  const pseudo=st.viewedMember;const lbd=membresLbd[pseudo];
+  let commonFilms=[];if(lbd&&st.lbdPseudo)commonFilms=Object.entries(FILMS).filter(([id])=>isVu(id)&&filmInLbd(id,lbd.seen)).map(([id,f])=>f.t);
+  return `<div style="padding:52px 18px 12px;flex-shrink:0;"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><div onclick="st.screen='group';render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div><div class="serif" style="font-size:clamp(17px,5vw,22px);">${esc(pseudo)}</div></div></div>
+  <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
+    <div style="display:flex;justify-content:center;margin-bottom:20px;">${avatarEl(pseudo,72,'18px')}</div>
+    <div style="text-align:center;margin-bottom:20px;"><div style="font-size:clamp(17px,5vw,22px);font-weight:600;">${esc(pseudo)}</div></div>
+    ${(()=>{const moi=membresData.find(m=>m.pseudo===pseudo);const statut=moi?.statut||'maybe';const STATUTS={yes:{e:'✅',l:T('jeViens')},maybe:{e:'❓',l:T('peutEtre')},no:{e:'❌',l:T('jePeuxPas')}};const s=STATUTS[statut];const cinema_pref=moi?.cinema_pref?CINEMAS.find(c=>c.id===moi.cinema_pref)?.name:'';return `<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:14px;"><div style="display:flex;gap:12px;align-items:center;"><span style="font-size:clamp(11px,3.3vw,14px);padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid ${BD};">${s.e} ${s.l}</span>${cinema_pref?`<span style="font-size:clamp(9px,2.8vw,12px);color:${MU};">🏛 ${cinema_pref}</span>`:''}</div></div>`;})()}
+    ${lbd?`<div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px;margin-bottom:14px;"><div style="font-size:clamp(9px,2.8vw,12px);color:${LB};font-weight:600;margin-bottom:10px;">Letterboxd</div><div style="display:flex;gap:12px;margin-bottom:${commonFilms.length?'10px':'0'};">${chip('✓ '+lbd.seen.size+' vus',LB,'rgba(0,192,48,0.12)','rgba(0,192,48,0.3)',10)}${chip('🔖 '+lbd.wl.size+' watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',10)}</div>${commonFilms.length?`<div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-bottom:6px;">Films que vous avez tous les deux vus :</div>${commonFilms.slice(0,5).map(t=>`<div style="font-size:clamp(9px,2.8vw,12px);padding:4px 0;border-bottom:1px solid ${BD};">✓ ${t}</div>`).join('')}${commonFilms.length>5?`<div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-top:4px;">+${commonFilms.length-5} autres</div>`:''}</div>`:''}</div>`:`<div style="text-align:center;padding:20px;color:${MU};font-size:clamp(10px,3vw,13px);background:${S1};border:1px solid ${BD};border-radius:14px;margin-bottom:14px;">Letterboxd non connecté</div>`}
+  </div>`;
 }
 
 // ═══════════ NAVIGATION ═══════════
@@ -1415,27 +1239,6 @@ async function openGroup(filmId,groupeId){
 function openMemberProfile(pseudo){st.viewedMember=pseudo;st.screen='member-profile';render();loadMemberLbd(pseudo).then(()=>render());}
 async function doSync(){st.syncing=true;render();await new Promise(r=>setTimeout(r,1200));st.syncing=false;st.syncLabel="à l'instant";render();}
 
-  function sMemberProfile(){
-  const pseudo=st.viewedMember;
-  const lbd=membresLbd[pseudo];
-  let commonFilms=[];
-  if(lbd&&st.lbdPseudo)commonFilms=Object.entries(FILMS).filter(([id])=>isVu(id)&&filmInLbd(id,lbd.seen)).map(([id,f])=>f.t);
-  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="padding:52px 18px 12px;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-        <div onclick="st.screen='group';render();" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
-        <div class="serif" style="font-size:clamp(17px,5vw,22px);">${pseudo}</div>
-      </div>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:0 18px 80px;">
-      <div style="display:flex;justify-content:center;margin-bottom:20px;">${avatarEl(pseudo,72,'18px')}</div>
-      <div style="text-align:center;margin-bottom:20px;"><div style="font-size:clamp(17px,5vw,22px);font-weight:600;">${pseudo}</div></div>
-      ${(()=>{const moi=membresData.find(m=>m.pseudo===pseudo);const statut=moi?.statut||'maybe';const STATUTS={yes:{e:'✅',l:T('jeViens')},maybe:{e:'❓',l:T('peutEtre')},no:{e:'❌',l:T('jePeuxPas')}};const s=STATUTS[statut];const cinema_pref=moi?.cinema_pref?CINEMAS.find(c=>c.id===moi.cinema_pref)?.name:'';return `<div style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;margin-bottom:14px;"><div style="display:flex;gap:12px;align-items:center;"><span style="font-size:clamp(11px,3.3vw,14px);padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid ${BD};">${s.e} ${s.l}</span>${cinema_pref?`<span style="font-size:clamp(9px,2.8vw,12px);color:${MU};">🏛 ${cinema_pref}</span>`:''}</div></div>`;})()}
-      ${lbd?`<div style="background:rgba(0,192,48,0.06);border:1px solid rgba(0,192,48,0.22);border-radius:14px;padding:14px;margin-bottom:14px;"><div style="font-size:clamp(9px,2.8vw,12px);color:${LB};font-weight:600;margin-bottom:10px;">Letterboxd</div><div style="display:flex;gap:12px;margin-bottom:${commonFilms.length?'10px':'0'};">${chip('✓ '+lbd.seen.size+' vus',LB,'rgba(0,192,48,0.12)','rgba(0,192,48,0.3)',10)}${chip('🔖 '+lbd.wl.size+' watchlist',GD,'rgba(240,192,96,0.12)','rgba(240,192,96,0.3)',10)}</div>${commonFilms.length?`<div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-bottom:6px;">Films que vous avez tous les deux vus :</div>${commonFilms.slice(0,5).map(t=>`<div style="font-size:clamp(9px,2.8vw,12px);padding:4px 0;border-bottom:1px solid ${BD};">✓ ${t}</div>`).join('')}${commonFilms.length>5?`<div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-top:4px;">+${commonFilms.length-5} autres</div>`:''}</div>`:''}</div>`:`<div style="text-align:center;padding:20px;color:${MU};font-size:clamp(10px,3vw,13px);background:${S1};border:1px solid ${BD};border-radius:14px;margin-bottom:14px;">Letterboxd non connecté</div>`}
-    </div>
-  </div>`;
-}
-  
 // ═══════════ RENDER ═══════════
 function render(){
   const inner=document.getElementById('inner');if(!inner)return;
@@ -1470,10 +1273,8 @@ function render(){
 })();
 
 setInterval(()=>{
-  document.querySelectorAll('[data-countdown]').forEach(el=>{
-    const[d,h]=el.dataset.countdown.split('|');
-    el.textContent=countdown(d,h);
-  });
+  if(st.screen==='cinemas'||st.screen==='cinema-detail'||st.screen==='group')render();
+  document.querySelectorAll('[data-countdown]').forEach(el=>{const[d,h]=el.dataset.countdown.split('|');el.textContent=countdown(d,h);});
 },30*1000);
 </script>
 <script>
