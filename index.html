@@ -1157,19 +1157,39 @@ function renderVotesDOM(){
   const heuresVues=new Set(),allSeances=[];
   cinemasActifs.forEach(c=>{((SEANCES[c.id]||{})[st.film]||[]).forEach(h=>{if(!heuresVues.has(h)){heuresVues.add(h);allSeances.push(h);}});});
   allSeances.sort();
-  if(!allSeances.length){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:clamp(10px,3vw,13px);">${T('aucuneSeanceJour')}</div>`;return;}
+  if(!allSeances.length){
+    el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};font-size:clamp(10px,3vw,13px);">${T('aucuneSeanceJour')}</div>`;
+    return;
+  }
   let maxVotes=0,bestHeure=null;
   allSeances.forEach(h=>{const k=st.date+' '+h;const n=(votesData[k]||[]).length;if(n>maxVotes){maxVotes=n;bestHeure=h;}});
   const majority=membresData.length>0&&maxVotes>=Math.ceil(membresData.length/2);
-  const confirmBtn=(majority&&bestHeure&&!groupeInfo.confirmed_heure)?`<div onclick="confirmerPlan('${st.cinema}','${bestHeure}','${st.date}')" style="margin-bottom:12px;padding:12px 14px;border-radius:14px;background:rgba(0,192,48,0.12);border:1px solid rgba(0,192,48,0.4);cursor:pointer;text-align:center;"><div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:${LB};">${T('cestDecide')}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-top:2px;">Confirmer ${bestHeure} · ${maxVotes} vote${maxVotes>1?'s':''}</div></div>`:'';
-  el.innerHTML=confirmBtn+allSeances.map(h=>{
+  const confirmBtn=(majority&&bestHeure&&!groupeInfo.confirmed_heure)?`
+    <div onclick="confirmerPlan('${st.cinema}','${bestHeure}','${st.date}')"
+      style="margin-bottom:16px;padding:12px 14px;border-radius:14px;background:rgba(0,192,48,0.12);border:1px solid rgba(0,192,48,0.4);cursor:pointer;text-align:center;">
+      <div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;color:${LB};">${T('cestDecide')}</div>
+      <div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-top:2px;">Confirmer ${bestHeure} · ${maxVotes} vote${maxVotes>1?'s':''}</div>
+    </div>`:'';
+
+  // Grille responsive selon le nombre de séances
+  const cols=allSeances.length<=4?1:allSeances.length<=8?2:3;
+
+  const items=allSeances.map(h=>{
     const past=isPast(h);const k=st.date+' '+h;const voters=votesData[k]||[];const voted=voters.some(v=>v.pseudo===st.pseudo);
-    return `<div onclick="${past?'':"voter('"+h+"')"}" class="${past?'':'tap'}" style="opacity:${past?'0.4':'1'};background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:${past?'default':'pointer'};display:flex;align-items:center;gap:10px;">
-      <div style="flex:1;"><div style="font-size:clamp(15px,4.6vw,20px);font-weight:600;color:${voted?AC:past?MU:TX};">${h}${past?`<span style="font-size:9px;">${T('seancesPassee')}</span>`:''}</div><div style="font-size:clamp(8px,2.5vw,11px);color:${MU};margin-top:2px;">${voters.length} vote${voters.length!==1?'s':''}</div></div>
-      <div style="display:flex;">${voters.slice(0,5).map(v=>`<div style="width:22px;height:22px;border-radius:50%;background:${pseudoColor(v.pseudo)};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:clamp(9px,2.8vw,12px);margin-left:-4px;">${v.pseudo===st.pseudo?st.avatar:pseudoInitial(v.pseudo)}</div>`).join('')}</div>
-      <div style="width:28px;height:28px;border-radius:50%;background:${voted?AC:'rgba(255,255,255,0.06)'};border:1px solid ${voted?AC:BD};display:flex;align-items:center;justify-content:center;font-size:clamp(12px,3.6vw,15px);">${voted?'✓':'+'}</div>
+    const avatars=voters.slice(0,4).map(v=>`<div style="width:20px;height:20px;border-radius:50%;background:${pseudoColor(v.pseudo)};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:10px;margin-left:-4px;flex-shrink:0;">${v.pseudo===st.pseudo?st.avatar:pseudoInitial(v.pseudo)}</div>`).join('');
+    return `<div onclick="${past?'':"voter('"+h+"')"}" class="${past?'':'tap'}" style="opacity:${past?'0.4':'1'};background:${voted?'rgba(255,63,91,0.1)':'rgba(255,255,255,0.03)'};border:1px solid ${voted?AC:BD};border-radius:14px;padding:10px 12px;cursor:${past?'default':'pointer'};display:flex;flex-direction:column;gap:6px;min-width:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+        <div style="font-size:clamp(14px,4.2vw,18px);font-weight:700;color:${voted?AC:past?MU:TX};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h}${past?`<span style="font-size:9px;margin-left:4px;opacity:0.7;">${T('seancesPassee')}</span>`:''}</div>
+        <div style="width:24px;height:24px;border-radius:50%;flex-shrink:0;background:${voted?AC:'rgba(255,255,255,0.06)'};border:1px solid ${voted?AC:BD};display:flex;align-items:center;justify-content:center;font-size:13px;">${voted?'✓':'+'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;min-height:22px;">
+        <div style="display:flex;align-items:center;">${avatars}</div>
+        ${voters.length>0?`<span style="font-size:clamp(8px,2.5vw,11px);color:${MU};">${voters.length} vote${voters.length!==1?'s':''}</span>`:''}
+      </div>
     </div>`;
   }).join('');
+
+  el.innerHTML=confirmBtn+`<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;width:100%;box-sizing:border-box;">${items}</div>`;
 }
 
 function sCreateSortie(){
