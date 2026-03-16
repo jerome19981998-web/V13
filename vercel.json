@@ -1,45 +1,14 @@
 {
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/cinematch.html"
-    },
-    {
-      "source": "/index.html",
-      "destination": "/cinematch.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/sw.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
-        }
-      ]
-    },
-    {
-      "source": "/manifest.json",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/manifest+json"
-        }
-      ]
-    },
-    {
-      "source": "/(.*\\.png)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        }
-      ]
-    }
-  ]
+  "name": "cinematch-scraper",
+  "version": "7.0.0",
+  "description": "Scraper AlloCiné pour CinéMatch — sélecteurs v7",
+  "main": "scraper.js",
+  "scripts": {
+    "scrape": "node scraper.js",
+    "test": "node scraper.js --dry-run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "playwright": "^1.42.0"
+  }
 }
