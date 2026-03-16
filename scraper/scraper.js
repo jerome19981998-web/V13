@@ -165,20 +165,25 @@ async function scrapeCinema(browser, cinemaId, cinema) {
 
   page.on('response', async response => {
     const url = response.url();
-    // Cibler les requêtes API de séances d'AlloCiné
-    if (!url.includes('allocine') && !url.includes('acsta')) return;
     if (response.status() !== 200) return;
     const ct = response.headers()['content-type'] || '';
     if (!ct.includes('json')) return;
+    // Logger TOUTES les réponses JSON pour debug
     try {
-      const json = await response.json().catch(() => null);
-      if (!json) return;
-      // Chercher une date dans l'URL
+      const text = await response.text().catch(() => '');
+      if (!text || text.length < 10) return;
+      // Afficher les URLs JSON pour trouver l'endpoint des séances
+      if (url.includes('showtime') || url.includes('seance') || url.includes('movie') || url.includes('film') || url.includes('schedule') || text.includes('startsAt') || text.includes('showtimes')) {
+        console.log(`    📡 JSON trouvé: ${url.slice(0, 120)}`);
+        console.log(`       Preview: ${text.slice(0, 200)}`);
+      }
+      // Essayer quand même de parser pour les séances
+      const json = JSON.parse(text);
       const dateMatch = url.match(/(\d{4}-\d{2}-\d{2})/);
       const dateISO = dateMatch ? dateMatch[1] : getDateISO(0);
       const seances = parseShowtimeResponse(json, dateISO);
       if (seances.length > 0) {
-        console.log(`    📡 API interceptée: ${seances.length} films pour ${dateISO}`);
+        console.log(`    ✅ API séances: ${seances.length} films pour ${dateISO}`);
         if (!capturedData[dateISO]) capturedData[dateISO] = [];
         capturedData[dateISO].push(...seances);
       }
