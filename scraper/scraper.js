@@ -1,9 +1,10 @@
 /**
- * CinéMatch — Scraper v7.1
- * Fix: fermeture popup Didomi (cookies) avant extraction
+ * CinéMatch — Scraper v8
+ * Source: API JSON AlloCiné directe (découverte par interception réseau)
+ * URL: https://www.allocine.fr/_/showtimes/theater-{id}/d-{date}/
+ * Pas de Playwright, pas de Didomi — simple fetch !
  */
 
-const { chromium } = require('playwright');
 const { createClient } = require('@supabase/supabase-js');
 
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -37,288 +38,139 @@ const CINEMAS = {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function toHeure(s) {
-  if (!s) return null;
-  const m = String(s).match(/(\d{1,2})[h:](\d{2})/i);
-  if (!m) return null;
-  const h = parseInt(m[1]);
-  if (h < 6 || h > 23) return null;
-  return `${h}h${m[2]}`;
-}
-
 function getDateISO(n = 0) {
   const d = new Date(); d.setDate(d.getDate() + n);
   return d.toISOString().slice(0, 10);
 }
 
 function slugify(t) {
-  return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 }
 
-// ── BYPASS DIDOMI COMPLET ────────────────────────────────────────────────────
-// On remplace l'objet window.Didomi par un faux qui retourne toujours "consenti"
-// avant même que le SDK Didomi se charge → AlloCiné pense que l'utilisateur
-// a déjà tout accepté et charge les séances directement
-const DIDOMI_CONSENT_SCRIPT = `
-  (function() {
-    // Stocker le consentement dans localStorage (lu par Didomi au démarrage)
-    try {
-      localStorage.setItem('didomi_token', JSON.stringify({
-        purposes_consent: 'all', vendors_consent: 'all',
-        created: new Date().toISOString(), updated: new Date().toISOString()
-      }));
-      localStorage.setItem('euconsent-v2', 'CPAAAAAAAAAAAAAAAAAAAAEgAAAAAAAAAAAA');
-    } catch(e) {}
-
-    // Créer un faux objet Didomi qui répond "tout accepté" à toutes les questions
-    const fakeDidomi = {
-      setUserAgreeToAll: function() {},
-      setUserDisagreeToAll: function() {},
-      getUserConsentStatusForPurpose: function() { return true; },
-      getUserConsentStatusForVendor: function() { return true; },
-      getUserStatus: function() { return { purposes: { consent: { enabled: [] } } }; },
-      isReady: function() { return true; },
-      on: function(event, cb) { if (event === 'ready') { try { cb(); } catch(e) {} } return function(){}; },
-      off: function() {},
-      notice: { isVisible: function() { return false; } },
-      preferences: {},
-    };
-
-    // Injecter avant que le vrai Didomi se charge
-    if (!window.Didomi) window.Didomi = fakeDidomi;
-
-    // Intercepter la définition de window.Didomi pour garder notre faux
-    Object.defineProperty(window, 'Didomi', {
-      get: function() { return fakeDidomi; },
-      set: function(v) {
-        // Le vrai SDK essaie de se définir — on ignore et on garde le faux
-      },
-      configurable: true,
-    });
-
-    // Supprimer la classe bloquante dès que le DOM est prêt
-    function removeBlockingClass() {
-      document.documentElement.classList.remove('didomi-popup-open');
-      document.body && document.body.classList.remove('didomi-popup-open');
-    }
-    removeBlockingClass();
-    document.addEventListener('DOMContentLoaded', removeBlockingClass);
-  })();
-`;
-
-async function closeCookiePopup(page) {
-  // Avec le faux Didomi injecté via addInitScript, la popup ne devrait plus bloquer.
-  // On supprime quand même la classe au cas où AlloCiné la remet après coup.
-  try {
-    await page.evaluate(() => {
-      document.documentElement.classList.remove('didomi-popup-open');
-      document.body && document.body.classList.remove('didomi-popup-open');
-      const popup = document.getElementById('didomi-popup');
-      if (popup) popup.style.display = 'none';
-    });
-    await sleep(500);
-  } catch(e) {}
+function toHeure(s) {
+  if (!s) return null;
+  const mISO = String(s).match(/T(\d{2}):(\d{2})/);
+  if (mISO) { const h = parseInt(mISO[1]); if (h >= 6 && h <= 23) return `${h}h${mISO[2]}`; }
+  const mTxt = String(s).match(/(\d{1,2})[h:](\d{2})/i);
+  if (mTxt) { const h = parseInt(mTxt[1]); if (h >= 6 && h <= 23) return `${h}h${mTxt[2]}`; }
+  return null;
 }
 
-// ── EXTRACTION PAR INTERCEPTION RÉSEAU ───────────────────────────────────────
-// AlloCiné charge les séances via des requêtes XHR/fetch → on les intercepte
-function parseShowtimeResponse(json, dateISO) {
-  const results = [];
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'fr-FR,fr;q=0.9',
+  'Referer': 'https://www.allocine.fr/',
+  'X-Requested-With': 'XMLHttpRequest',
+};
+
+// ── API ALLOCINE DIRECTE ───────────────────────────────────────────────────────
+async function fetchShowtimes(allocineId, dateISO, debugFirst = false) {
+  const url = `https://www.allocine.fr/_/showtimes/theater-${allocineId}/d-${dateISO}/`;
   try {
-    // Format 1: { results: [ { movie: { title }, showtimes: [...] } ] }
-    const items = json?.results || json?.data || json?.showtimes || json?.movies || [];
-    const list = Array.isArray(items) ? items : Object.values(items);
-    for (const item of list) {
-      const title = item?.movie?.title || item?.title || item?.name;
-      if (!title) continue;
-      const times = item?.showtimes || item?.shows || item?.sessions || [];
-      const timeList = Array.isArray(times) ? times : Object.values(times);
-      const heures = [];
-      for (const t of timeList) {
-        const raw = t?.startsAt || t?.startAt || t?.time || t?.startTime || t?.datetime || t;
-        const h = toHeure(String(raw));
-        if (h) heures.push(h);
+    const res = await fetch(url, { headers: HEADERS });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    if (json.error && json.results?.length === 0) return []; // pas de séances ce jour
+
+    if (debugFirst) {
+      // Afficher la structure complète du premier film pour comprendre le schéma
+      const first = json.results?.[0];
+      if (first) {
+        console.log(`    🔍 Structure premier film:`);
+        console.log(`       Clés: ${Object.keys(first).join(', ')}`);
+        console.log(`       movie clés: ${Object.keys(first.movie || {}).join(', ')}`);
+        // Chercher les horaires
+        const stKeys = Object.keys(first).filter(k => k !== 'movie');
+        stKeys.forEach(k => {
+          const v = first[k];
+          if (Array.isArray(v) && v.length > 0) {
+            console.log(`       ${k}[0] clés: ${Object.keys(v[0]).join(', ')}`);
+            console.log(`       ${k}[0]: ${JSON.stringify(v[0]).slice(0, 150)}`);
+          }
+        });
       }
-      if (heures.length) results.push({ title, director: item?.movie?.directors?.[0]?.name || '', duration: '', genre: '', heures: [...new Set(heures)].sort() });
     }
-  } catch(e) {}
-  return results;
+
+    const seances = [];
+    for (const item of (json.results || [])) {
+      const movie = item.movie || {};
+      const title = movie.title || movie.originalTitle;
+      if (!title) continue;
+
+      const director = movie.directors?.[0]?.name || movie.directors?.[0] || '';
+      const duration = movie.runtime ? `${Math.floor(movie.runtime/60)}h${String(movie.runtime%60).padStart(2,'0')}` : '';
+      const genre = movie.genres?.[0]?.tag || movie.genres?.[0] || '';
+
+      // Chercher les horaires dans toutes les clés possibles de item
+      const heures = [];
+      const showtimeKeys = ['showtimes', 'shows', 'screenings', 'times', 'sessions', 'versions'];
+
+      for (const key of Object.keys(item)) {
+        if (key === 'movie') continue;
+        const val = item[key];
+        // Si c'est un tableau de séances
+        if (Array.isArray(val)) {
+          for (const show of val) {
+            const t = show?.startsAt || show?.startAt || show?.time || show?.datetime || show?.start;
+            const h = toHeure(t);
+            if (h) heures.push(h);
+            // Parfois les séances sont imbriquées dans une liste
+            if (Array.isArray(show?.showtimes)) {
+              for (const s of show.showtimes) {
+                const h2 = toHeure(s?.startsAt || s?.time || s);
+                if (h2) heures.push(h2);
+              }
+            }
+          }
+        }
+        // Si c'est un objet avec des listes par version (VF/VO/etc)
+        if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+          for (const versionList of Object.values(val)) {
+            if (Array.isArray(versionList)) {
+              for (const show of versionList) {
+                const t = show?.startsAt || show?.time || show?.start;
+                const h = toHeure(t);
+                if (h) heures.push(h);
+              }
+            }
+          }
+        }
+      }
+
+      if (heures.length > 0) {
+        seances.push({ title, director, duration, genre, heures: [...new Set(heures)].sort() });
+      }
+    }
+    return seances;
+  } catch (e) {
+    console.log(`    ✗ API ${allocineId} ${dateISO}: ${e.message}`);
+    return [];
+  }
 }
 
 // ── SCRAPE UN CINÉMA ──────────────────────────────────────────────────────────
-async function scrapeCinema(browser, cinemaId, cinema) {
+async function scrapeCinema(cinemaId, cinema) {
   console.log(`\n📍 ${cinemaId} (${cinema.allocineId})...`);
   const result = { films: {}, seances: {} };
+  let firstDebug = true;
 
-  const context = await browser.newContext({
-    locale: 'fr-FR',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/122.0 Safari/537.36',
-  });
+  for (let day = 0; day < DAYS; day++) {
+    const dateISO = getDateISO(day);
+    const seances = await fetchShowtimes(cinema.allocineId, dateISO, firstDebug && day === 0);
+    firstDebug = false;
 
-  // Injecter le faux Didomi avant chaque page
-  await context.addInitScript(DIDOMI_CONSENT_SCRIPT);
-
-  const page = await context.newPage();
-
-  // Collecter toutes les réponses JSON qui ressemblent à des séances
-  const capturedData = {}; // { dateISO: [seances] }
-
-  page.on('response', async response => {
-    const url = response.url();
-    if (response.status() !== 200) return;
-    const ct = response.headers()['content-type'] || '';
-    if (!ct.includes('json')) return;
-    // Logger TOUTES les réponses JSON pour debug
-    try {
-      const text = await response.text().catch(() => '');
-      if (!text || text.length < 10) return;
-      // Afficher les URLs JSON pour trouver l'endpoint des séances
-      if (url.includes('showtime') || url.includes('seance') || url.includes('movie') || url.includes('film') || url.includes('schedule') || text.includes('startsAt') || text.includes('showtimes')) {
-        console.log(`    📡 JSON trouvé: ${url.slice(0, 120)}`);
-        console.log(`       Preview: ${text.slice(0, 200)}`);
-      }
-      // Essayer quand même de parser pour les séances
-      const json = JSON.parse(text);
-      const dateMatch = url.match(/(\d{4}-\d{2}-\d{2})/);
-      const dateISO = dateMatch ? dateMatch[1] : getDateISO(0);
-      const seances = parseShowtimeResponse(json, dateISO);
-      if (seances.length > 0) {
-        console.log(`    ✅ API séances: ${seances.length} films pour ${dateISO}`);
-        if (!capturedData[dateISO]) capturedData[dateISO] = [];
-        capturedData[dateISO].push(...seances);
-      }
-    } catch(e) {}
-  });
-
-  // Bloquer images/media, et REMPLACER le script Didomi par notre version
-  await page.route('**/*', async route => {
-    const url = route.request().url();
-    const t = route.request().resourceType();
-    // Intercepter le SDK Didomi et le remplacer par un stub qui consent immédiatement
-    if (url.includes('didomi') || url.includes('sdk.privacy-center')) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/javascript',
-        body: `
-          window.didomiOnReady = window.didomiOnReady || [];
-          window.Didomi = {
-            setUserAgreeToAll: function() {},
-            getUserConsentStatusForPurpose: function() { return true; },
-            getUserConsentStatusForVendor: function() { return true; },
-            isReady: function() { return true; },
-            on: function(e, cb) { if(e==='ready') setTimeout(cb, 0); return function(){}; },
-            off: function() {},
-            notice: { isVisible: function() { return false; } },
-          };
-          // Déclencher les callbacks didomiOnReady
-          (window.didomiOnReady || []).forEach(function(cb) { try { cb(window.Didomi); } catch(e) {} });
-          // Déclencher l'événement consent
-          document.dispatchEvent(new CustomEvent('didomi:consent', { detail: { status: 'agreed' } }));
-        `,
-      });
-      return;
-    }
-    if (['image', 'media', 'font', 'stylesheet'].includes(t)) return route.abort();
-    route.continue();
-  });
-
-  // Récupérer les dates dispo depuis la page J
-  let availableDates = [];
-  try {
-    const baseUrl = `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html`;
-    await page.goto(baseUrl, { waitUntil: 'networkidle', timeout: 30000 });
-    await sleep(3000); // attendre que les séances se chargent post-consentement
-
-    availableDates = await page.evaluate(() => {
-      const section = document.querySelector('[data-showtimes-dates]');
-      if (!section) return [];
-      try { return JSON.parse(section.getAttribute('data-showtimes-dates') || '[]'); }
-      catch { return []; }
-    });
-    console.log(`  📅 Dates dispo: ${availableDates.slice(0, DAYS).join(', ')}`);
-
-    // Essayer aussi extraction DOM classique (si les horaires sont dans le HTML)
-    const today = getDateISO(0);
-    const domSeances = await page.evaluate(() => {
-      const results = [];
-      document.querySelectorAll('.movie-card-theater').forEach(card => {
-        const titleEl = card.querySelector('a[href*="fichefilm"], .meta-title-link, h2 a');
-        const title = titleEl?.textContent?.trim();
-        if (!title || title.length > 120) return;
-        const heures = [];
-        card.querySelectorAll('.showtimes-hour-item-value, .showtimes-hour-item').forEach(el => {
-          const m = el.textContent?.trim().match(/(\d{1,2})h(\d{2})/i);
-          if (m) { const h = parseInt(m[1]); if (h >= 6 && h <= 23) heures.push(`${h}h${m[2]}`); }
-        });
-        if (heures.length) results.push({ title, director: '', duration: '', genre: '', heures: [...new Set(heures)].sort() });
-      });
-      return results;
-    });
-    if (domSeances.length) {
-      console.log(`    ✓ DOM ${today}: ${domSeances.length} films`);
-      domSeances.forEach(({ title, director, duration, genre, heures }) => {
-        if (!result.films[title]) result.films[title] = { title, director, duration, genre };
-        if (!result.seances[title]) result.seances[title] = {};
-        result.seances[title][today] = heures;
-      });
-    }
-  } catch (e) {
-    console.log(`    ✗ Page J: ${e.message}`);
-  }
-
-  // Charger chaque date pour déclencher les requêtes API
-  const futureDates = availableDates
-    .filter(d => d > getDateISO(0))
-    .slice(0, DAYS - 1);
-
-  for (const dateISO of futureDates) {
-    try {
-      const url = `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html?date=${dateISO}`;
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 25000 });
-      await sleep(1500);
-
-      // Récupérer depuis données capturées par l'intercepteur réseau
-      const apiSeances = capturedData[dateISO] || [];
-      // + extraction DOM de secours
-      const domSeances = await page.evaluate(() => {
-        const results = [];
-        document.querySelectorAll('.movie-card-theater').forEach(card => {
-          const titleEl = card.querySelector('a[href*="fichefilm"], .meta-title-link, h2 a');
-          const title = titleEl?.textContent?.trim();
-          if (!title || title.length > 120) return;
-          const heures = [];
-          card.querySelectorAll('.showtimes-hour-item-value, .showtimes-hour-item').forEach(el => {
-            const m = el.textContent?.trim().match(/(\d{1,2})h(\d{2})/i);
-            if (m) { const h = parseInt(m[1]); if (h >= 6 && h <= 23) heures.push(`${h}h${m[2]}`); }
-          });
-          if (heures.length) results.push({ title, heures: [...new Set(heures)].sort() });
-        });
-        return results;
-      });
-
-      const allSeances = [...apiSeances, ...domSeances];
-      for (const { title, director='', duration='', genre='', heures } of allSeances) {
-        if (!result.films[title]) result.films[title] = { title, director, duration, genre };
-        if (!result.seances[title]) result.seances[title] = {};
-        result.seances[title][dateISO] = [...new Set([...(result.seances[title][dateISO]||[]), ...heures])];
-      }
-      console.log(`    ✓ ${dateISO}: ${allSeances.length} films`);
-    } catch (e) {
-      console.log(`    ✗ ${dateISO}: ${e.message}`);
-    }
-    await sleep(800);
-  }
-
-  // Intégrer les données capturées par l'intercepteur pour toutes les dates
-  for (const [dateISO, seances] of Object.entries(capturedData)) {
     for (const { title, director, duration, genre, heures } of seances) {
       if (!result.films[title]) result.films[title] = { title, director, duration, genre };
       if (!result.seances[title]) result.seances[title] = {};
-      result.seances[title][dateISO] = [...new Set([...(result.seances[title][dateISO]||[]), ...heures])];
+      result.seances[title][dateISO] = heures;
     }
+
+    console.log(`    ✓ ${dateISO}: ${seances.length} films${seances[0] ? ` — ex: "${seances[0].title}" ${seances[0].heures.join(', ')}` : ''}`);
+    await sleep(300);
   }
 
-  await context.close();
   return result;
 }
 
@@ -345,23 +197,20 @@ async function enrichWithTMDB(films) {
                  || await searchTMDB(film.title, year - 1)
                  || await searchTMDB(film.title, null);
       if (!movie) { console.log(`  ✗ "${film.title}"`); continue; }
-
       film.tmdbId   = movie.id;
       film.poster   = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null;
       film.tmdbNote = movie.vote_average ? +movie.vote_average.toFixed(1) : null;
       film.synopsis = movie.overview || '';
       if (!film.genre && movie.genre_ids?.[0]) film.genre = TMDB_GENRES[movie.genre_ids[0]] || '';
-
       const vr = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?language=fr-FR`, {
         headers: { Authorization: `Bearer ${TMDB_TOKEN}` }
       });
       if (vr.ok) {
         const { results: vids } = await vr.json();
-        const t = vids?.find(v => v.type==='Trailer'&&v.site==='YouTube') || vids?.find(v => v.site==='YouTube');
+        const t = vids?.find(v=>v.type==='Trailer'&&v.site==='YouTube') || vids?.find(v=>v.site==='YouTube');
         if (t) film.trailerKey = t.key;
       }
-
-      console.log(`  ✓ "${film.title}" → ${movie.id} (${movie.release_date?.slice(0,4)})${film.trailerKey?' + 🎬':''}`);
+      console.log(`  ✓ "${film.title}" → ${movie.id}${film.trailerKey?' + 🎬':''}`);
       await sleep(200);
     } catch (e) { console.log(`  ✗ "${film.title}": ${e.message}`); }
   }
@@ -370,12 +219,10 @@ async function enrichWithTMDB(films) {
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 async function pushToSupabase(allData) {
   console.log('\n📤 Push Supabase...');
-
   await supa.from('cinemas_dyn').upsert(
-    Object.entries(CINEMAS).map(([id,c]) => ({
-      id, name:c.name, chain:c.chain, lat:c.lat, lng:c.lng,
-      addr:c.addr, metro:c.metro, salles:c.salles,
-    })), { onConflict: 'id' }
+    Object.entries(CINEMAS).map(([id,c])=>({
+      id, name:c.name, chain:c.chain, lat:c.lat, lng:c.lng, addr:c.addr, metro:c.metro, salles:c.salles,
+    })), { onConflict:'id' }
   );
 
   const allFilms = {};
@@ -388,14 +235,14 @@ async function pushToSupabase(allData) {
   await enrichWithTMDB(allFilms);
 
   for (let i = 0; i < Object.keys(allFilms).length; i += 50) {
-    const chunk = Object.entries(allFilms).slice(i, i + 50);
+    const chunk = Object.entries(allFilms).slice(i, i+50);
     await supa.from('films_dyn').upsert(
-      chunk.map(([slug,f]) => ({
-        id: slug, title:f.title, director:f.director||'', duration:f.duration||'',
+      chunk.map(([slug,f])=>({
+        id:slug, title:f.title, director:f.director||'', duration:f.duration||'',
         genre:f.genre||'', synopsis:f.synopsis||'', poster_url:f.poster||null,
         tmdb_id:f.tmdbId||null, tmdb_note:f.tmdbNote||null, trailer_key:f.trailerKey||null,
-        updated_at: new Date().toISOString(),
-      })), { onConflict: 'id' }
+        updated_at:new Date().toISOString(),
+      })), { onConflict:'id' }
     );
   }
   console.log(`  ✓ ${Object.keys(allFilms).length} films`);
@@ -418,26 +265,17 @@ async function pushToSupabase(allData) {
 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('🎬 CinéMatch Scraper v7.1 — ' + new Date().toLocaleString('fr-FR'));
+  console.log('🎬 CinéMatch Scraper v8 — ' + new Date().toLocaleString('fr-FR'));
   console.log(DRY_RUN ? '🔍 DRY-RUN' : '🚀 PRODUCTION');
 
-  const browser = await chromium.launch({ headless: true });
   const allData = {};
-
   for (const [id, cinema] of Object.entries(CINEMAS)) {
-    try {
-      allData[id] = await scrapeCinema(browser, id, cinema);
-    } catch (e) {
-      console.error(`❌ ${id}:`, e.message);
-      allData[id] = { films:{}, seances:{} };
-    }
+    allData[id] = await scrapeCinema(id, cinema);
     const nf = Object.keys(allData[id].films).length;
     const ns = Object.values(allData[id].seances).reduce((s,d)=>s+Object.values(d).reduce((a,h)=>a+h.length,0),0);
     console.log(`  ${nf>0?'✓':'✗'} ${id}: ${nf} films, ${ns} séances`);
-    await sleep(600);
+    await sleep(400);
   }
-
-  await browser.close();
 
   const totalFilms = new Set(Object.values(allData).flatMap(d=>Object.keys(d.films)));
   const totalSeances = Object.values(allData).reduce((s,d)=>s+Object.values(d.seances).reduce((a,dm)=>a+Object.values(dm).reduce((b,h)=>b+h.length,0),0),0);
