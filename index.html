@@ -324,7 +324,7 @@ const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{autoRefreshToken:true,
 
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
 let st={screen:'loading',lang:_saved.lang||'fr',pseudo:_saved.pseudo||'',pseudoInput:'',avatar:_saved.avatar||'🎬',userId:null,userEmail:'',authStep:'login',cinema:null,film:null,filmSrc:'home',groupe:null,search:'',genre:'tous',cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',tab:'chat',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',msgs:[],date:todayStr(),lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',viewedMember:null,showAvatarPicker:false,_inviteGroupe:null,_inviteFilm:null,_changingPseudo:false};
-function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang});}catch(e){}}
+function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang}));}catch(e){}}
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
 
 let lbdSeen=new Set(),lbdWatchlist=new Set();
