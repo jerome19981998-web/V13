@@ -244,7 +244,7 @@ async function initDynamicData(dateStr){
       if(!dateStr||!AVAILABLE_DATES.includes(dateStr))dateStr=AVAILABLE_DATES[0]||todayStr();
       st.date=dateStr;
       FILMS={};
-      for(const f of(filmsRes.data||[])){const[c,bg]=filmPalette(f.id);FILMS[f.id]={e:genreEmoji(f.genre),c,bg,g:(f.genre||'DIVERS').toUpperCase(),t:f.title,d:(()=>{const dur=f.duration||'';return /^\d+h\d+$/.test(dur)?dur:'';})(),dir:f.director||'',s:f.synopsis||'',poster:f.poster_url||null,tmdbNote:f.tmdb_note||null,trailerKey:f.trailer_key||null,lbd:false};}
+      for(const f of(filmsRes.data||[])){const[c,bg]=filmPalette(f.id);FILMS[f.id]={e:genreEmoji(f.genre),c,bg,g:(f.genre||'DIVERS').toUpperCase(),t:f.title,d:(()=>{const dur=String(f.duration||'');return dur&&!dur.includes('NaN')&&/^\d+h\d{2}$/.test(dur)?dur:'';})(),dir:f.director||'',s:f.synopsis||'',poster:f.poster_url||null,tmdbNote:f.tmdb_note||null,trailerKey:f.trailer_key||null,lbd:false};}
       CINEMAS=(cinemasRes.data||[]).map(c=>({id:c.id,lat:c.lat,lng:c.lng,chain:c.chain,icon:CHAIN_ICONS[c.chain]||'🎬',name:c.name,addr:c.addr||'',metro:c.metro||'',salles:null,tech:[],films:[]}));
     }
     const targetDate=dateStr||st.date;
@@ -985,7 +985,7 @@ function sFilm(){
   const wantList=getWantToSee();
   const isWanted=wantList.includes(st.film);
   const hasSortie=sortiesPubliques.some(s=>s.film_id===st.film);
-  return `<div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;">
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <!-- Hero poster (LBD-style full bleed) -->
     <div style="height:240px;position:relative;overflow:hidden;background:${f.bg};">
       ${posters[st.film]?'<img src="'+posters[st.film]+'" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.5);">':''}
@@ -1003,7 +1003,7 @@ function sFilm(){
           ${ratings[st.film]?`<div>${starsHTML(ratings[st.film].note,5,14)}</div><span style="font-size:clamp(9px,2.8vw,12px);color:${MU};">TMDB ${ratings[st.film].note}/10</span>`:''}
         </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">
-          ${f.d?chip('⏱ '+f.d,TX,'rgba(255,255,255,0.08)',BD,9):''}
+          ${f.d&&!f.d.includes('NaN')&&f.d!==''?chip('⏱ '+f.d,TX,'rgba(255,255,255,0.08)',BD,9):''}
           ${chip('🎭 '+f.dir,TX,'rgba(255,255,255,0.08)',BD,9)}
           ${isVu(st.film)?chip('✓ Vu',LB,'rgba(0,192,48,0.18)','rgba(0,192,48,0.35)',9):''}
           ${isWatchlist(st.film)&&!isVu(st.film)?chip('🔖 Watchlist',GD,'rgba(240,192,96,0.14)','rgba(240,192,96,0.35)',9):''}
