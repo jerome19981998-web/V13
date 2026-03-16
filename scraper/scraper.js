@@ -55,31 +55,57 @@ function slugify(t) {
   return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-// ── FERMER LA POPUP DIDOMI (cookies) ─────────────────────────────────────────
+// ── INJECTION CONSENTEMENT DIDOMI (avant chargement page) ────────────────────
+// Injecte le consentement dans localStorage AVANT que la page se charge
+// → AlloCiné ne montre jamais la popup et charge les séances directement
+const DIDOMI_CONSENT_SCRIPT = `
+  // Consentement Didomi pré-injecté pour AlloCiné
+  try {
+    const consent = {
+      user_id: 'cinematch-bot',
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      vendors: { enabled: [], disabled: [] },
+      purposes: { enabled: [], disabled: [] },
+      version: 1,
+    };
+    // Clé utilisée par Didomi sur allocine.fr
+    localStorage.setItem('didomi_token', JSON.stringify({ purposes_consent: 'all' }));
+    localStorage.setItem('euconsent-v2', 'consent-all');
+    localStorage.setItem('didomi-auth', JSON.stringify(consent));
+    // Supprimer la classe bloquante sur le body si présente
+    document.documentElement.classList.remove('didomi-popup-open');
+    document.body && document.body.classList.remove('didomi-popup-open');
+    // Masquer la popup visuellement si elle existe
+    const popup = document.getElementById('didomi-popup');
+    if (popup) popup.style.display = 'none';
+    const notice = document.getElementById('didomi-notice');
+    if (notice) notice.style.display = 'none';
+    // Forcer via API si disponible
+    if (window.Didomi) window.Didomi.setUserAgreeToAll();
+  } catch(e) {}
+`;
+
 async function closeCookiePopup(page) {
   try {
     await page.evaluate(() => {
-      // Méthode 1 : API Didomi directe
-      if (window.Didomi) {
-        window.Didomi.setUserAgreeToAll();
-        return;
-      }
-      // Méthode 2 : cliquer sur le bouton d'acceptation
-      const btn = document.querySelector(
-        '#didomi-notice-agree-button, ' +
-        'button[aria-label*="accepter" i], ' +
-        'button[aria-label*="accept" i], ' +
-        '.didomi-components-button--filled, ' +
-        '.didomi-continue-without-agreeing'
-      );
-      if (btn) btn.click();
+      try {
+        localStorage.setItem('didomi_token', JSON.stringify({ purposes_consent: 'all' }));
+        localStorage.setItem('euconsent-v2', 'consent-all');
+        document.documentElement.classList.remove('didomi-popup-open');
+        document.body && document.body.classList.remove('didomi-popup-open');
+        const popup = document.getElementById('didomi-popup');
+        if (popup) popup.style.display = 'none';
+        const notice = document.getElementById('didomi-notice');
+        if (notice) notice.style.display = 'none';
+        if (window.Didomi) window.Didomi.setUserAgreeToAll();
+        // Cliquer sur le bouton en dernier recours
+        const btn = document.querySelector('#didomi-notice-agree-button, .didomi-components-button--filled');
+        if (btn) btn.click();
+      } catch(e) {}
     });
-    // Attendre que la popup disparaisse
-    await page.waitForSelector('.didomi-popup-open', { state: 'detached', timeout: 5000 }).catch(() => {});
-    await sleep(1000); // laisser les horaires se recharger après fermeture
-  } catch (e) {
-    // La popup n'était peut-être pas là, on continue
-  }
+    await sleep(800);
+  } catch (e) {}
 }
 
 // ── EXTRACTION DANS LE NAVIGATEUR ────────────────────────────────────────────
@@ -149,6 +175,10 @@ async function scrapeCinema(browser, cinemaId, cinema) {
     locale: 'fr-FR',
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/122.0 Safari/537.36',
   });
+
+  // Injecter le consentement Didomi avant chaque chargement de page
+  await context.addInitScript(DIDOMI_CONSENT_SCRIPT);
+
   const page = await context.newPage();
 
   await page.route('**/*', route => {
