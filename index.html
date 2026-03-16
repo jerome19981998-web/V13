@@ -295,7 +295,7 @@ try{const lockKeys=Object.keys(localStorage).filter(k=>k.includes('lock:sb-'));l
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
 
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
-let st={screen:'loading',lang:_saved.lang||'fr',pseudo:_saved.pseudo||'',pseudoInput:'',avatar:_saved.avatar||'🎬',userId:null,userEmail:'',authStep:'login',cinema:null,film:null,filmSrc:'home',groupe:null,search:'',genre:'tous',cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',tab:'chat',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',msgs:[],date:todayStr(),lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',viewedMember:null,showAvatarPicker:false,_inviteGroupe:null,_inviteFilm:null,_changingPseudo:false};
+let st={screen:'loading',lang:_saved.lang||'fr',pseudo:_saved.pseudo||'',pseudoInput:'',avatar:_saved.avatar||'🎬',userId:null,userEmail:'',authStep:'login',cinema:null,film:null,filmSrc:'home',groupe:null,search:'',genre:'tous',cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',tab:'chat',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',filmGridMode:false,msgs:[],date:todayStr(),lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',viewedMember:null,showAvatarPicker:false,_inviteGroupe:null,_inviteFilm:null,_changingPseudo:false};
 function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang}));}catch(e){}}
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
 
@@ -567,7 +567,7 @@ function getSearchHistory(){try{const key='cm_searches_'+(st.pseudo||'_');return
 function saveSearch(q){if(!q||q.trim().length<2)return;q=q.trim();try{const key='cm_searches_'+(st.pseudo||'_');let hist=getSearchHistory();hist=hist.filter(h=>h!==q);hist.unshift(q);hist=hist.slice(0,8);localStorage.setItem(key,JSON.stringify(hist));}catch(e){}}
 function clearSearchHistory(){try{localStorage.removeItem('cm_searches_'+(st.pseudo||'_'));}catch(e){}st.search='';render();}
 function useSearch(q){st.search=q;st.showSearchHistory=false;render();}
-function setGenre(g){st.genre=g;st.search='';st.showSearchHistory=false;render();}
+function setGenre(g){st.genre=g;st.search='';st.showSearchHistory=false;st.filmGridMode=true;render();}
 
 function sHome(){
   const tab=st.homeTab||'sorties';
@@ -600,7 +600,7 @@ function sHome(){
       </div>
       <div style="display:flex;gap:0;background:${S1};border:1px solid ${BD};border-radius:14px;padding:3px;margin-bottom:2px;">
         <div onclick="st.homeTab='sorties';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:clamp(10px,3vw,13px);font-weight:600;background:${tab==='sorties'?AC:'transparent'};color:${tab==='sorties'?'#fff':MU};transition:all .2s;">${T('sorties')}</div>
-        <div onclick="st.homeTab='films';st.search='';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:clamp(10px,3vw,13px);font-weight:600;background:${tab==='films'?S2:'transparent'};color:${tab==='films'?TX:MU};transition:all .2s;">${T('films')}</div>
+        <div onclick="st.homeTab='films';st.search='';st.filmGridMode=false;st.genre='tous';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:clamp(10px,3vw,13px);font-weight:600;background:${tab==='films'?S2:'transparent'};color:${tab==='films'?TX:MU};transition:all .2s;">${T('films')}</div>
       </div>
     </div>`;
 
@@ -623,7 +623,7 @@ function sHome(){
     const heroEntry=allFilms.find(([id,f])=>posters[id])||allFilms[0];
     const heroId=heroEntry?.[0],heroFilm=heroEntry?.[1];
     const isSearching=searchQ.length>0;
-    const isFiltering=activeGenre!=='tous';
+    const isFiltering=st.filmGridMode||activeGenre!=='tous';;
 
     return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
       ${header}
@@ -693,19 +693,7 @@ function sHome(){
             <div class="section-header"><div class="section-title">🔖 Votre watchlist</div><div class="section-more" style="color:${GD};">@${esc(st.lbdPseudo)}</div></div>
             <div class="row-scroll">${allFilms.filter(([id])=>isWatchlist(id)).slice(0,8).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
           </div>`:''}
-          <div style="padding:0 18px 20px;">
-            <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">Parcourir par genre</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              ${T('genres').filter(([id])=>id!=='tous').map(([id,lb])=>{
-                const emoji=genreEmoji(id);
-                const count=allFilms.filter(([fid,f])=>norm(f.g||'').includes(norm(id))||norm(f.g||'').includes(norm(id).replace('comedie','comedi'))).length;
-                return count>0?`<div onclick="setGenre('${id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;">
-                  <span style="font-size:clamp(15px,4.6vw,20px);">${emoji}</span>
-                  <div><div style="font-size:clamp(10px,3vw,13px);font-weight:600;">${lb}</div><div style="font-size:9px;color:${MU};">${count} film${count>1?'s':''}</div></div>
-                </div>`:'';
-              }).join('')}
-            </div>
-          </div>
+        
         `}
         <div style="height:10px;"></div>
       </div>
