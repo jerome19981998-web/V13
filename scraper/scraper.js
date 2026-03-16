@@ -100,8 +100,18 @@ async function fetchShowtimes(allocineId, dateISO, debugFirst = false) {
       if (!title) continue;
 
       const director = movie.directors?.[0]?.name || movie.directors?.[0] || '';
-      const duration = movie.runtime ? `${Math.floor(movie.runtime/60)}h${String(movie.runtime%60).padStart(2,'0')}` : '';
+      // FIX #3: durée — runtime est en minutes, protéger contre NaN/null/0
+      const runtime = parseInt(movie.runtime) || 0;
+      const duration = runtime > 0
+        ? `${Math.floor(runtime / 60)}h${String(runtime % 60).padStart(2, '0')}`
+        : '';
       const genre = movie.genres?.[0]?.tag || movie.genres?.[0] || '';
+
+      // FIX #2: extraire l'année de sortie depuis AlloCiné pour améliorer le matching TMDB
+      const releaseDate = movie.releases?.[0]?.releaseDate
+                       || movie.data?.productionYear
+                       || null;
+      const releaseYear = releaseDate ? parseInt(String(releaseDate).slice(0, 4)) : null;
 
       // Chercher les horaires dans toutes les clés possibles de item
       const heures = [];
@@ -140,7 +150,7 @@ async function fetchShowtimes(allocineId, dateISO, debugFirst = false) {
       }
 
       if (heures.length > 0) {
-        seances.push({ title, director, duration, genre, heures: [...new Set(heures)].sort() });
+        seances.push({ title, director, duration, genre, releaseYear, heures: [...new Set(heures)].sort() });
       }
     }
     return seances;
@@ -162,7 +172,7 @@ async function scrapeCinema(cinemaId, cinema) {
     firstDebug = false;
 
     for (const { title, director, duration, genre, heures } of seances) {
-      if (!result.films[title]) result.films[title] = { title, director, duration, genre };
+      if (!result.films[title]) result.films[title] = { title, director, duration, genre, releaseYear };
       if (!result.seances[title]) result.seances[title] = {};
       result.seances[title][dateISO] = heures;
     }
@@ -185,7 +195,47 @@ async function searchTMDB(title, year) {
   });
   if (!res.ok) return null;
   const { results } = await res.json();
-  return results?.[0] || null;
+  return results || [];
+}
+
+// FIX #2: sélectionner le meilleur résultat TMDB
+// Priorité: titre exact (normalisé) > année correspondante > popularité
+function pickBestTMDB(results, title, preferredYear) {
+  if (!results?.length) return null;
+
+  const normalize = s => s?.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').trim() || '';
+
+  const titleNorm = normalize(title);
+
+  // Scorer chaque résultat
+  const scored = results.map(r => {
+    let score = 0;
+    const rTitle = normalize(r.title);
+    const rOrig  = normalize(r.original_title);
+    const rYear  = r.release_date ? parseInt(r.release_date.slice(0, 4)) : 0;
+
+    // Titre exact → +100
+    if (rTitle === titleNorm || rOrig === titleNorm) score += 100;
+    // Titre qui commence pareil → +30
+    else if (rTitle.startsWith(titleNorm) || titleNorm.startsWith(rTitle)) score += 30;
+
+    // Année correspondante → +50
+    if (preferredYear && rYear === preferredYear) score += 50;
+    else if (preferredYear && Math.abs(rYear - preferredYear) <= 1) score += 20;
+
+    // A un poster → +10
+    if (r.poster_path) score += 10;
+
+    // Popularité (max +20)
+    score += Math.min(20, (r.popularity || 0) / 5);
+
+    return { ...r, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0] || null;
 }
 
 async function enrichWithTMDB(films) {
@@ -193,9 +243,20 @@ async function enrichWithTMDB(films) {
   const year = new Date().getFullYear();
   for (const film of Object.values(films)) {
     try {
-      const movie = await searchTMDB(film.title, year)
-                 || await searchTMDB(film.title, year - 1)
-                 || await searchTMDB(film.title, null);
+      // Utiliser l'année AlloCiné en priorité, puis l'année courante, puis sans filtre
+      const allocineYear = film.releaseYear || null;
+      let results = [];
+
+      // Essai 1: avec l'année AlloCiné exacte
+      if (allocineYear) results = await searchTMDB(film.title, allocineYear);
+      // Essai 2: avec l'année courante
+      if (!results.length) results = await searchTMDB(film.title, year);
+      // Essai 3: avec l'année -1
+      if (!results.length) results = await searchTMDB(film.title, year - 1);
+      // Essai 4: sans filtre d'année (tous les films)
+      if (!results.length) results = await searchTMDB(film.title, null);
+
+      const movie = pickBestTMDB(results, film.title, allocineYear || year);
       if (!movie) { console.log(`  ✗ "${film.title}"`); continue; }
       film.tmdbId   = movie.id;
       film.poster   = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null;
