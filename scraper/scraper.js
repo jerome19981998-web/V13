@@ -185,9 +185,34 @@ async function scrapeCinema(browser, cinemaId, cinema) {
     } catch(e) {}
   });
 
-  // Bloquer images/media pour aller plus vite (garder JS et XHR)
-  await page.route('**/*', route => {
+  // Bloquer images/media, et REMPLACER le script Didomi par notre version
+  await page.route('**/*', async route => {
+    const url = route.request().url();
     const t = route.request().resourceType();
+    // Intercepter le SDK Didomi et le remplacer par un stub qui consent immédiatement
+    if (url.includes('didomi') || url.includes('sdk.privacy-center')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: `
+          window.didomiOnReady = window.didomiOnReady || [];
+          window.Didomi = {
+            setUserAgreeToAll: function() {},
+            getUserConsentStatusForPurpose: function() { return true; },
+            getUserConsentStatusForVendor: function() { return true; },
+            isReady: function() { return true; },
+            on: function(e, cb) { if(e==='ready') setTimeout(cb, 0); return function(){}; },
+            off: function() {},
+            notice: { isVisible: function() { return false; } },
+          };
+          // Déclencher les callbacks didomiOnReady
+          (window.didomiOnReady || []).forEach(function(cb) { try { cb(window.Didomi); } catch(e) {} });
+          // Déclencher l'événement consent
+          document.dispatchEvent(new CustomEvent('didomi:consent', { detail: { status: 'agreed' } }));
+        `,
+      });
+      return;
+    }
     if (['image', 'media', 'font', 'stylesheet'].includes(t)) return route.abort();
     route.continue();
   });
@@ -197,7 +222,7 @@ async function scrapeCinema(browser, cinemaId, cinema) {
   try {
     const baseUrl = `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html`;
     await page.goto(baseUrl, { waitUntil: 'networkidle', timeout: 30000 });
-    await sleep(2000);
+    await sleep(3000); // attendre que les séances se chargent post-consentement
 
     availableDates = await page.evaluate(() => {
       const section = document.querySelector('[data-showtimes-dates]');
