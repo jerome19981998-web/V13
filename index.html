@@ -200,7 +200,6 @@ function navGo(sc){
 function go(sc){st.screen=sc;render();}
 
 // ── LBD ──────────────────────────────────────────────────────
-let lbdSeen=new Set(),lbdWatchlist=new Set();
 function normTitle(t){return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
 function filmInLbd(filmId,list){const f=FILMS[filmId];if(!f)return false;const titles=[f.t,...(f.alt||[])].map(normTitle);for(const t of list){for(const n of titles){if(t.includes(n)||n.includes(t))return true;}}return false;}
 function isVu(id){return filmInLbd(id,lbdSeen);}
@@ -261,16 +260,12 @@ async function enrichGenresFromTMDB(){
 function applyGenre(id,genre){if(!FILMS[id])return;FILMS[id].g=genre.charAt(0).toUpperCase()+genre.slice(1);FILMS[id].e=genreEmoji(genre);FILMS[id].genre_enriched=true;}
 
 // ── LETTERBOXD ──
-let lbdSeen=new Set(),lbdWatchlist=new Set();
-function normTitle(t){return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
-function filmInLbd(filmId,list){const f=FILMS[filmId];if(!f)return false;const titles=[f.t,...(f.alt||[])].map(normTitle);for(const t of list){for(const n of titles){if(t.includes(n)||n.includes(t))return true;}}return false;}
-function isVu(id){return filmInLbd(id,lbdSeen);}
-function isWatchlist(id){return filmInLbd(id,lbdWatchlist);}
-async function loadLbd(pseudo){try{const r=await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);if(!r.ok)return false;const d=await r.json();lbdSeen=new Set();lbdWatchlist=new Set();(d.items||[]).forEach(item=>{const n=normTitle(item.title);if(item.cats&&item.cats.includes('wishlist'))lbdWatchlist.add(n);else lbdSeen.add(n);});return true;}catch(e){return false;}}
-const membresLbd={};
-async function loadMemberLbd(pseudo){if(membresLbd[pseudo])return membresLbd[pseudo];try{const r=await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);if(!r.ok)return null;const d=await r.json();const seen=new Set(),wl=new Set();(d.items||[]).forEach(item=>{const n=normTitle(item.title);if(item.cats&&item.cats.includes('wishlist'))wl.add(n);else seen.add(n);});membresLbd[pseudo]={seen,wl};return membresLbd[pseudo];}catch(e){return null;}}
 
-// ── GROUPS / SORTIES DATA ──
+function filmInLbd(filmId,list){const f=FILMS[filmId];if(!f)return false;const titles=[f.t,...(f.alt||[])].map(normTitle);for(const t of list){for(const n of titles){if(t.includes(n)||n.includes(t))return true;}}return false;}
+
+
+const membresLbd={};
+async 
 let mesGroupes=[],membresData=[],votesData={},realtimeChannel=null,votesChannel=null;
 let reactionsData={},groupeInfo={};
 
@@ -570,7 +565,7 @@ async function sendResetEmail(){const email=(document.getElementById('forgotEmai
 async function signInWithGoogle(){const{error}=await supa.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});if(error)alert('Erreur Google : '+error.message);}
 
 function openAvatarPicker(){st.showAvatarPicker=true;const wrap=document.getElementById('avatar-picker-wrap');if(wrap)wrap.innerHTML=buildPickerGrid();}
-const ANIMAL_EMOJIS=['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦖','🦕','🐢','🐍','🦎','🦏','🦛','🐙','🦑','🦐','🦞','🦀','🐡','🐟','🐠','🐬','🐳','🦈','🐊','🐅','🐆','🦓','🐘','🦒','🦘','🐃','🐂','🐎','🐖','🐑','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿','🦔','🐉','🐲'];
+
 function buildPickerGrid(){let html=`<div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><span style="font-size:12px;color:${MU};font-weight:600;letter-spacing:1px;text-transform:uppercase;">Choisir votre animal</span><span onclick="closeAvatarPicker()" style="font-size:12px;color:${AC};cursor:pointer;padding:2px 8px;border:1px solid rgba(255,63,91,0.3);border-radius:8px;">✕</span></div><div style="display:flex;flex-wrap:wrap;gap:5px;max-height:180px;overflow-y:auto;">`;ANIMAL_EMOJIS.forEach(e=>{const active=st.avatar===e;html+=`<div data-emoji="${e}" onclick="pickAvatar(this)" style="width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;background:${active?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.03)'};border:1px solid ${active?'#ff3f5b':'rgba(255,255,255,0.07)'};">${e}</div>`;});return html+'</div></div>';}
 function closeAvatarPicker(){st.showAvatarPicker=false;const wrap=document.getElementById('avatar-picker-wrap');if(wrap)wrap.innerHTML=buildAvatarBtn();}
 function buildAvatarBtn(){return `<div onclick="openAvatarPicker()" style="display:flex;align-items:center;gap:10px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px 16px;cursor:pointer;"><div style="width:44px;height:44px;border-radius:50%;background:${pseudoColor(st.pseudoInput||'A')};display:flex;align-items:center;justify-content:center;font-size:26px;">${st.avatar}</div><div style="flex:1;text-align:left;"><div style="font-size:13px;font-weight:500;">Votre avatar</div><div style="font-size:11px;color:${MU};">Appuyez pour choisir</div></div><span style="color:${MU};">›</span></div>`;}
@@ -815,8 +810,8 @@ function sNotifications(){
 </script>
 
 <script>
-function getWantToSee(){try{return JSON.parse(localStorage.getItem('cm_want_'+(st.pseudo||''))||'[]');}catch(e){return[];}}
-function toggleWantToSee(filmId){let list=getWantToSee();if(list.includes(filmId))list=list.filter(x=>x!==filmId);else list=[filmId,...list];try{localStorage.setItem('cm_want_'+(st.pseudo||''),JSON.stringify(list));}catch(e){}render();}
+
+
 function getSearchHistory(){try{return JSON.parse(localStorage.getItem('cm_searches_'+(st.pseudo||'_'))||'[]');}catch(e){return[];}}
 function saveSearch(q){if(!q||q.trim().length<2)return;q=q.trim();try{const key='cm_searches_'+(st.pseudo||'_');let hist=getSearchHistory();hist=hist.filter(h=>h!==q);hist.unshift(q);hist=hist.slice(0,8);localStorage.setItem(key,JSON.stringify(hist));}catch(e){}}
 function clearSearchHistory(){try{localStorage.removeItem('cm_searches_'+(st.pseudo||'_'));}catch(e){}st.search='';render();}
