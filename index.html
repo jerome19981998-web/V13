@@ -201,6 +201,7 @@ function go(sc){st.screen=sc;render();}
 
 // ── LBD ──────────────────────────────────────────────────────
 function normTitle(t){return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
+let lbdSeen=new Set(),lbdWatchlist=new Set();
 function filmInLbd(filmId,list){const f=FILMS[filmId];if(!f)return false;const titles=[f.t,...(f.alt||[])].map(normTitle);for(const t of list){for(const n of titles){if(t.includes(n)||n.includes(t))return true;}}return false;}
 function isVu(id){return filmInLbd(id,lbdSeen);}
 function isWatchlist(id){return filmInLbd(id,lbdWatchlist);}
