@@ -88,23 +88,24 @@ const DIDOMI_CONSENT_SCRIPT = `
 
 async function closeCookiePopup(page) {
   try {
+    // Méthode 1 : clic Playwright sur le bouton "Accepter" (déclenche les requêtes réseau)
+    const btn = await page.$('#didomi-notice-agree-button, .didomi-components-button--filled, button[aria-label*="accepter" i]');
+    if (btn) {
+      await btn.click();
+      console.log('    🍪 Popup cookies cliquée');
+      // Attendre que les horaires se chargent via réseau
+      await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+      await sleep(1000);
+      return;
+    }
+    // Méthode 2 : forcer via JS si bouton pas trouvé
     await page.evaluate(() => {
       try {
-        localStorage.setItem('didomi_token', JSON.stringify({ purposes_consent: 'all' }));
-        localStorage.setItem('euconsent-v2', 'consent-all');
+        if (window.Didomi) { window.Didomi.setUserAgreeToAll(); return; }
         document.documentElement.classList.remove('didomi-popup-open');
-        document.body && document.body.classList.remove('didomi-popup-open');
-        const popup = document.getElementById('didomi-popup');
-        if (popup) popup.style.display = 'none';
-        const notice = document.getElementById('didomi-notice');
-        if (notice) notice.style.display = 'none';
-        if (window.Didomi) window.Didomi.setUserAgreeToAll();
-        // Cliquer sur le bouton en dernier recours
-        const btn = document.querySelector('#didomi-notice-agree-button, .didomi-components-button--filled');
-        if (btn) btn.click();
       } catch(e) {}
     });
-    await sleep(800);
+    await sleep(1500);
   } catch (e) {}
 }
 
@@ -191,6 +192,7 @@ async function scrapeCinema(browser, cinemaId, cinema) {
   try {
     const baseUrl = `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.allocineId}.html`;
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await sleep(2000); // laisser AlloCiné initialiser Didomi
     await page.waitForSelector('.movie-card-theater, .showtimes-list-holder', { timeout: 8000 }).catch(() => {});
 
     // ── FERMER LA POPUP COOKIES ──
