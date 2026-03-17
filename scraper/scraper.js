@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CinéMatch Scraper v12 — APIs directes UGC + Pathé + Gaumont (sans AlloCiné HTML)
+// CinéMatch Scraper v14 — APIs natives UGC + Pathé + Gaumont (diagnostic complet)
 'use strict';
 
 const https = require('https');
@@ -11,27 +11,27 @@ const TMDB_TOKEN = process.env.TMDB_TOKEN ||
   'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzMzY0M2EwMDRiZGMyYzdlNmIyYTFjOWMzZWI5ZDhlYyIsIm5iZiI6MTc3MzAwMTIzNy42ODYsInN1YiI6IjY5YWRkYTE1MmVmNWMxZmY5NWZjYmNlOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.bRW2UVqu1p89xPusKV5-mzW4ZeRSk8ij811FWOIwoBM';
 
 // ─── CINEMAS ──────────────────────────────────────────────────────────────────
-// ugcCode  = code interne UGC (pour API ugc.fr)
-// patheId  = slug Pathé (pour API pathe.fr)
-// gaumontId= slug Gaumont (pour API gaumont.fr)
+// ugcInternalId : code interne UGC (différent AlloCiné)
+// patheInternalId : numérique Pathé (ex: 26 = Beaugrenelle)
+// gaumontInternalId : numérique Gaumont
 const CINEMAS = {
-  'ugc-halles':           { name:'UGC Ciné Cité Les Halles',   chain:'ugc',    ugcCode:'C0159', lat:48.8603, lng:2.3477, addr:'7 pl. de la Rotonde, 75001',       metro:'Les Halles' },
-  'ugc-bercy':            { name:'UGC Ciné Cité Bercy',        chain:'ugc',    ugcCode:'C0157', lat:48.8392, lng:2.3796, addr:'2 cour Saint-Émilion, 75012',       metro:'Cour Saint-Émilion' },
-  'ugc-paris19':          { name:'UGC Ciné Cité Paris 19',     chain:'ugc',    ugcCode:'C0173', lat:48.8848, lng:2.3834, addr:'1 rue du Cinéma, 75019',            metro:'Corentin Cariou' },
-  'ugc-maillot':          { name:'UGC Maillot',                chain:'ugc',    ugcCode:'C0162', lat:48.8790, lng:2.2835, addr:'74 av de la Grande Armée, 75017',   metro:'Argentine' },
-  'ugc-opera':            { name:'UGC Opéra',                  chain:'ugc',    ugcCode:'C0164', lat:48.8703, lng:2.3340, addr:'32 bd des Italiens, 75009',         metro:'Opéra' },
-  'ugc-danton':           { name:'UGC Danton',                 chain:'ugc',    ugcCode:'C0158', lat:48.8527, lng:2.3403, addr:'99 bd du Montparnasse, 75006',      metro:'Vavin' },
-  'ugc-montparnasse':     { name:'UGC Montparnasse',           chain:'ugc',    ugcCode:'C0163', lat:48.8418, lng:2.3230, addr:'13 rue du Commandant Mouchotte',    metro:'Montparnasse' },
-  'ugc-lyon':             { name:'UGC Lyon-Bastille',          chain:'ugc',    ugcCode:'C0161', lat:48.8531, lng:2.3696, addr:'18 rue du Faubourg St-Antoine',     metro:'Bastille' },
-  'pathe-beaugrenelle':   { name:'Pathé Beaugrenelle',         chain:'pathe',  patheSlug:'pathe-beaugrenelle', lat:48.8463, lng:2.2885, addr:'12 rue Linois, 75015',              metro:'Charles Michels' },
-  'pathe-convention':     { name:'Pathé Convention',           chain:'pathe',  patheSlug:'pathe-convention',   lat:48.8382, lng:2.3072, addr:'27 rue Alain-Chartier, 75015',      metro:'Convention' },
-  'pathe-parnasse':       { name:'Pathé Parnasse',             chain:'pathe',  patheSlug:'pathe-parnasse',     lat:48.8427, lng:2.3271, addr:'11 rue du Départ, 75014',            metro:'Montparnasse' },
-  'pathe-wepler':         { name:'Pathé Wepler',               chain:'pathe',  patheSlug:'pathe-wepler',       lat:48.8841, lng:2.3272, addr:'14 pl. de Clichy, 75018',            metro:'Place de Clichy' },
-  'pathe-alesia':         { name:'Pathé Alésia',               chain:'pathe',  patheSlug:'pathe-alesia',       lat:48.8277, lng:2.3260, addr:'73 av du Gén. Leclerc, 75014',       metro:'Alésia' },
-  'pathe-batignolles':    { name:'Les 7 Batignolles',          chain:'pathe',  patheSlug:'les-7-batignolles',  lat:48.8856, lng:2.3175, addr:'3 rue des Moines, 75017',             metro:'Brochant' },
-  'gaumont-opera':        { name:'Gaumont Opéra',              chain:'gaumont',gaumontSlug:'gaumont-opera-premier',   lat:48.8716, lng:2.3329, addr:'31 bd des Italiens, 75002',   metro:'Opéra' },
-  'gaumont-convention':   { name:'Gaumont Convention',         chain:'gaumont',gaumontSlug:'gaumont-convention',      lat:48.8384, lng:2.3060, addr:'25 rue Alain-Chartier, 75015',metro:'Convention' },
-  'gaumont-aquaboulevard':{ name:'Gaumont Aquaboulevard',      chain:'gaumont',gaumontSlug:'gaumont-aquaboulevard',   lat:48.8322, lng:2.2760, addr:'17 rue Linois, 75015',         metro:'Balard' },
+  'ugc-halles':           { name:'UGC Ciné Cité Les Halles',   chain:'ugc',    ugcId:'C0159',   patheId:null, gaumontId:null, lat:48.8603, lng:2.3477, addr:'7 pl. de la Rotonde, 75001',    metro:'Les Halles' },
+  'ugc-bercy':            { name:'UGC Ciné Cité Bercy',        chain:'ugc',    ugcId:'C0157',   patheId:null, gaumontId:null, lat:48.8392, lng:2.3796, addr:'2 cour Saint-Émilion, 75012',   metro:'Cour Saint-Émilion' },
+  'ugc-paris19':          { name:'UGC Ciné Cité Paris 19',     chain:'ugc',    ugcId:'C0173',   patheId:null, gaumontId:null, lat:48.8848, lng:2.3834, addr:'1 rue du Cinéma, 75019',        metro:'Corentin Cariou' },
+  'ugc-maillot':          { name:'UGC Maillot',                chain:'ugc',    ugcId:'C0162',   patheId:null, gaumontId:null, lat:48.8790, lng:2.2835, addr:'74 av de la Grande Armée, 75017',metro:'Argentine' },
+  'ugc-opera':            { name:'UGC Opéra',                  chain:'ugc',    ugcId:'C0164',   patheId:null, gaumontId:null, lat:48.8703, lng:2.3340, addr:'32 bd des Italiens, 75009',     metro:'Opéra' },
+  'ugc-danton':           { name:'UGC Danton',                 chain:'ugc',    ugcId:'C0158',   patheId:null, gaumontId:null, lat:48.8527, lng:2.3403, addr:'99 bd du Montparnasse, 75006',  metro:'Vavin' },
+  'ugc-montparnasse':     { name:'UGC Montparnasse',           chain:'ugc',    ugcId:'C0163',   patheId:null, gaumontId:null, lat:48.8418, lng:2.3230, addr:'13 rue du Commandant Mouchotte',metro:'Montparnasse' },
+  'ugc-lyon':             { name:'UGC Lyon-Bastille',          chain:'ugc',    ugcId:'C0161',   patheId:null, gaumontId:null, lat:48.8531, lng:2.3696, addr:'18 rue du Faubourg St-Antoine', metro:'Bastille' },
+  'pathe-beaugrenelle':   { name:'Pathé Beaugrenelle',         chain:'pathe',  ugcId:null,      patheId:'26', gaumontId:null, lat:48.8463, lng:2.2885, addr:'12 rue Linois, 75015',           metro:'Charles Michels' },
+  'pathe-convention':     { name:'Pathé Convention',           chain:'pathe',  ugcId:null,      patheId:'28', gaumontId:null, lat:48.8382, lng:2.3072, addr:'27 rue Alain-Chartier, 75015',   metro:'Convention' },
+  'pathe-parnasse':       { name:'Pathé Parnasse',             chain:'pathe',  ugcId:null,      patheId:'34', gaumontId:null, lat:48.8427, lng:2.3271, addr:'11 rue du Départ, 75014',        metro:'Montparnasse' },
+  'pathe-wepler':         { name:'Pathé Wepler',               chain:'pathe',  ugcId:null,      patheId:'29', gaumontId:null, lat:48.8841, lng:2.3272, addr:'14 pl. de Clichy, 75018',        metro:'Place de Clichy' },
+  'pathe-alesia':         { name:'Pathé Alésia',               chain:'pathe',  ugcId:null,      patheId:'27', gaumontId:null, lat:48.8277, lng:2.3260, addr:'73 av du Gén. Leclerc, 75014',   metro:'Alésia' },
+  'pathe-batignolles':    { name:'Les 7 Batignolles',          chain:'pathe',  ugcId:null,      patheId:'51', gaumontId:null, lat:48.8856, lng:2.3175, addr:'3 rue des Moines, 75017',         metro:'Brochant' },
+  'gaumont-opera':        { name:'Gaumont Opéra',              chain:'gaumont',ugcId:null,      patheId:null, gaumontId:'17', lat:48.8716, lng:2.3329, addr:'31 bd des Italiens, 75002',       metro:'Opéra' },
+  'gaumont-convention':   { name:'Gaumont Convention',         chain:'gaumont',ugcId:null,      patheId:null, gaumontId:'18', lat:48.8384, lng:2.3060, addr:'25 rue Alain-Chartier, 75015',   metro:'Convention' },
+  'gaumont-aquaboulevard':{ name:'Gaumont Aquaboulevard',      chain:'gaumont',ugcId:null,      patheId:null, gaumontId:'36', lat:48.8322, lng:2.2760, addr:'17 rue Linois, 75015',            metro:'Balard' },
 };
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
@@ -39,160 +39,172 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function getDateISO(offset=0){ const d=new Date(); d.setDate(d.getDate()+offset); return d.toISOString().slice(0,10); }
 function slugify(t){ return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
 function toHeure(s){
-  if(!s)return null; s=String(s).trim();
-  const m1=s.match(/(\d{1,2})[h:H](\d{2})/); if(m1) return `${parseInt(m1[1])}h${m1[2]}`;
-  const m2=s.match(/^(\d{3,4})$/); if(m2){ const v=m2[1].padStart(4,'0'); return `${parseInt(v.slice(0,2))}h${v.slice(2)}`; }
-  // ISO datetime: "2026-03-17T14:30:00"
+  if(!s) return null; s=String(s).trim();
   const m3=s.match(/T(\d{2}):(\d{2})/); if(m3) return `${parseInt(m3[1])}h${m3[2]}`;
+  const m1=s.match(/(\d{1,2})[h:H](\d{2})/); if(m1) return `${parseInt(m1[1])}h${m1[2]}`;
   return null;
 }
 
-function fetchJSON(url, headers={}) {
+function req(url, headers={}) {
   return new Promise(resolve => {
     const opts = {
       headers: {
         'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-        'Accept':'application/json, text/plain, */*',
+        'Accept':'application/json, text/html, */*',
         'Accept-Language':'fr-FR,fr;q=0.9',
-        'Cache-Control':'no-cache',
         ...headers,
       },
-      timeout:15000,
+      timeout: 15000,
     };
-    const req = https.get(url, opts, res => {
-      if([301,302,303,307,308].includes(res.statusCode)&&res.headers.location){
+    const r = https.get(url, opts, res => {
+      if([301,302,307,308].includes(res.statusCode)&&res.headers.location){
         const loc=res.headers.location.startsWith('http')?res.headers.location:`https://${new URL(url).host}${res.headers.location}`;
-        return fetchJSON(loc,headers).then(resolve);
+        return req(loc,headers).then(resolve);
       }
-      let data='';
-      res.on('data',c=>data+=c);
-      res.on('end',()=>{ try{resolve({ok:true,status:res.statusCode,data:JSON.parse(data)});}catch{resolve({ok:false,status:res.statusCode,data:null,raw:data.slice(0,200)});} });
+      let body=''; res.setEncoding('utf8');
+      res.on('data',c=>body+=c);
+      res.on('end',()=>resolve({status:res.statusCode,body}));
     });
-    req.on('error',e=>resolve({ok:false,status:0,data:null,err:e.message}));
-    req.on('timeout',()=>{ req.destroy(); resolve({ok:false,status:0,data:null,err:'timeout'}); });
+    r.on('error',e=>resolve({status:0,body:'',err:e.message}));
+    r.on('timeout',()=>{ r.destroy(); resolve({status:0,body:'',err:'timeout'}); });
   });
 }
 
 // ─── UGC API ──────────────────────────────────────────────────────────────────
-// POST https://www.ugc.fr/api/showtimes → JSON
-// ou GET https://www.ugc.fr/api/cinema/{code}/movies?date=YYYY-MM-DD
-async function fetchUGC(cinemaCode, dateISO) {
-  // Essai 1: API séances JSON directe
-  const urls = [
-    `https://www.ugc.fr/api/showtimes/cinema/${cinemaCode}?date=${dateISO}`,
-    `https://www.ugc.fr/api/cinema/${cinemaCode}/showtimes?date=${dateISO}`,
-    `https://ticketing.ugc.fr/api/showtimes?cinemaCode=${cinemaCode}&date=${dateISO}`,
+// UGC utilise une API JSON sur leur site. Le cinema code UGC est différent de l'ID AlloCiné.
+// Format: https://www.ugc.fr/api/{version}/showtimes?cinema={ugcCode}&date={date}
+async function fetchUGC(ugcId, dateISO) {
+  // UGC expose leurs séances via une API REST non documentée publiquement
+  // Les codes UGC internes sont de la forme "UGC-XXX" ou numérique
+  const endpoints = [
+    // API principale UGC (format connu de leur app)
+    { url: `https://www.ugc.fr/api/showtimes?cinemaCode=${ugcId}&date=${dateISO}`,
+      h: {'Referer':'https://www.ugc.fr/'} },
+    { url: `https://www.ugc.fr/api/v1/showtimes?cinemaCode=${ugcId}&date=${dateISO}`,
+      h: {'Referer':'https://www.ugc.fr/'} },
+    // Format numérique (UGC utilise des IDs numériques en interne: Les Halles=31, Bercy=29, etc.)
+    { url: `https://www.ugc.fr/api/showtimes?cinema=31&date=${dateISO}`,
+      h: {'Referer':'https://www.ugc.fr/'}, onlyFor:'ugc-halles' },
+    // API de réservation
+    { url: `https://www.ugc.fr/horaires-cinema.html?cinemaCode=${ugcId}&date=${dateISO}`,
+      h: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'} },
   ];
-  for(const url of urls){
-    const r = await fetchJSON(url, { Referer:'https://www.ugc.fr/', Origin:'https://www.ugc.fr' });
-    if(r.ok && r.data){ return parseUGC(r.data); }
+
+  for(const ep of endpoints){
+    if(ep.onlyFor && !ep.onlyFor.includes(ugcId)) continue;
+    const {status,body} = await req(ep.url, ep.h||{});
+    console.log(`    UGC ${ep.url.replace('https://www.ugc.fr','')}: HTTP ${status} len:${body.length}`);
+    if(status===200 && body.length > 100){
+      console.log(`    → preview: ${body.slice(0,150)}`);
+      const parsed = parseUGCResponse(body);
+      if(parsed.length) return parsed;
+    }
+    await sleep(300);
   }
-
-  // Essai 2: API de réservation UGC (format connu)
-  const r2 = await fetchJSON(
-    `https://www.ugc.fr/resaExpressAction!getTimes.action?codes=${cinemaCode}&date=${dateISO.replace(/-/g,'')}`,
-    { Referer:'https://www.ugc.fr/', 'X-Requested-With':'XMLHttpRequest' }
-  );
-  if(r2.ok && r2.data) return parseUGC(r2.data);
-
   return [];
 }
 
-function parseUGC(data) {
-  const results = [];
-  if(!data) return results;
-  // Format: { showtimes: [{movie:{title,runtime,synopsis,...}, times:[...]}] }
-  const showtimes = data.showtimes || data.movies || data.films || (Array.isArray(data) ? data : []);
-  for(const item of showtimes){
-    const movie = item.movie || item.film || item;
-    const title = movie.title || movie.titre || movie.name || '';
-    if(!title) continue;
-    const runtime = movie.runtime || movie.duration || movie.duree || 0;
-    const duration = runtime ? `${Math.floor(runtime/60)}h${String(runtime%60).padStart(2,'0')}` : '';
-    const genre = (movie.genres?.[0] || movie.genre || '').toLowerCase();
-    const synopsis = movie.synopsis || movie.synopsisShort || '';
-    const director = movie.director || movie.realisateur || '';
-    const poster = movie.poster || movie.posterUrl || movie.thumbnail || null;
-    const allTimes = item.times || item.showtimes || item.seances || item.horaires || [];
-    const heures = allTimes.map(t => toHeure(typeof t === 'string' ? t : (t.time || t.startsAt || t.heure || t.startTime || ''))).filter(Boolean);
-    if(title && heures.length) results.push({title, director, duration, genre, synopsis, poster, tmdbNote:null, heures});
-  }
-  return results;
+function parseUGCResponse(body) {
+  try {
+    const data = JSON.parse(body);
+    const results = [];
+    const list = data.showtimes || data.movies || data.films || data.data || (Array.isArray(data)?data:[]);
+    for(const item of list){
+      const movie = item.movie || item.film || item;
+      const title = movie.title || movie.titre || movie.name || '';
+      if(!title) continue;
+      const runtime = movie.runtime||movie.duration||movie.duree||0;
+      const duration = runtime?`${Math.floor(runtime/60)}h${String(runtime%60).padStart(2,'0')}`:'';
+      const allTimes = item.times||item.showtimes||item.seances||item.horaires||[];
+      const heures = allTimes.map(t=>toHeure(typeof t==='string'?t:(t.time||t.startsAt||t.heure||t.startTime||''))).filter(Boolean);
+      if(title&&heures.length) results.push({title,director:movie.director||'',duration,genre:(movie.genre||'').toLowerCase(),synopsis:movie.synopsis||'',poster:movie.poster||null,tmdbNote:null,heures});
+    }
+    return results;
+  } catch(e){ return []; }
 }
 
 // ─── PATHÉ API ────────────────────────────────────────────────────────────────
-async function fetchPathe(patheSlug, dateISO) {
-  const urls = [
-    `https://www.pathe.fr/api/cinema/${patheSlug}/movies?date=${dateISO}`,
-    `https://www.pathe.fr/api/v1/cinema/${patheSlug}/showtimes?date=${dateISO}`,
-    `https://www.pathe.fr/cinema/${patheSlug}/seances?date=${dateISO}&format=json`,
+// Pathé utilise une API REST documentée partiellement sur leur app mobile
+// IDs numériques: Beaugrenelle=26, Convention=28, Parnasse=34, Wepler=29, Alésia=27, Batignolles=51
+async function fetchPathe(patheId, dateISO) {
+  const endpoints = [
+    // API v2 Pathé (utilisée par l'app iOS/Android)
+    { url:`https://www.pathe.fr/api/v1/showtimes/theater/${patheId}?date=${dateISO}` },
+    { url:`https://www.pathe.fr/api/v1/movie/showtimes/theater/${patheId}?date=${dateISO}` },
+    { url:`https://www.pathe.fr/api/v2/showtimes?theater=${patheId}&date=${dateISO}` },
+    // Format alternatif
+    { url:`https://www.pathe.fr/api/v1/cinemas/${patheId}/showtimes?date=${dateISO}` },
+    { url:`https://ticketing.pathe.fr/api/showtimes?cinemaId=${patheId}&date=${dateISO}` },
   ];
-  for(const url of urls){
-    const r = await fetchJSON(url, { Referer:'https://www.pathe.fr/', Origin:'https://www.pathe.fr' });
-    if(r.ok && r.data){ return parsePatheGaumont(r.data); }
-    if(r.status!==404 && r.status!==0) console.log(`    Pathé ${url.slice(30)}: ${r.status}`);
+
+  for(const ep of endpoints){
+    const {status,body} = await req(ep.url, {
+      'Referer':'https://www.pathe.fr/',
+      'Origin':'https://www.pathe.fr',
+      'Accept':'application/json',
+      ...ep.h
+    });
+    console.log(`    Pathé ${ep.url.replace('https://www.pathe.fr','').slice(0,60)}: HTTP ${status} len:${body.length}`);
+    if(status===200 && body.length>100){
+      console.log(`    → preview: ${body.slice(0,150)}`);
+      const parsed = parsePatheGaumont(body);
+      if(parsed.length) return parsed;
+    }
+    await sleep(300);
   }
   return [];
 }
 
 // ─── GAUMONT API ──────────────────────────────────────────────────────────────
-async function fetchGaumont(gaumontSlug, dateISO) {
-  const urls = [
-    `https://www.gaumont.fr/api/cinema/${gaumontSlug}/movies?date=${dateISO}`,
-    `https://www.gaumont.fr/api/v1/cinema/${gaumontSlug}/showtimes?date=${dateISO}`,
-    `https://www.gaumont.fr/cinema/${gaumontSlug}/seances?date=${dateISO}&format=json`,
-    `https://www.pathe.fr/api/cinema/${gaumontSlug}/movies?date=${dateISO}`, // Pathé et Gaumont partagent parfois la même API
+// Gaumont et Pathé partagent la même infrastructure (groupe Pathé-Gaumont)
+// IDs numériques Gaumont: Opéra=17, Convention=18, Aquaboulevard=36
+async function fetchGaumont(gaumontId, dateISO) {
+  const endpoints = [
+    { url:`https://www.gaumont.fr/api/v1/showtimes/theater/${gaumontId}?date=${dateISO}` },
+    { url:`https://www.gaumont.fr/api/v1/movie/showtimes/theater/${gaumontId}?date=${dateISO}` },
+    { url:`https://www.gaumont.fr/api/v2/showtimes?theater=${gaumontId}&date=${dateISO}` },
+    { url:`https://www.pathe.fr/api/v1/showtimes/theater/${gaumontId}?date=${dateISO}` }, // même API
+    { url:`https://ticketing.gaumont.fr/api/showtimes?cinemaId=${gaumontId}&date=${dateISO}` },
   ];
-  for(const url of urls){
-    const r = await fetchJSON(url, { Referer:'https://www.gaumont.fr/', Origin:'https://www.gaumont.fr' });
-    if(r.ok && r.data){ return parsePatheGaumont(r.data); }
+
+  for(const ep of endpoints){
+    const {status,body} = await req(ep.url, {
+      'Referer':'https://www.gaumont.fr/',
+      'Accept':'application/json',
+    });
+    console.log(`    Gaumont ${ep.url.replace('https://www.','').slice(0,60)}: HTTP ${status} len:${body.length}`);
+    if(status===200 && body.length>100){
+      console.log(`    → preview: ${body.slice(0,150)}`);
+      const parsed = parsePatheGaumont(body);
+      if(parsed.length) return parsed;
+    }
+    await sleep(300);
   }
   return [];
 }
 
-function parsePatheGaumont(data) {
-  const results = [];
-  if(!data) return results;
-  const movies = data.movies || data.films || data.showtimes || (Array.isArray(data) ? data : []);
-  for(const item of movies){
-    const movie = item.movie || item.film || item;
-    const title = movie.title || movie.titre || '';
-    if(!title) continue;
-    const runtime = movie.runtime || movie.duration || 0;
-    const duration = runtime ? `${Math.floor(runtime/60)}h${String(runtime%60).padStart(2,'0')}` : '';
-    const genre = (movie.genres?.[0]?.label || movie.genres?.[0] || movie.genre || '').toLowerCase();
-    const synopsis = movie.synopsis || '';
-    const director = (movie.directors || [])[0]?.fullName || movie.director || '';
-    const poster = movie.poster?.href || movie.poster?.url || movie.posterUrl || null;
-    const allTimes = item.showtimes || item.seances || item.times || movie.showtimes || [];
-    const heures = allTimes.map(t => toHeure(typeof t==='string'?t:(t.startsAt||t.time||t.heure||''))).filter(Boolean);
-    if(title && heures.length) results.push({title, director, duration, genre, synopsis, poster, tmdbNote:null, heures});
-  }
-  return results;
+function parsePatheGaumont(body) {
+  try {
+    const data = JSON.parse(body);
+    const results = [];
+    const list = data.movies||data.films||data.showtimes||data.data||(Array.isArray(data)?data:[]);
+    for(const item of list){
+      const movie = item.movie||item.film||item;
+      const title = movie.title||movie.titre||'';
+      if(!title) continue;
+      const runtime = movie.runtime||movie.duration||0;
+      const duration = runtime?`${Math.floor(runtime/60)}h${String(runtime%60).padStart(2,'0')}`:'';
+      const genre = (movie.genres?.[0]?.label||movie.genres?.[0]||movie.genre||'').toLowerCase();
+      const poster = movie.poster?.href||movie.poster?.url||movie.posterUrl||null;
+      const allTimes = item.showtimes||item.seances||item.times||movie.showtimes||[];
+      const heures = allTimes.map(t=>toHeure(typeof t==='string'?t:(t.startsAt||t.time||t.heure||''))).filter(Boolean);
+      if(title&&heures.length) results.push({title,director:(movie.directors||[])[0]?.fullName||movie.director||'',duration,genre,synopsis:movie.synopsis||'',poster,tmdbNote:null,heures});
+    }
+    return results;
+  } catch(e){ return []; }
 }
 
-// ─── FALLBACK: TMDB "now playing" ─────────────────────────────────────────────
-// Si aucune API ne répond, utiliser TMDB pour avoir au moins la liste des films en salle
-async function fetchTMDBNowPlaying() {
-  const r = await fetchJSON(
-    'https://api.themoviedb.org/3/movie/now_playing?language=fr-FR&region=FR&page=1',
-    { Authorization:`Bearer ${TMDB_TOKEN}` }
-  );
-  if(!r.ok || !r.data?.results) return [];
-  return r.data.results.map(m => ({
-    title: m.title,
-    director: '',
-    duration: '',
-    genre: '',
-    synopsis: m.overview || '',
-    poster: m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
-    tmdbNote: m.vote_average ? Math.round(m.vote_average*10)/10 : null,
-    tmdbId: m.id,
-    heures: ['14h00','16h30','19h00','21h30'], // horaires génériques si API indisponible
-  }));
-}
-
-// ─── SCRAPE 1 CINEMA ──────────────────────────────────────────────────────────
+// ─── SCRAPE 1 CINEMA ─────────────────────────────────────────────────────────
 async function scrapeCinema(cinemaId, cinema) {
   console.log(`\n📍 ${cinemaId}`);
   const result = { films:{}, seances:{} };
@@ -202,19 +214,17 @@ async function scrapeCinema(cinemaId, cinema) {
     let seances = [];
 
     if(cinema.chain==='ugc'){
-      seances = await fetchUGC(cinema.ugcCode, dateISO);
+      seances = await fetchUGC(cinema.ugcId, dateISO);
     } else if(cinema.chain==='pathe'){
-      seances = await fetchPathe(cinema.patheSlug, dateISO);
+      seances = await fetchPathe(cinema.patheId, dateISO);
     } else if(cinema.chain==='gaumont'){
-      seances = await fetchGaumont(cinema.gaumontSlug, dateISO);
+      seances = await fetchGaumont(cinema.gaumontId, dateISO);
     }
 
-    if(seances.length===0 && day===0){
-      console.log(`  ${dateISO}: ⚠ aucune donnée API`);
-    } else if(seances.length>0){
-      console.log(`  ${dateISO}: ${seances.length} films ✓`);
-    } else {
-      // Silencieux pour les jours sans données (normal si API ne donne pas tous les jours)
+    if(seances.length>0){
+      console.log(`  ✓ ${dateISO}: ${seances.length} films`);
+    } else if(day===0){
+      console.log(`  ✗ ${dateISO}: 0 films`);
     }
 
     for(const {title,director,duration,genre,synopsis,poster,tmdbNote,heures} of seances){
@@ -224,19 +234,12 @@ async function scrapeCinema(cinemaId, cinema) {
       const prev=result.seances[slug][dateISO]||[];
       result.seances[slug][dateISO]=[...new Set([...prev,...heures])].sort();
     }
-
-    await sleep(400);
+    await sleep(500);
   }
 
   const nF=Object.keys(result.films).length;
   const nS=Object.values(result.seances).reduce((s,fd)=>s+Object.values(fd).reduce((a,h)=>a+h.length,0),0);
   console.log(`  → ${nF} films, ${nS} séances`);
-
-  // Si 0 films pour tout le cinéma, utiliser TMDB comme fallback (aujourd'hui seulement)
-  if(nF===0 && day===undefined){
-    console.log(`  ⚠ Fallback TMDB pour ${cinemaId}`);
-  }
-
   return result;
 }
 
@@ -245,20 +248,22 @@ async function enrichWithTMDB(films) {
   console.log('\n🎬 Enrichissement TMDB...');
   let ok=0;
   for(const film of Object.values(films)){
-    if(film.tmdbId && film.poster && film.tmdbNote){ ok++; continue; }
+    if(film.tmdbId&&film.poster&&film.tmdbNote){ ok++; continue; }
     try{
-      const d=await fetchJSON(
+      const {body:sb}=await req(
         `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(film.title)}&language=fr-FR&region=FR`,
-        {Authorization:`Bearer ${TMDB_TOKEN}`}
+        {Accept:'application/json',Authorization:`Bearer ${TMDB_TOKEN}`}
       );
-      const m=d.data?.results?.[0];
+      const m=JSON.parse(sb)?.results?.[0];
       if(!m) continue;
-      if(!film.poster && m.poster_path)       film.poster=`https://image.tmdb.org/t/p/w500${m.poster_path}`;
-      if(!film.tmdbNote && m.vote_average>0)  film.tmdbNote=Math.round(m.vote_average*10)/10;
-      if(!film.synopsis && m.overview)        film.synopsis=m.overview;
+      if(!film.poster&&m.poster_path)      film.poster=`https://image.tmdb.org/t/p/w500${m.poster_path}`;
+      if(!film.tmdbNote&&m.vote_average>0) film.tmdbNote=Math.round(m.vote_average*10)/10;
+      if(!film.synopsis&&m.overview)       film.synopsis=m.overview;
       film.tmdbId=m.id;
-      const vd=await fetchJSON(`https://api.themoviedb.org/3/movie/${m.id}/videos?language=fr-FR`,{Authorization:`Bearer ${TMDB_TOKEN}`});
-      const t=vd.data?.results?.find(v=>v.type==='Trailer'&&v.site==='YouTube')||vd.data?.results?.find(v=>v.site==='YouTube');
+      const {body:vb}=await req(`https://api.themoviedb.org/3/movie/${m.id}/videos?language=fr-FR`,
+        {Accept:'application/json',Authorization:`Bearer ${TMDB_TOKEN}`});
+      const t=JSON.parse(vb)?.results?.find(v=>v.type==='Trailer'&&v.site==='YouTube')
+            ||JSON.parse(vb)?.results?.find(v=>v.site==='YouTube');
       if(t) film.trailerKey=t.key;
       ok++; await sleep(200);
     }catch(e){}
@@ -271,16 +276,12 @@ function supaReq(path,method,body){
   return new Promise(resolve=>{
     const payload=JSON.stringify(body);
     const isDel=method==='DELETE';
-    const opts={
-      hostname:'alwfbminhdwinxcozjlj.supabase.co',
-      path:`/rest/v1/${path}`,method,
-      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,'Prefer':'resolution=merge-duplicates',
-        ...(!isDel&&{'Content-Length':Buffer.byteLength(payload)})},
-    };
-    const req=https.request(opts,res=>{let d='';res.on('data',c=>d+=c);res.on('end',()=>resolve({status:res.statusCode,body:d}));});
-    req.on('error',e=>resolve({status:0,body:e.message}));
-    if(!isDel) req.write(payload);
-    req.end();
+    const opts={hostname:'alwfbminhdwinxcozjlj.supabase.co',path:`/rest/v1/${path}`,method,
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,
+        'Prefer':'resolution=merge-duplicates',...(!isDel&&{'Content-Length':Buffer.byteLength(payload)})}};
+    const r=https.request(opts,res=>{let d='';res.on('data',c=>d+=c);res.on('end',()=>resolve({status:res.statusCode,body:d}));});
+    r.on('error',e=>resolve({status:0,body:e.message}));
+    if(!isDel) r.write(payload); r.end();
   });
 }
 
@@ -323,14 +324,19 @@ async function pushToSupabase(allData){
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 async function main(){
-  console.log(`🎬 CinéMatch Scraper v12 — ${new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris'})}`);
+  console.log(`🎬 CinéMatch Scraper v14 — ${new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris'})}`);
   console.log(DRY_RUN?'🔍 DRY-RUN':'🚀 PRODUCTION'); console.log('─'.repeat(50));
 
+  // En dry-run: tester seulement 1 cinéma par chaîne pour diagnostiquer vite
+  const toTest = DRY_RUN
+    ? { 'ugc-halles':CINEMAS['ugc-halles'], 'pathe-beaugrenelle':CINEMAS['pathe-beaugrenelle'], 'gaumont-opera':CINEMAS['gaumont-opera'] }
+    : CINEMAS;
+
   const allData={};
-  for(const[id,cinema]of Object.entries(CINEMAS)){
+  for(const[id,cinema]of Object.entries(toTest)){
     try{ allData[id]=await scrapeCinema(id,cinema); }
     catch(e){ console.error(`❌ ${id}: ${e.message}`); allData[id]={films:{},seances:{}}; }
-    await sleep(300);
+    await sleep(500);
   }
 
   console.log('\n'+'─'.repeat(50));
@@ -347,7 +353,7 @@ async function main(){
     const ex=Object.entries(allData).find(([,d])=>Object.keys(d.seances).length>0);
     if(ex){
       const[cid,data]=ex; console.log(`\n🔍 Exemple (${cid}):`);
-      Object.entries(data.seances).slice(0,3).forEach(([slug,dates])=>{
+      Object.entries(data.seances).slice(0,2).forEach(([slug,dates])=>{
         console.log(`  "${data.films[slug]?.title||slug}":`);
         Object.entries(dates).forEach(([d,h])=>console.log(`    ${d}: ${h.join(', ')}`));
       });
