@@ -1,14 +1,8 @@
 {
   "name": "cinematch-scraper",
   "version": "1.0.0",
-  "description": "CinéMatch séances scraper",
-  "main": "scraper.js",
-  "scripts": {
-    "start": "node scraper.js",
-    "dry": "DRY_RUN=true node scraper.js"
-  },
   "dependencies": {
-    "puppeteer": "^21.0.0",
+    "puppeteer-core": "^21.0.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
