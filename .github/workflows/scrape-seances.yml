@@ -18,12 +18,6 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 🌐 Install Chrome
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq google-chrome-stable
-          echo "CHROME_BIN=$(which google-chrome-stable)" >> $GITHUB_ENV
-
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -42,7 +36,6 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
           DRY_RUN: ${{ inputs.dry_run || 'false' }}
-          CHROME_BIN: ${{ env.CHROME_BIN }}
         run: node scraper.js
 
       - name: ✅ Résumé
