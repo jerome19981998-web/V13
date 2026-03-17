@@ -1,13 +1,7 @@
 #!/usr/bin/env node
-// CinéMatch Scraper v16 — Puppeteer + interception réseau (capture appels API internes)
+// CinéMatch Scraper v17 — API interne AlloCiné /_/showtimes/ (découverte via interception)
 'use strict';
 
-const puppeteer = require('puppeteer-extra');
-const PuppeteerCore = require('puppeteer-core');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
-// Point puppeteer-extra to use puppeteer-core
-puppeteer.default = PuppeteerCore;
 const https = require('https');
 
 const DRY_RUN  = process.env.DRY_RUN === 'true';
@@ -46,274 +40,253 @@ function toHeure(s){
   return null;
 }
 
-let browser = null;
-async function getBrowser() {
-  if (!browser) {
-    // Use system Chrome on GitHub Actions (already installed, no download needed)
-    const executablePath = process.env.CHROME_BIN
-      || '/usr/bin/google-chrome-stable'
-      || '/usr/bin/chromium-browser'
-      || '/usr/bin/chromium';
-    browser = await puppeteer.launch({
-      headless: 'new',
-      executablePath,
-      args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--window-size=1280,800','--lang=fr-FR'],
-    });
-  }
-  return browser;
-}
-
-// ─── CORE: charger une page et intercepter TOUTES les réponses JSON ────────────
-async function fetchPageWithInterception(url) {
-  const b = await getBrowser();
-  const page = await b.newPage();
-  const apiResponses = []; // on capture tout
-  
-  try {
-    await page.setExtraHTTPHeaders({'Accept-Language':'fr-FR,fr;q=0.9'});
-    await page.setViewport({width:1280, height:800});
-
-    // Intercepter toutes les réponses réseau
-    page.on('response', async response => {
-      const resUrl = response.url();
-      const ct = response.headers()['content-type'] || '';
-      // Capturer uniquement les JSON et les URLs qui ressemblent à des APIs
-      if (ct.includes('json') || resUrl.includes('/api/') || resUrl.includes('showtimes') || resUrl.includes('seances')) {
-        try {
-          const body = await response.text();
-          if (body.length > 50 && body.startsWith('{') || body.startsWith('[')) {
-            apiResponses.push({ url: resUrl, body, status: response.status() });
-          }
-        } catch(e) {}
+// ─── HTTP ─────────────────────────────────────────────────────────────────────
+function fetchJSON(url, headers={}) {
+  return new Promise(resolve => {
+    const opts = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Accept-Language': 'fr-FR,fr;q=0.9',
+        'Referer': 'https://www.allocine.fr/',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Origin': 'https://www.allocine.fr',
+        ...headers,
+      },
+      timeout: 15000,
+    };
+    const req = https.get(url, opts, res => {
+      if([301,302,307,308].includes(res.statusCode) && res.headers.location) {
+        const loc = res.headers.location.startsWith('http') ? res.headers.location : `https://www.allocine.fr${res.headers.location}`;
+        return fetchJSON(loc, headers).then(resolve);
       }
+      let body = ''; res.setEncoding('utf8');
+      res.on('data', c => body += c);
+      res.on('end', () => {
+        try { resolve({ status: res.statusCode, data: JSON.parse(body), raw: body }); }
+        catch(e) { resolve({ status: res.statusCode, data: null, raw: body.slice(0, 200) }); }
+      });
     });
-
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 35000 });
-    await sleep(3000); // attendre appels tardifs
-
-    // Log des APIs capturées (premiers 200 chars)
-    const interesting = apiResponses.filter(r => 
-      r.url.includes('showtime') || r.url.includes('seance') || r.url.includes('movie') ||
-      r.url.includes('film') || r.url.includes('program') || r.url.includes('schedule')
-    );
-    
-    if (interesting.length > 0) {
-      console.log(`    📡 ${interesting.length} API(s) capturée(s):`);
-      interesting.slice(0, 5).forEach(r => {
-        console.log(`      ${r.url.slice(0, 80)} → ${r.status} (${r.body.length} chars)`);
-        console.log(`      preview: ${r.body.slice(0, 120)}`);
-      });
-    } else {
-      // Log toutes les réponses JSON pour debug
-      console.log(`    📡 ${apiResponses.length} JSON total, URLs:`);
-      apiResponses.slice(0, 8).forEach(r => {
-        console.log(`      ${r.url.slice(0, 80)} (${r.body.length})`);
-      });
-    }
-
-    return { apiResponses, interesting };
-  } catch(e) {
-    console.log(`    ⚠ ${e.message.slice(0, 80)}`);
-    return { apiResponses: [], interesting: [] };
-  } finally {
-    await page.close();
-  }
+    req.on('error', e => resolve({ status: 0, data: null, err: e.message }));
+    req.on('timeout', () => { req.destroy(); resolve({ status: 0, data: null, err: 'timeout' }); });
+  });
 }
 
-// ─── PARSER UNIVERSEL pour données séances JSON ────────────────────────────────
-function parseShowtimesJSON(body) {
+// ─── PARSER du format /_/showtimes/ ─────────────────────────────────────────
+// Format réel: {"error":false,"results":[{"movie":{...},"showtimes":[{"startsAt":"2026-03-17T14:30:00",...},...]},...]}
+function parseAllocineInternal(data) {
+  if (!data || data.error || !Array.isArray(data.results)) return [];
   const results = [];
-  let data;
-  try { data = JSON.parse(body); } catch(e) { return results; }
 
-  // Chercher récursivement des tableaux de films/séances
-  function extractFromObj(obj, depth=0) {
-    if (depth > 6 || !obj || typeof obj !== 'object') return;
-    
-    // Pattern: objet avec title/titre + showtimes/horaires
-    if (typeof obj.title === 'string' && obj.title.length > 1) {
-      const title = obj.title || obj.titre || '';
-      const runtime = obj.runtime || obj.duration || 0;
-      const duration = runtime ? `${Math.floor(runtime/60)}h${String(runtime%60).padStart(2,'0')}` : '';
-      const genre = (obj.genres?.[0]?.tag || obj.genres?.[0]?.label || obj.genres?.[0] || obj.genre || '').toLowerCase();
-      const synopsis = obj.synopsis || obj.synopsisShort || '';
-      const poster = obj.poster?.url || obj.poster?.href || obj.posterUrl || null;
-      const tmdbNote = obj.stats?.userRating?.score || null;
+  for (const item of data.results) {
+    const movie = item.movie || {};
+    const title = movie.title || movie.originalTitle || '';
+    if (!title) continue;
 
-      // Chercher les horaires dans les enfants directs
-      const timeSources = [
-        obj.showtimes, obj.seances, obj.times, obj.screenings, obj.diffusions,
-        obj.shows, obj.slots, obj.horaires,
-      ].filter(x => Array.isArray(x) && x.length > 0);
-      
-      for (const ts of timeSources) {
-        const heures = ts.map(s => {
-          if (typeof s === 'string') return toHeure(s);
-          return toHeure(s.startsAt || s.time || s.heure || s.startTime || s.datetime || s.d || '');
-        }).filter(Boolean);
-        if (title && heures.length) {
-          results.push({title, director:'', duration, genre, synopsis, poster, tmdbNote, heures});
-          return;
-        }
-      }
+    const runtime = movie.runtime || 0;
+    const duration = runtime ? `${Math.floor(runtime/60)}h${String(runtime%60).padStart(2,'0')}` : '';
+    const genreRaw = movie.genres?.[0]?.tag || movie.genres?.[0] || '';
+    const genre = genreRaw.toLowerCase();
+    const synopsis = movie.synopsis || movie.synopsisShort || '';
+    const director = (movie.credits || []).find(c =>
+      ['Director','DIRECTOR','Réalisateur'].includes(c.role || c.function || c.position)
+    )?.person?.fullName || '';
+    const poster = movie.poster?.url || movie.poster?.href || null;
+    const tmdbNote = movie.stats?.userRating?.score || null;
+
+    // Showtimes: tableau direct ou groupé par version
+    let allShowtimes = [];
+    if (Array.isArray(item.showtimes)) {
+      allShowtimes = item.showtimes;
+    } else if (Array.isArray(item.screenings)) {
+      allShowtimes = item.screenings;
+    } else if (Array.isArray(item.shows)) {
+      allShowtimes = item.shows;
+    } else if (item.showtimes && typeof item.showtimes === 'object') {
+      // Parfois groupé: { "vf": [...], "vost": [...] }
+      allShowtimes = Object.values(item.showtimes).flat();
     }
-    
-    // Descendre dans les tableaux et objets
-    if (Array.isArray(obj)) {
-      obj.forEach(item => extractFromObj(item, depth+1));
-    } else {
-      Object.values(obj).forEach(val => {
-        if (val && typeof val === 'object') extractFromObj(val, depth+1);
-      });
+
+    const heures = allShowtimes
+      .map(s => {
+        if (typeof s === 'string') return toHeure(s);
+        return toHeure(s.startsAt || s.time || s.heure || s.startTime || s.datetime || '');
+      })
+      .filter(Boolean);
+
+    if (title && heures.length) {
+      results.push({ title, director, duration, genre, synopsis, poster, tmdbNote, heures });
     }
   }
-  
-  extractFromObj(data);
   return results;
+}
+
+// ─── FETCH SÉANCES POUR 1 CINÉMA × 1 DATE ────────────────────────────────────
+async function fetchShowtimes(acId, dateISO) {
+  // URL découverte par interception Puppeteer
+  const url = `https://www.allocine.fr/_/showtimes/theater-${acId}/d-${dateISO}/`;
+  const { status, data, raw } = await fetchJSON(url);
+
+  if (status === 200 && data) {
+    const parsed = parseAllocineInternal(data);
+    if (parsed.length > 0) return { seances: parsed, source: 'api' };
+    // API a répondu mais parse a échoué — debug
+    console.log(`    [debug] results count: ${data.results?.length || 0}, first keys: ${JSON.stringify(Object.keys(data.results?.[0] || {}))}`);
+    if (data.results?.length > 0) {
+      const first = data.results[0];
+      console.log(`    [debug] movie: ${first.movie?.title}, showtimes type: ${typeof first.showtimes}, isArray: ${Array.isArray(first.showtimes)}, length: ${Array.isArray(first.showtimes)?first.showtimes.length: JSON.stringify(first.showtimes)?.slice(0,100)}`);
+    }
+    return { seances: [], source: 'api_empty' };
+  }
+
+  console.log(`    ⚠ HTTP ${status} pour ${url.slice(0, 60)}`);
+  if (raw) console.log(`    raw: ${raw.slice(0, 100)}`);
+  return { seances: [], source: 'error' };
 }
 
 // ─── SCRAPE 1 CINEMA ─────────────────────────────────────────────────────────
 async function scrapeCinema(cinemaId, cinema) {
-  console.log(`\n📍 ${cinemaId}`);
+  console.log(`\n📍 ${cinemaId} (${cinema.acId})`);
   const result = { films:{}, seances:{} };
 
   for (let day = 0; day < DAYS; day++) {
     const dateISO = getDateISO(day);
-    const base = `https://www.allocine.fr/seance/salle_gen_csalle=${cinema.acId}.html`;
-    const url  = day === 0 ? base : `${base}?date=${dateISO}`;
+    const { seances, source } = await fetchShowtimes(cinema.acId, dateISO);
 
-    const { interesting, apiResponses } = await fetchPageWithInterception(url);
+    console.log(`  ${dateISO}: ${seances.length} films [${source}]`);
 
-    let seances = [];
-    // Essayer les APIs capturées (par ordre de pertinence)
-    for (const api of [...interesting, ...apiResponses.filter(r => !interesting.includes(r))]) {
-      const parsed = parseShowtimesJSON(api.body);
-      if (parsed.length > 0) {
-        seances = parsed;
-        console.log(`    ✓ parsé depuis: ${api.url.slice(0,60)}`);
-        break;
-      }
-    }
-
-    console.log(`  ${dateISO}: ${seances.length} films`);
-
-    for (const {title,director,duration,genre,synopsis,poster,tmdbNote,heures} of seances) {
+    for (const { title, director, duration, genre, synopsis, poster, tmdbNote, heures } of seances) {
       const slug = slugify(title);
-      if (!result.films[slug]) result.films[slug] = {slug,title,director,duration,genre,synopsis,poster,tmdbNote};
+      if (!result.films[slug]) result.films[slug] = { slug, title, director, duration, genre, synopsis, poster, tmdbNote };
       if (!result.seances[slug]) result.seances[slug] = {};
       const prev = result.seances[slug][dateISO] || [];
-      result.seances[slug][dateISO] = [...new Set([...prev,...heures])].sort();
+      result.seances[slug][dateISO] = [...new Set([...prev, ...heures])].sort();
     }
 
-    await sleep(2000);
+    await sleep(400);
   }
 
   const nF = Object.keys(result.films).length;
-  const nS = Object.values(result.seances).reduce((s,fd)=>s+Object.values(fd).reduce((a,h)=>a+h.length,0),0);
+  const nS = Object.values(result.seances).reduce((s,fd) => s + Object.values(fd).reduce((a,h) => a+h.length, 0), 0);
   console.log(`  → ${nF} films, ${nS} séances`);
   return result;
 }
 
 // ─── TMDB ─────────────────────────────────────────────────────────────────────
-function httpGet(url, headers={}) {
-  return new Promise(resolve => {
-    const opts = {headers:{'User-Agent':'node/18','Accept':'application/json',...headers},timeout:12000};
-    const req = https.get(url, opts, res => {
-      let d=''; res.on('data',c=>d+=c);
-      res.on('end',()=>{ try{resolve(JSON.parse(d));}catch{resolve(null);} });
-    });
-    req.on('error',()=>resolve(null)); req.on('timeout',()=>{ req.destroy(); resolve(null); });
-  });
-}
 async function enrichWithTMDB(films) {
-  console.log('\n🎬 Enrichissement TMDB...'); let ok=0;
+  console.log('\n🎬 Enrichissement TMDB...'); let ok = 0;
   for (const film of Object.values(films)) {
-    if (film.tmdbId&&film.poster&&film.tmdbNote){ok++;continue;}
+    if (film.tmdbId && film.poster && film.tmdbNote) { ok++; continue; }
     try {
-      const d = await httpGet(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(film.title)}&language=fr-FR&region=FR`,{Authorization:`Bearer ${TMDB_TOKEN}`});
-      const m = d?.results?.[0]; if(!m) continue;
-      if(!film.poster&&m.poster_path)      film.poster  =`https://image.tmdb.org/t/p/w500${m.poster_path}`;
-      if(!film.tmdbNote&&m.vote_average>0) film.tmdbNote=Math.round(m.vote_average*10)/10;
-      if(!film.synopsis&&m.overview)       film.synopsis=m.overview;
-      film.tmdbId=m.id;
-      const vd=await httpGet(`https://api.themoviedb.org/3/movie/${m.id}/videos?language=fr-FR`,{Authorization:`Bearer ${TMDB_TOKEN}`});
-      const t=vd?.results?.find(v=>v.type==='Trailer'&&v.site==='YouTube')||vd?.results?.find(v=>v.site==='YouTube');
-      if(t) film.trailerKey=t.key;
+      const { data: d } = await fetchJSON(
+        `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(film.title)}&language=fr-FR&region=FR`,
+        { Authorization: `Bearer ${TMDB_TOKEN}`, 'X-Requested-With': '' }
+      );
+      const m = d?.results?.[0]; if (!m) continue;
+      if (!film.poster && m.poster_path)      film.poster   = `https://image.tmdb.org/t/p/w500${m.poster_path}`;
+      if (!film.tmdbNote && m.vote_average>0) film.tmdbNote = Math.round(m.vote_average*10)/10;
+      if (!film.synopsis && m.overview)       film.synopsis = m.overview;
+      film.tmdbId = m.id;
+      const { data: vd } = await fetchJSON(
+        `https://api.themoviedb.org/3/movie/${m.id}/videos?language=fr-FR`,
+        { Authorization: `Bearer ${TMDB_TOKEN}`, 'X-Requested-With': '' }
+      );
+      const t = vd?.results?.find(v => v.type==='Trailer' && v.site==='YouTube') || vd?.results?.find(v => v.site==='YouTube');
+      if (t) film.trailerKey = t.key;
       ok++; await sleep(200);
-    } catch(e){}
+    } catch(e) {}
   }
   console.log(`  ✓ ${ok}/${Object.keys(films).length} enrichis`);
 }
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
-function supaReq(path,method,body){
-  return new Promise(resolve=>{
-    const payload=JSON.stringify(body); const isDel=method==='DELETE';
-    const opts={hostname:'alwfbminhdwinxcozjlj.supabase.co',path:`/rest/v1/${path}`,method,
-      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,
-        'Prefer':'resolution=merge-duplicates',...(!isDel&&{'Content-Length':Buffer.byteLength(payload)})}};
-    const r=https.request(opts,res=>{let d='';res.on('data',c=>d+=c);res.on('end',()=>resolve({status:res.statusCode,body:d}));});
-    r.on('error',e=>resolve({status:0,body:e.message})); if(!isDel) r.write(payload); r.end();
+function supaReq(path, method, body) {
+  return new Promise(resolve => {
+    const payload = JSON.stringify(body); const isDel = method === 'DELETE';
+    const opts = {
+      hostname: 'alwfbminhdwinxcozjlj.supabase.co', path: `/rest/v1/${path}`, method,
+      headers: { 'Content-Type':'application/json', 'apikey':SUPA_KEY, 'Authorization':`Bearer ${SUPA_KEY}`,
+        'Prefer':'resolution=merge-duplicates', ...(!isDel && {'Content-Length':Buffer.byteLength(payload)}) },
+    };
+    const req = https.request(opts, res => { let d=''; res.on('data',c=>d+=c); res.on('end',()=>resolve({status:res.statusCode,body:d})); });
+    req.on('error', e => resolve({status:0,body:e.message}));
+    if (!isDel) req.write(payload); req.end();
   });
 }
-async function pushToSupabase(allData){
+
+async function pushToSupabase(allData) {
   console.log('\n📤 Push Supabase...');
-  const cinRows=Object.entries(CINEMAS).map(([id,c])=>({id,name:c.name,chain:c.chain,lat:c.lat,lng:c.lng,addr:c.addr,metro:c.metro}));
-  const cr=await supaReq('cinemas_dyn','POST',cinRows); console.log(`  cinémas: ${cr.status}`);
-  const allFilms={};
-  for(const{films}of Object.values(allData)){for(const[slug,f]of Object.entries(films)){if(!allFilms[slug])allFilms[slug]={...f};else for(const k of['director','duration','genre','synopsis','poster','tmdbNote'])if(!allFilms[slug][k]&&f[k])allFilms[slug][k]=f[k];}}
+  const cinRows = Object.entries(CINEMAS).map(([id,c]) => ({id,name:c.name,chain:c.chain,lat:c.lat,lng:c.lng,addr:c.addr,metro:c.metro}));
+  const cr = await supaReq('cinemas_dyn','POST',cinRows); console.log(`  cinémas: ${cr.status}`);
+
+  const allFilms = {};
+  for (const {films} of Object.values(allData)) {
+    for (const [slug,f] of Object.entries(films)) {
+      if (!allFilms[slug]) allFilms[slug] = {...f};
+      else for (const k of ['director','duration','genre','synopsis','poster','tmdbNote']) if (!allFilms[slug][k] && f[k]) allFilms[slug][k] = f[k];
+    }
+  }
   await enrichWithTMDB(allFilms);
-  const filmRows=Object.values(allFilms).map(f=>({id:f.slug,title:f.title,director:f.director||'',duration:f.duration||'',genre:f.genre||'',synopsis:f.synopsis||'',poster_url:f.poster||null,tmdb_id:f.tmdbId||null,tmdb_note:f.tmdbNote||null,trailer_key:f.trailerKey||null,updated_at:new Date().toISOString()}));
-  const fr=await supaReq('films_dyn','POST',filmRows); console.log(`  films: ${fr.status} (${filmRows.length})`);
+
+  const filmRows = Object.values(allFilms).map(f => ({
+    id:f.slug, title:f.title, director:f.director||'', duration:f.duration||'', genre:f.genre||'',
+    synopsis:f.synopsis||'', poster_url:f.poster||null, tmdb_id:f.tmdbId||null,
+    tmdb_note:f.tmdbNote||null, trailer_key:f.trailerKey||null, updated_at:new Date().toISOString(),
+  }));
+  const fr = await supaReq('films_dyn','POST',filmRows); console.log(`  films: ${fr.status} (${filmRows.length})`);
+
   await supaReq(`seances_dyn?date=gte.${getDateISO(0)}`,'DELETE',{});
-  const rows=[];
-  for(const[cinId,{seances}]of Object.entries(allData))for(const[slug,dates]of Object.entries(seances))for(const[date,heures]of Object.entries(dates))if(heures.length)rows.push({cinema_id:cinId,film_id:slug,date,heures});
-  let ins=0;
-  for(let i=0;i<rows.length;i+=200){const sr=await supaReq('seances_dyn','POST',rows.slice(i,i+200));if(sr.status<=299)ins+=Math.min(200,rows.length-i);else console.error(`  ❌ batch ${i}: ${sr.status}`);}
+  const rows = [];
+  for (const [cinId,{seances}] of Object.entries(allData))
+    for (const [slug,dates] of Object.entries(seances))
+      for (const [date,heures] of Object.entries(dates))
+        if (heures.length) rows.push({ cinema_id:cinId, film_id:slug, date, heures });
+
+  let ins = 0;
+  for (let i = 0; i < rows.length; i += 200) {
+    const sr = await supaReq('seances_dyn','POST',rows.slice(i,i+200));
+    if (sr.status <= 299) ins += Math.min(200, rows.length-i);
+    else console.error(`  ❌ batch ${i}: ${sr.status} — ${sr.body.slice(0,100)}`);
+  }
   console.log(`  séances: ${ins}/${rows.length}`);
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
-async function main(){
-  console.log(`🎬 CinéMatch Scraper v16 — ${new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris'})}`);
-  console.log(DRY_RUN?'🔍 DRY-RUN':'🚀 PRODUCTION'); console.log('─'.repeat(50));
+async function main() {
+  console.log(`🎬 CinéMatch Scraper v17 — ${new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris'})}`);
+  console.log(DRY_RUN ? '🔍 DRY-RUN' : '🚀 PRODUCTION'); console.log('─'.repeat(50));
 
-  // En dry-run: 1 seul cinéma, 1 seul jour pour voir les APIs capturées
-  const toTest = DRY_RUN
-    ? { 'ugc-halles':CINEMAS['ugc-halles'], 'pathe-alesia':CINEMAS['pathe-alesia'], 'gaumont-opera':CINEMAS['gaumont-opera'] }
-    : CINEMAS;
-  // En dry-run, seulement aujourd'hui pour aller vite
-  const origDays = DAYS;
-  if (DRY_RUN) global.DAYS_OVERRIDE = 1;
-
-  const allData={};
-  try {
-    for(const[id,cinema]of Object.entries(toTest)){
-      try{ allData[id]=await scrapeCinema(id,cinema); }
-      catch(e){ console.error(`❌ ${id}: ${e.message}`); allData[id]={films:{},seances:{}}; }
-      await sleep(1000);
-    }
-  } finally {
-    if(browser) await browser.close();
+  const allData = {};
+  for (const [id, cinema] of Object.entries(CINEMAS)) {
+    try { allData[id] = await scrapeCinema(id, cinema); }
+    catch(e) { console.error(`❌ ${id}: ${e.message}`); allData[id] = {films:{},seances:{}}; }
+    await sleep(500);
   }
 
-  console.log('\n'+'─'.repeat(50));
-  let tf=new Set(),ts=0;
-  for(const[cid,data]of Object.entries(allData)){
-    const nf=Object.keys(data.films).length; const ns=Object.values(data.seances).reduce((s,fd)=>s+Object.values(fd).reduce((a,h)=>a+h.length,0),0);
-    Object.keys(data.films).forEach(t=>tf.add(t)); ts+=ns;
+  console.log('\n' + '─'.repeat(50));
+  let totalFilms = new Set(), totalSeances = 0;
+  for (const [cid, data] of Object.entries(allData)) {
+    const nf = Object.keys(data.films).length;
+    const ns = Object.values(data.seances).reduce((s,fd) => s+Object.values(fd).reduce((a,h) => a+h.length,0),0);
+    Object.keys(data.films).forEach(t => totalFilms.add(t)); totalSeances += ns;
     console.log(`  ${nf>0?'✓':'✗'} ${cid}: ${nf} films, ${ns} séances`);
   }
-  console.log(`\n📊 TOTAL: ${tf.size} films, ${ts} séances`);
+  console.log(`\n📊 TOTAL: ${totalFilms.size} films, ${totalSeances} séances`);
 
-  if(DRY_RUN){
-    const ex=Object.entries(allData).find(([,d])=>Object.keys(d.seances).length>0);
-    if(ex){const[cid,data]=ex;console.log(`\n🔍 Exemple (${cid}):`);Object.entries(data.seances).slice(0,3).forEach(([slug,dates])=>{console.log(`  "${data.films[slug]?.title||slug}":`);Object.entries(dates).forEach(([d,h])=>console.log(`    ${d}: ${h.join(', ')}`));});}
+  if (DRY_RUN) {
+    const ex = Object.entries(allData).find(([,d]) => Object.keys(d.seances).length > 0);
+    if (ex) {
+      const [cid, data] = ex; console.log(`\n🔍 Exemple (${cid}):`);
+      Object.entries(data.seances).slice(0,3).forEach(([slug,dates]) => {
+        console.log(`  "${data.films[slug]?.title||slug}":`);
+        Object.entries(dates).forEach(([d,h]) => console.log(`    ${d}: ${h.join(', ')}`));
+      });
+    }
     return;
   }
-  if(!SUPA_KEY){console.error('❌ SUPABASE_SERVICE_KEY manquante');process.exit(1);}
+  if (!SUPA_KEY) { console.error('❌ SUPABASE_SERVICE_KEY manquante'); process.exit(1); }
   await pushToSupabase(allData);
   console.log('\n✅ Terminé.');
 }
 
-main().catch(e=>{ console.error('❌ Fatal:',e); if(browser) browser.close(); process.exit(1); });
+main().catch(e => { console.error('❌ Fatal:', e); process.exit(1); });
