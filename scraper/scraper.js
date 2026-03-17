@@ -3,8 +3,11 @@
 'use strict';
 
 const puppeteer = require('puppeteer-extra');
+const PuppeteerCore = require('puppeteer-core');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
+// Point puppeteer-extra to use puppeteer-core
+puppeteer.default = PuppeteerCore;
 const https = require('https');
 
 const DRY_RUN  = process.env.DRY_RUN === 'true';
@@ -46,8 +49,14 @@ function toHeure(s){
 let browser = null;
 async function getBrowser() {
   if (!browser) {
+    // Use system Chrome on GitHub Actions (already installed, no download needed)
+    const executablePath = process.env.CHROME_BIN
+      || '/usr/bin/google-chrome-stable'
+      || '/usr/bin/chromium-browser'
+      || '/usr/bin/chromium';
     browser = await puppeteer.launch({
       headless: 'new',
+      executablePath,
       args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--window-size=1280,800','--lang=fr-FR'],
     });
   }
