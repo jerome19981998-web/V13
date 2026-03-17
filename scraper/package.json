@@ -1,13 +1,15 @@
 {
   "name": "cinematch-scraper",
-  "version": "8.0.0",
-  "description": "Scraper AlloCiné API directe pour CinéMatch",
+  "version": "1.0.0",
+  "description": "CinéMatch séances scraper",
   "main": "scraper.js",
   "scripts": {
-    "scrape": "node scraper.js",
-    "test": "node scraper.js --dry-run"
+    "start": "node scraper.js",
+    "dry": "DRY_RUN=true node scraper.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.0.0"
+    "puppeteer": "^21.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
