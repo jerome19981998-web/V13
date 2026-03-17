@@ -862,8 +862,7 @@ function sHome(){
     }).sort((a,b)=>a[1].t.localeCompare(b[1].t));
     const isSearching=searchQ.length>0;
     const isFiltering=st.filmGridMode||activeGenre!=='tous';
-    const sortedByRating=[...allFilms].sort((a,b)=>(parseFloat(ratings[b[0]]?.note||0))-(parseFloat(ratings[a[0]]?.note||0)));
-    const topFilms=sortedByRating.slice(0,10);
+    const topFilms=[...allFilms].sort(([a],[b])=>{const sA=Object.values(SEANCES).reduce((s,c)=>s+(c[a]?.length||0),0);const sB=Object.values(SEANCES).reduce((s,c)=>s+(c[b]?.length||0),0);return sB-sA;}).slice(0,10);
     const filmIdsWithSorties=new Set(sortiesPubliques.map(s=>s.film_id));
     const filmsWithSorties=allFilms.filter(([id])=>filmIdsWithSorties.has(id));
     const heroEntry=allFilms.find(([id])=>posters[id])||allFilms[0];
@@ -935,13 +934,13 @@ function sHome(){
           </div>`:''}
           <div style="margin-bottom:20px;">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:8px;">
-              <div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🎬 En salle</div>
+              <div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🎬 Nouveautés</div>
               <div style="font-size:11px;color:${MU};cursor:pointer;" onclick="setGenre('tous')">Tous →</div>
             </div>
-            <div class="row-scroll">${Object.entries(FILMS).slice(0,12).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
+            <div class="row-scroll">${[...allFilms].sort(([a],[b])=>{const sA=Object.values(SEANCES).reduce((s,c)=>s+(c[a]?.length||0),0);const sB=Object.values(SEANCES).reduce((s,c)=>s+(c[b]?.length||0),0);return sB-sA;}).slice(0,12).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
           </div>
           ${topFilms.length>0&&ratings[topFilms[0]?.[0]]?`<div style="margin-bottom:20px;">
-            <div style="display:flex;align-items:center;padding:0 18px;margin-bottom:8px;"><div style="font-size:clamp(13px,4vw,16px);font-weight:700;">⭐ Mieux notés</div></div>
+            <div style="display:flex;align-items:center;padding:0 18px;margin-bottom:8px;"><div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🔥 Populaires</div></div>
             <div class="row-scroll">${topFilms.map(([id,f])=>posterCardLg(id,f)).join('')}</div>
           </div>`:''}
           ${st.lbdPseudo&&lbdWatchlist.size>0?`<div style="margin-bottom:20px;">
@@ -1061,7 +1060,7 @@ function sFilm(){
   if(!f)return'<div style="padding:60px 18px;text-align:center;color:#555;flex:1;">Film introuvable</div>';
   const hasP=!!posters[id];const note=ratings[id]?.note;const vu=isVu(id),wl=isWatchlist(id)&&!isVu(id);
   const wantToSee=getWantToSee();const wantId=wantToSee.includes(id);
-  const cinemasAvec=CINEMAS.filter(c=>(SEANCES[c.id]||{})[id]?.length>0);
+  const cinemasAvec=CINEMAS.filter(c=>{const h=(SEANCES[c.id]||{})[id]||[];return h.some(heure=>!isPast(heure));});
   const friendsFilm=myFriends.filter(fr=>sortiesPubliques.some(s=>s.film_id===id&&s._avatars?.some(a=>a.pseudo===fr.pseudo)));
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <div style="flex:1;overflow-y:auto;">
@@ -1098,7 +1097,7 @@ function sFilm(){
                 <div style="font-size:10px;color:${MU};">${c.metro?'M '+esc(c.metro):''}</div>
               </div>
               <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
-                ${seances.slice(0,4).map(h=>`<span style="font-size:10px;padding:3px 7px;background:${S2};border:1px solid ${BD};border-radius:8px;color:${isPast(h)?MU:TX};${isPast(h)?'text-decoration:line-through;':''}">${h}</span>`).join('')}
+                ${seances.filter(h=>!isPast(h)).slice(0,4).map(h=>`<span style="font-size:10px;padding:3px 7px;background:${S2};border:1px solid ${BD};border-radius:8px;color:${TX}">${h}</span>`).join('')}
               </div>
             </div>`;}).join('')}
           </div>
