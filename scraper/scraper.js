@@ -12,21 +12,21 @@ const TMDB_TOKEN = process.env.TMDB_TOKEN ||
 
 const CINEMAS = {
   'ugc-halles':           { name:'UGC Ciné Cité Les Halles',   chain:'ugc',    acId:'C0159', lat:48.8603, lng:2.3477, addr:'7 pl. de la Rotonde, 75001',    metro:'Les Halles' },
-  'ugc-bercy':            { name:'UGC Ciné Cité Bercy',        chain:'ugc',    acId:'C0157', lat:48.8392, lng:2.3796, addr:'2 cour Saint-Émilion, 75012',   metro:'Cour Saint-Émilion' },
-  'ugc-paris19':          { name:'UGC Ciné Cité Paris 19',     chain:'ugc',    acId:'C0173', lat:48.8848, lng:2.3834, addr:'1 rue du Cinéma, 75019',        metro:'Corentin Cariou' },
-  'ugc-maillot':          { name:'UGC Maillot',                chain:'ugc',    acId:'C0162', lat:48.8790, lng:2.2835, addr:'74 av de la Grande Armée, 75017',metro:'Argentine' },
-  'ugc-opera':            { name:'UGC Opéra',                  chain:'ugc',    acId:'C0164', lat:48.8703, lng:2.3340, addr:'32 bd des Italiens, 75009',     metro:'Opéra' },
+  'ugc-bercy':            { name:'UGC Ciné Cité Bercy',        chain:'ugc',    acId:'C2954', lat:48.8392, lng:2.3796, addr:'2 cour Saint-Émilion, 75012',   metro:'Cour Saint-Émilion' },
+  'ugc-paris19':          { name:'UGC Ciné Cité Paris 19',     chain:'ugc',    acId:'C0284', lat:48.8848, lng:2.3834, addr:'1 rue du Cinéma, 75019',        metro:'Corentin Cariou' },
+  'ugc-maillot':          { name:'UGC Maillot',                chain:'ugc',    acId:'C0076', lat:48.8790, lng:2.2835, addr:'74 av de la Grande Armée, 75017',metro:'Argentine' },
+  'ugc-opera':            { name:'UGC Opéra',                  chain:'ugc',    acId:'C0089', lat:48.8703, lng:2.3340, addr:'32 bd des Italiens, 75009',     metro:'Opéra' },
   'ugc-danton':           { name:'UGC Danton',                 chain:'ugc',    acId:'C0158', lat:48.8527, lng:2.3403, addr:'99 bd du Montparnasse, 75006',  metro:'Vavin' },
-  'ugc-montparnasse':     { name:'UGC Montparnasse',           chain:'ugc',    acId:'C0163', lat:48.8418, lng:2.3230, addr:'13 rue du Commandant Mouchotte',metro:'Montparnasse' },
+  'ugc-montparnasse':     { name:'UGC Montparnasse',           chain:'ugc',    acId:'C0083', lat:48.8418, lng:2.3230, addr:'13 rue du Commandant Mouchotte',metro:'Montparnasse' },
   'ugc-lyon':             { name:'UGC Lyon-Bastille',          chain:'ugc',    acId:'C0161', lat:48.8531, lng:2.3696, addr:'18 rue du Faubourg St-Antoine', metro:'Bastille' },
   'pathe-beaugrenelle':   { name:'Pathé Beaugrenelle',         chain:'pathe',  acId:'C0012', lat:48.8463, lng:2.2885, addr:'12 rue Linois, 75015',          metro:'Charles Michels' },
   'pathe-convention':     { name:'Pathé Convention',           chain:'pathe',  acId:'C0037', lat:48.8382, lng:2.3072, addr:'27 rue Alain-Chartier, 75015',  metro:'Convention' },
-  'pathe-parnasse':       { name:'Pathé Parnasse',             chain:'pathe',  acId:'C0122', lat:48.8427, lng:2.3271, addr:'11 rue du Départ, 75014',       metro:'Montparnasse' },
+  'pathe-parnasse':       { name:'Pathé Parnasse',             chain:'pathe',  acId:'C0159', lat:48.8427, lng:2.3271, addr:'11 rue du Départ, 75014',       metro:'Montparnasse' },
   'pathe-wepler':         { name:'Pathé Wepler',               chain:'pathe',  acId:'C0060', lat:48.8841, lng:2.3272, addr:'14 pl. de Clichy, 75018',       metro:'Place de Clichy' },
   'pathe-alesia':         { name:'Pathé Alésia',               chain:'pathe',  acId:'C0116', lat:48.8277, lng:2.3260, addr:'73 av du Gén. Leclerc, 75014',  metro:'Alésia' },
   'pathe-batignolles':    { name:'Les 7 Batignolles',          chain:'pathe',  acId:'C0059', lat:48.8856, lng:2.3175, addr:'3 rue des Moines, 75017',        metro:'Brochant' },
   'gaumont-opera':        { name:'Gaumont Opéra',              chain:'gaumont',acId:'C0026', lat:48.8716, lng:2.3329, addr:'31 bd des Italiens, 75002',      metro:'Opéra' },
-  'gaumont-convention':   { name:'Gaumont Convention',         chain:'gaumont',acId:'C0038', lat:48.8384, lng:2.3060, addr:'25 rue Alain-Chartier, 75015',  metro:'Convention' },
+  'gaumont-convention':   { name:'Gaumont Convention',         chain:'gaumont',acId:'C0163', lat:48.8384, lng:2.3060, addr:'25 rue Alain-Chartier, 75015',  metro:'Convention' },
   'gaumont-aquaboulevard':{ name:'Gaumont Aquaboulevard',      chain:'gaumont',acId:'C0015', lat:48.8322, lng:2.2760, addr:'17 rue Linois, 75015',           metro:'Balard' },
 };
 
