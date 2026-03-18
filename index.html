@@ -1492,21 +1492,21 @@ function sProfile(){
           ${(()=>{
             const favIds=(()=>{try{return JSON.parse(localStorage.getItem('cm_fav_'+(st.pseudo||''))||'[]');}catch(e){return[];}})();
             const favFilms=favIds.map(id=>[id,FILMS[id]]).filter(([id,f])=>!!f);
-            if(favFilms.length===0) return \`<div onclick="openFavFilmPicker()" style="border:1.5px dashed rgba(255,255,255,0.1);border-radius:16px;padding:22px 16px;text-align:center;cursor:pointer;">
+            if(favFilms.length===0) return `<div onclick="openFavFilmPicker()" style="border:1.5px dashed rgba(255,255,255,0.1);border-radius:16px;padding:22px 16px;text-align:center;cursor:pointer;">
               <div style="font-size:32px;margin-bottom:8px;">🎬</div>
-              <div style="font-size:13px;color:\${MU};margin-bottom:4px;">Ajoutez vos films préférés</div>
-              <div style="font-size:11px;color:\${AC};">+ Choisir des films</div>
-            </div>\`;
-            return \`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              \${favFilms.slice(0,4).map(([id,f])=>\`
-                <div onclick="openFilm('\${id}','profile')" class="tap" style="position:relative;border-radius:12px;overflow:hidden;height:110px;cursor:pointer;background:\${f.bg};">
-                  \${posters[id]?\`<img src="\${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">\`:\`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:36px;">\${f.e}</span>\`}
+              <div style="font-size:13px;color:${MU};margin-bottom:4px;">Ajoutez vos films préférés</div>
+              <div style="font-size:11px;color:${AC};">+ Choisir des films</div>
+            </div>`;
+            return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              ${favFilms.slice(0,4).map(([id,f])=>`
+                <div onclick="openFilm('${id}','profile')" class="tap" style="position:relative;border-radius:12px;overflow:hidden;height:110px;cursor:pointer;background:${f.bg};">
+                  ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:36px;">${f.e}</span>`}
                   <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(7,7,15,0.85));padding:6px 8px;">
-                    <div style="font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">\${esc(f.t)}</div>
+                    <div style="font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(f.t)}</div>
                   </div>
                 </div>
-              \`).join('')}
-            </div>\`;
+              `).join('')}
+            </div>`;
           })()}
         </div>
 
@@ -1652,39 +1652,56 @@ function openLbdModal(){
 function getFavFilms(){try{return JSON.parse(localStorage.getItem('cm_fav_'+(st.pseudo||''))||'[]');}catch(e){return[];}}
 function setFavFilm(filmId){
   let list=getFavFilms();
-  if(list.includes(filmId)){list=list.filter(x=>x!==filmId);}
-  else{if(list.length>=4){list.shift();}list.push(filmId);}
+  if(list.includes(filmId))list=list.filter(x=>x!==filmId);
+  else{if(list.length>=4)list.shift();list.push(filmId);}
   try{localStorage.setItem('cm_fav_'+(st.pseudo||''),JSON.stringify(list));}catch(e){}
   render();
+  openFavFilmPicker();
 }
 function openFavFilmPicker(){
+  const existing=document.getElementById('fav-picker-modal');
+  if(existing) existing.remove();
   const current=getFavFilms();
   const allFilms=Object.entries(FILMS).sort((a,b)=>a[1].t.localeCompare(b[1].t));
   const d=document.createElement('div');
-  d.style.cssText='position:fixed;inset:0;background:rgba(7,7,15,0.95);z-index:9999;display:flex;flex-direction:column;';
-  d.innerHTML=\`<div style="padding:50px 18px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
-    <div onclick="this.closest('[style*=fixed]').remove()" style="width:32px;height:32px;border-radius:50%;background:#1a1a2e;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>
-    <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:22px;flex:1;">Films préférés</div>
-    <div style="font-size:11px;color:#555570;">\${current.length}/4 sélectionnés</div>
-  </div>
-  <div style="padding:0 18px 10px;flex-shrink:0;">
-    <input placeholder="🔍 Rechercher…" oninput="filterFavPicker(this.value)" style="width:100%;background:#111120;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:8px 14px;font-size:13px;color:#e8e0d4;outline:none;box-sizing:border-box;">
-  </div>
-  <div id="fav-grid" style="flex:1;overflow-y:auto;padding:0 18px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-    \${allFilms.map(([id,f])=>{const sel=current.includes(id);return \`<div onclick="setFavFilm('\${id}');this.closest('[style*=fixed]').remove();openFavFilmPicker();" data-title="\${f.t.toLowerCase()}" class="tap" style="cursor:pointer;position:relative;">
-      <div style="height:110px;border-radius:10px;overflow:hidden;background:\${f.bg};position:relative;border:2px solid \${sel?'#ff3f5b':'transparent'};">
-        \${posters[id]?\`<img src="\${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">\`:\`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:32px;">\${f.e}</span>\`}
-        \${sel?'<div style="position:absolute;top:5px;right:5px;background:#ff3f5b;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">✓</div>':''}
-      </div>
-      <div style="font-size:8px;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;">\${f.t}</div>
-    </div>\`}).join('')}
-  </div>\`;
+  d.id='fav-picker-modal';
+  d.style.cssText='position:fixed;inset:0;background:rgba(7,7,15,0.97);z-index:9999;display:flex;flex-direction:column;overflow:hidden;';
+
+  let gridHTML='';
+  for(const[id,f]of allFilms){
+    const sel=current.includes(id);
+    const img=posters[id]?('<img src="'+posters[id]+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">'):'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:32px;">'+f.e+'</span>';
+    const check=sel?'<div style="position:absolute;top:5px;right:5px;background:#ff3f5b;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">✓</div>':'';
+    gridHTML+='<div onclick="setFavFilm(\''+id+'\')" data-title="'+f.t.toLowerCase().replace(/"/g,'').replace(/'/g,'')+'" class="tap" style="cursor:pointer;">'
+      +'<div style="height:110px;border-radius:10px;overflow:hidden;background:'+f.bg+';position:relative;border:2px solid '+(sel?'#ff3f5b':'transparent')+';">'
+      +img+check
+      +'</div>'
+      +'<div style="font-size:8px;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;color:#e8e0d4;">'+esc(f.t)+'</div>'
+      +'</div>';
+  }
+
+  d.innerHTML='<div style="padding:50px 18px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0;">'
+    +'<div onclick="document.getElementById(\'fav-picker-modal\')?.remove()" style="width:32px;height:32px;border-radius:50%;background:#1a1a2e;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>'
+    +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:22px;flex:1;">Films préférés</div>'
+    +'<div style="font-size:11px;color:#555570;">'+current.length+'/4</div>'
+    +'</div>'
+    +'<div style="padding:0 18px 10px;flex-shrink:0;">'
+    +'<input id="fav-search" placeholder="🔍 Rechercher un film…" oninput="filterFavPicker(this.value)" style="width:100%;background:#111120;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:9px 14px;font-size:13px;color:#e8e0d4;outline:none;box-sizing:border-box;">'
+    +'</div>'
+    +'<div id="fav-grid" style="flex:1;overflow-y:auto;padding:0 14px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+    +gridHTML
+    +'</div>';
+
   document.body.appendChild(d);
+  requestAnimationFrame(()=>d.querySelector('#fav-search')?.focus());
 }
 function filterFavPicker(q){
   const grid=document.getElementById('fav-grid');if(!grid)return;
-  const qn=q.toLowerCase();
-  grid.querySelectorAll('[data-title]').forEach(el=>{el.style.display=el.dataset.title.includes(qn)?'':'none';});
+  const qn=(q||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  grid.querySelectorAll('[data-title]').forEach(el=>{
+    const title=el.dataset.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    el.style.display=title.includes(qn)?'':'none';
+  });
 }
 
 function render(){
