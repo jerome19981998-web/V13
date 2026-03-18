@@ -182,16 +182,18 @@ function posterCardLg(id,f,onClick){
   </div>`;}
 function posterCardSm(id,f){return `<div onclick="openFilm('${id}','home')" class="tap" style="flex-shrink:0;width:60px;cursor:pointer;"><div style="width:60px;height:90px;border-radius:7px;overflow:hidden;background:${f.bg};position:relative;">${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:26px;">${f.e}</span>`}</div><div style="font-size:9px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(f.t)}</div></div>`;}
 function nav(active){return `<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:max(env(safe-area-inset-bottom,0px),0px);">
-  ${[['home','🍿','Sorties'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['profile','👤','Profil']].map(([sc,ic,lb])=>{
-    const isActive=active===sc||(sc==='home'&&st.screen==='home'&&st.homeTab==='sorties')||(sc==='cinemas'&&st.screen==='cinemas')||(sc==='cinemas'&&st.screen==='cinema-detail')||(sc==='group'&&(st.screen==='group'||st.screen==='create-sortie'))||(sc==='profile'&&['profile','want-to-see','friends','messages','private-chat','notifications','member-profile'].includes(st.screen));
+  ${[['home','🍿','Sorties'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['messages','💬','Messages'],['profile','👤','Profil']].map(([sc,ic,lb])=>{
+    const isActive=active===sc||(sc==='home'&&st.screen==='home'&&st.homeTab==='sorties')||(sc==='cinemas'&&st.screen==='cinemas')||(sc==='cinemas'&&st.screen==='cinema-detail')||(sc==='group'&&(st.screen==='group'||st.screen==='create-sortie'))||(sc==='messages'&&['messages','private-chat'].includes(st.screen))||(sc==='profile'&&['profile','want-to-see','friends','notifications','member-profile'].includes(st.screen));
     return `<div onclick="navGo('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${isActive?1:0.45};position:relative;">
       <div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}
         ${sc==='profile'?`<div class="notif-badge" style="display:${notifCount>0?'flex':'none'}">${notifCount>9?'9+':notifCount}</div>`:''}
+        ${sc==='messages'?(()=>{const u=conversations.reduce((s,c)=>s+(c.unread||0),0);return u>0?`<div class="notif-badge" style="display:flex">${u>9?'9+':u}</div>`:''})():''}
       </div>
       <div style="font-size:9px;color:${MU};">${lb}</div>
     </div>`;}).join('')}
 </div>`;}
 function navGo(sc){
+  if(sc==='messages'){go('messages');loadConversations();return;}
   if(sc==='cinemas'){st.screen='cinemas';render();return;}
   if(sc==='home'){st.homeTab='sorties';st.screen='home';render();return;}
   if(sc==='group'){st.groupe=null;st.screen='group';render();return;}
