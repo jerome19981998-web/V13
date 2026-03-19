@@ -499,7 +499,7 @@ async function init_social(){
   subscribeNotifs();
   if(st.lbdPseudo)loadLbd(st.lbdPseudo);
 }
-async function loadProfile(userId){const{data}=await supa.from('profiles').select('*').eq('id',userId).single();if(data){st.pseudo=data.pseudo||'';st.avatar=data.avatar||'🎬';st.lang=data.lang||st.lang;save();return true;}return false;}
+async function loadProfile(userId){const{data}=await supa.from('profiles').select('*').eq('id',userId).single();if(data){st.pseudo=data.pseudo||'';st.avatar=data.avatar||'🎬';st.lang=data.lang||st.lang;if(data.photo_url)window._profilePhotoCache=data.photo_url;save();return true;}return false;}
 supa.auth.onAuthStateChange((event,session)=>{
   if(event==='INITIAL_SESSION')handleSession(session);
   else if(event==='SIGNED_IN'){_authDone=false;handleSession(session);}
@@ -707,46 +707,104 @@ function sFriends(){
   </div>`;}
 
 // ── MESSAGES SCREEN ─────────────────────────────────────────
+function timeAgo(dateStr){
+  if(!dateStr) return '';
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if(diff < 60) return "à l'instant";
+  if(diff < 3600) return `il y a ${Math.floor(diff/60)} min`;
+  if(diff < 86400) return `il y a ${Math.floor(diff/3600)}h`;
+  if(diff < 604800) return `il y a ${Math.floor(diff/86400)}j`;
+  return new Date(dateStr).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+}
+
 function sMessages(){
-  const totalUnread=conversations.reduce((sum,c)=>sum+(c.unread||0),0);
-  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="padding:52px 18px 12px;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
-        <div class="serif" style="font-size:clamp(18px,5.6vw,24px);flex:1;">Messages</div>
-        ${totalUnread>0?`<div style="background:${AC};color:#fff;border-radius:10px;padding:3px 8px;font-size:11px;font-weight:700;">${totalUnread} non lu${totalUnread>1?'s':''}</div>`:''}
-      </div>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
-      ${conversations.length===0?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;gap:12px;">
-        <div style="font-size:52px;">💬</div>
-        <div class="serif" style="font-size:20px;">Pas de messages</div>
-        <div style="font-size:13px;color:${MU};line-height:1.6;">Vos conversations avec vos amis apparaîtront ici</div>
-        <div onclick="go('friends')" style="padding:10px 20px;background:${AC};border-radius:12px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">Voir mes amis</div>
-      </div>`:conversations.map(conv=>{
-        const p=conv.partner;if(!p)return'';
-        const msg=conv.lastMsg;
-        const preview=msg.content?(msg.content.slice(0,50)+(msg.content.length>50?'…':'')):'';
-        const time=new Date(msg.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-        const me=msg.sender_id===st.userId;
-        return `<div onclick="openPrivateChat('${p.id}','${esc(p.pseudo)}','${p.avatar||'🎬'}')" class="tap" style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid ${BD};cursor:pointer;">
-          <div style="position:relative;">
-            ${avatarEl(p.pseudo,46)}
-            ${conv.unread>0?`<div style="position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:50%;background:${AC};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;">${conv.unread}</div>`:''}
+  const totalUnread = conversations.reduce((sum,c) => sum+(c.unread||0), 0);
+  const filter = st.messagesFilter || 'all';
+  const search = (st.messagesSearch || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  const filtered = conversations.filter(conv => {
+    if(filter === 'unread' && !conv.unread) return false;
+    if(search) {
+      const pseudo = (conv.partner?.pseudo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const msg = (conv.lastMsg?.content||'').toLowerCase();
+      if(!pseudo.includes(search) && !msg.includes(search)) return false;
+    }
+    return true;
+  });
+
+  const tabs = [
+    ['all','💬','Tous', conversations.length],
+    ['unread','🔵','Non lus', totalUnread],
+    ['friends','👥','Amis', myFriends.length],
+  ];
+
+  const convList = filtered.length === 0
+    ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;gap:12px;flex:1;">
+        <div style="font-size:52px;">${search ? '🔍' : '💬'}</div>
+        <div style="font-size:16px;font-weight:600;">${search ? 'Aucun résultat' : 'Aucune conversation'}</div>
+        <div style="font-size:13px;color:${MU};">${search ? 'Essaie un autre terme' : 'Tes messages avec tes amis apparaîtront ici'}</div>
+        ${!search ? `<div onclick="go('friends')" style="padding:10px 20px;background:${AC};border-radius:12px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">Voir mes amis</div>` : ''}
+      </div>`
+    : filtered.map(conv => {
+        const p = conv.partner; if(!p) return '';
+        const msg = conv.lastMsg;
+        const preview = (msg?.content||'').slice(0,45) + ((msg?.content||'').length>45?'…':'');
+        const time = timeAgo(msg?.created_at);
+        const me = msg?.sender_id === st.userId;
+        const av = getAvatar(p.pseudo) || p.avatar;
+        const avatarDiv = (av && av.length <= 2)
+          ? `<div style="width:48px;height:48px;border-radius:50%;background:${pseudoColor(p.pseudo)};display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">${av}</div>`
+          : p.photo_url
+            ? `<div style="width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0;"><img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;"></div>`
+            : `<div style="width:48px;height:48px;border-radius:50%;background:${pseudoColor(p.pseudo)};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(p.pseudo)}</div>`;
+        return `<div onclick="openPrivateChat('${p.id}','${esc(p.pseudo)}','${p.avatar||'🎬'}')" class="tap" style="display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;border-bottom:1px solid ${BD};background:${conv.unread?'rgba(255,63,91,0.03)':'transparent'};">
+          <div style="position:relative;flex-shrink:0;">
+            ${avatarDiv}
+            ${conv.unread ? `<div style="position:absolute;bottom:0;right:0;width:14px;height:14px;border-radius:50%;background:${AC};border:2px solid ${BG};"></div>` : ''}
           </div>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px;">
-              <div style="font-size:14px;font-weight:${conv.unread?700:500};">${esc(p.pseudo)}</div>
-              <div style="font-size:10px;color:${MU};">${time}</div>
+              <div style="font-size:14px;font-weight:${conv.unread?700:500};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${esc(p.pseudo)}</div>
+              <div style="font-size:10px;color:${conv.unread?AC:MU};flex-shrink:0;margin-left:6px;">${time}</div>
             </div>
-            <div style="font-size:12px;color:${conv.unread?TX:MU};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${me?'Vous: ':''}${esc(preview)}</div>
+            <div style="font-size:12px;color:${conv.unread?TX:MU};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${me?`<span style="color:${MU}">Vous: </span>`:''}${esc(preview)||'…'}
+            </div>
           </div>
+          ${conv.unread ? `<div style="min-width:20px;height:20px;border-radius:10px;background:${AC};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;padding:0 5px;flex-shrink:0;">${conv.unread}</div>` : ''}
         </div>`;
-      }).join('')}
-    </div>
-  </div>`;}
+      }).join('');
 
-// ── PRIVATE CHAT SCREEN ──────────────────────────────────────
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <!-- Header -->
+    <div style="padding:50px 18px 10px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="serif" style="font-size:clamp(20px,6.2vw,26px);">Messages</div>
+        ${totalUnread > 0 ? `<div style="background:${AC};color:#fff;border-radius:10px;padding:3px 9px;font-size:11px;font-weight:700;">${totalUnread} non lu${totalUnread>1?'s':''}</div>` : ''}
+      </div>
+      <!-- Search bar -->
+      <div style="position:relative;margin-bottom:10px;">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;color:${MU};">🔍</span>
+        <input placeholder="Rechercher une conversation…" value="${st.messagesSearch||''}"
+          oninput="st.messagesSearch=this.value;render()"
+          style="width:100%;background:${S1};border:1px solid ${BD};border-radius:20px;padding:9px 14px 9px 34px;font-size:13px;color:${TX};outline:none;box-sizing:border-box;">
+        ${st.messagesSearch ? `<span onclick="st.messagesSearch='';render()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:${MU};cursor:pointer;">✕</span>` : ''}
+      </div>
+      <!-- Filter tabs -->
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
+        ${tabs.map(([id,ic,lb,cnt]) => `<div onclick="st.messagesFilter='${id}';render()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;flex-shrink:0;border:1px solid ${filter===id?AC:BD};background:${filter===id?AC:'rgba(255,255,255,0.03)'};color:${filter===id?'#fff':MU};">
+          ${ic} ${lb}${cnt>0?` <span style="background:${filter===id?'rgba(255,255,255,0.3)':S2};border-radius:8px;padding:1px 5px;font-size:10px;">${cnt}</span>`:''}
+        </div>`).join('')}
+      </div>
+    </div>
+    <!-- Conversation list -->
+    <div style="flex:1;overflow-y:auto;">
+      ${convList}
+    </div>
+    ${nav('messages')}
+  </div>`;
+}
+
 function sPrivateChat(){
   const p=st.chatWith;if(!p)return'<div>Erreur</div>';
   const status=getFriendStatus(p.userId);
@@ -1466,9 +1524,13 @@ function sProfile(){
     <div style="flex:1;overflow-y:auto;">
       <div style="padding:50px 18px 16px;">
         <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;">
-          <div onclick="openAvatarPicker()" style="cursor:pointer;position:relative;">
-            <div style="width:68px;height:68px;border-radius:50%;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;font-size:38px;">${st.avatar}</div>
-            <div style="position:absolute;bottom:0;right:0;width:20px;height:20px;border-radius:50%;background:${AC};display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid ${BG};">✏️</div>
+          <div style="cursor:pointer;position:relative;flex-shrink:0;">
+            ${(()=>{const pUrl=window._profilePhotoUrl||(window._profilePhotoUrl=null);return '';})()}
+            <div onclick="uploadProfilePhoto()" style="width:68px;height:68px;border-radius:50%;overflow:hidden;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;">
+              ${window._profilePhotoCache?`<img src="${window._profilePhotoCache}" style="width:100%;height:100%;object-fit:cover;">`:`<span style="font-size:38px;">${st.avatar}</span>`}
+            </div>
+            <div onclick="openAvatarPicker()" style="position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:${S2};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:10px;">✏️</div>
+            <div onclick="uploadProfilePhoto()" style="position:absolute;top:0;right:-4px;width:20px;height:20px;border-radius:50%;background:${AC};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:9px;">📷</div>
           </div>
           <div style="flex:1;">
             <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">${esc(st.pseudo)}</div>
@@ -1702,6 +1764,46 @@ function filterFavPicker(q){
     const title=el.dataset.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     el.style.display=title.includes(qn)?'':'none';
   });
+}
+
+function uploadProfilePhoto(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if(!file || !st.userId) return;
+    // Compress & resize to 200x200
+    const canvas = document.createElement('canvas');
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      img.onload = async () => {
+        const size = 200;
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const scale = Math.max(size/img.width, size/img.height);
+        const x = (size - img.width*scale)/2;
+        const y = (size - img.height*scale)/2;
+        ctx.drawImage(img, x, y, img.width*scale, img.height*scale);
+        canvas.toBlob(async (blob) => {
+          const fileName = `avatar_${st.userId}_${Date.now()}.jpg`;
+          const { data, error } = await supa.storage.from('avatars').upload(fileName, blob, { contentType:'image/jpeg', upsert:true });
+          if(error){ toast('Erreur upload: '+error.message,'error'); return; }
+          const { data:{ publicUrl } } = supa.storage.from('avatars').getPublicUrl(fileName);
+          await supa.from('profiles').update({ photo_url: publicUrl }).eq('id', st.userId);
+          toast('Photo mise à jour ! 📸','success');
+          render();
+        }, 'image/jpeg', 0.82);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+  setTimeout(() => input.remove(), 5000);
 }
 
 function render(){
