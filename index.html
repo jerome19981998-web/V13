@@ -1167,7 +1167,7 @@ function sFilm(){
       <div style="padding:0 18px;">
         <div style="display:flex;gap:8px;margin-bottom:16px;padding-top:12px;">
           <div onclick="toggleWantToSee('${id}')" style="flex:1;padding:10px 0;text-align:center;border-radius:12px;cursor:pointer;background:${wantId?'rgba(240,192,96,0.15)':S1};border:1px solid ${wantId?GD:BD};font-size:12px;font-weight:600;color:${wantId?GD:MU};">${wantId?'🔖 Ma liste':'🔖 Ma liste'}</div>
-          ${cinemasAvec.length?`<div onclick="createSortieScroll=0;st.newSortie={filmId:'${id}'};st.screen='create-sortie';render()" style="flex:2;padding:10px 0;text-align:center;border-radius:12px;cursor:pointer;background:${AC};font-size:13px;font-weight:700;color:#fff;">🍿 Créer une sortie</div>`:''}
+          ${cinemasAvec.length?`<div onclick="createSortieScroll=0;st.newSortie=${cinemasAvec.length===1?`{filmId:'${id}',cinemaId:'${cinemasAvec[0].id}',heure:'${((SEANCES[cinemasAvec[0].id]||{})[id]||[]).filter(h=>!isPast(h))[0]||''}',date:'${selectedDate||todayStr()}'}`:`{filmId:'${id}'}`};st.screen='create-sortie';render()" style="flex:2;padding:10px 0;text-align:center;border-radius:12px;cursor:pointer;background:${AC};font-size:13px;font-weight:700;color:#fff;">🍿 Créer une sortie</div>`:''}
         </div>
         ${friendsFilm.length>0?`<div style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
           <div style="display:flex;">${friendsFilm.slice(0,3).map(fr=>`<div style="width:26px;height:26px;border-radius:50%;background:${pseudoColor(fr.pseudo)};display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid ${S1};margin-left:-4px;">${fr.avatar||pseudoInitial(fr.pseudo)}</div>`).join('')}</div>
@@ -1481,62 +1481,121 @@ function sGroupList(){
   </div>`;}
 
 function sCreateSortie(){
-  const ns=st.newSortie||{};
-  let selectedFilmId=ns.filmId||null;
-  let selectedCinemaId=ns.cinemaId||null;
-  let selectedHeure=ns.heure||null;
-  let selectedDate=ns.date||st.date||todayStr();
-  let maxM=ns.max||8;
-  const allFilms=Object.entries(FILMS).sort((a,b)=>a[1].t.localeCompare(b[1].t));
-  const cinemasForFilm=selectedFilmId?CINEMAS.filter(c=>Object.keys(SEANCES[c.id]||{}).includes(selectedFilmId)):[];
-  const seancesForPair=(selectedFilmId&&selectedCinemaId)?(SEANCES[selectedCinemaId]||{})[selectedFilmId]||[]:[];
+  const ns = st.newSortie || {};
+  // If all 3 are pre-filled → show only participant count
+  const isPreFilled = !!(ns.filmId && ns.cinemaId && ns.heure);
+  
+  const selectedFilmId   = ns.filmId   || null;
+  const selectedCinemaId = ns.cinemaId || null;
+  const selectedHeure    = ns.heure    || null;
+  const selectedDate     = ns.date     || st.date || todayStr();
+  const maxM             = ns.max      || 4;
+
+  const film   = selectedFilmId   ? FILMS[selectedFilmId]  : null;
+  const cinema = selectedCinemaId ? CINEMAS.find(c=>c.id===selectedCinemaId) : null;
+
+  // Pre-filled: show summary + only participant picker
+  if(isPreFilled){
+    return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:50px 18px 14px;flex-shrink:0;border-bottom:1px solid ${BD};display:flex;align-items:center;gap:10px;">
+        <div onclick="st.screen='film';render()" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>
+        <div class="serif" style="font-size:clamp(17px,5vw,22px);">Créer une sortie</div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:20px 18px;">
+        <!-- Summary card -->
+        <div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;display:flex;gap:12px;margin-bottom:24px;">
+          <div style="width:56px;height:78px;border-radius:9px;overflow:hidden;background:${film?.bg||'#111'};flex-shrink:0;position:relative;">
+            ${posters[selectedFilmId]?`<img src="${posters[selectedFilmId]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:28px;">${film?.e||'🎬'}</span>`}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="serif" style="font-size:clamp(14px,4.2vw,18px);margin-bottom:4px;">${esc(film?.t||'Film')}</div>
+            <div style="font-size:12px;font-weight:600;color:${CC[cinema?.chain]||MU};margin-bottom:3px;">${esc(cinema?.name||'Cinéma')}</div>
+            <div style="font-size:13px;font-weight:700;color:${AC};">${selectedHeure} <span style="font-size:10px;color:${MU};font-weight:400;">· ${formatDate(selectedDate)}</span></div>
+          </div>
+          <div onclick="st.newSortie=null;render()" style="font-size:11px;color:${MU};cursor:pointer;padding:4px 8px;border:1px solid ${BD};border-radius:8px;height:fit-content;">✏️</div>
+        </div>
+
+        <!-- Participant count -->
+        <div style="text-align:center;">
+          <div style="font-size:12px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px;">Combien de personnes (toi inclus) ?</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:32px;">
+            <div onclick="st.newSortie={...st.newSortie,max:Math.max(2,${maxM}-1)};render()" style="width:48px;height:48px;border-radius:50%;background:${S1};border:2px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;font-weight:300;user-select:none;">−</div>
+            <div style="font-size:52px;font-weight:700;min-width:60px;text-align:center;">${maxM}</div>
+            <div onclick="st.newSortie={...st.newSortie,max:Math.min(20,${maxM}+1)};render()" style="width:48px;height:48px;border-radius:50%;background:${AC};border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;font-weight:300;color:#fff;user-select:none;">+</div>
+          </div>
+          <div style="font-size:12px;color:${MU};margin-bottom:32px;">${maxM} personne${maxM>1?'s':''} maximum</div>
+          <button onclick="creerSortie('${selectedFilmId}','${selectedCinemaId}','${selectedHeure}','${selectedDate}',${maxM})" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;">🍿 Créer la sortie publique</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Full flow (called from group tab without context)
+  const allFilms = Object.entries(FILMS).filter(([id])=>
+    Object.values(SEANCES).some(c=>c[id]?.length>0)
+  ).sort((a,b)=>a[1].t.localeCompare(b[1].t));
+  const cinemasForFilm = selectedFilmId ? CINEMAS.filter(c=>Object.keys(SEANCES[c.id]||{}).includes(selectedFilmId)) : [];
+  const seancesForPair = (selectedFilmId&&selectedCinemaId) ? (SEANCES[selectedCinemaId]||{})[selectedFilmId]||[] : [];
 
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <div style="padding:50px 18px 12px;flex-shrink:0;border-bottom:1px solid ${BD};display:flex;align-items:center;gap:10px;">
       <div onclick="st.screen='group';st.newSortie=null;render()" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
-      <div class="serif" style="font-size:clamp(17px,5vw,22px);">${T('creerSortie')}</div>
+      <div class="serif" style="font-size:clamp(17px,5vw,22px);">Créer une sortie</div>
     </div>
     <div id="create-scroll" style="flex:1;overflow-y:auto;padding:16px 18px 20px;">
+
+      <!-- Step 1: Film -->
       <div style="margin-bottom:18px;">
         <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisFilm')}</div>
-        <div style="display:flex;overflow-x:auto;gap:8px;padding-bottom:4px;">
-          ${allFilms.map(([id,f])=>`<div onclick="st.newSortie={...st.newSortie,filmId:'${id}',cinemaId:null,heure:null};render();document.getElementById('create-scroll')?.scrollTo({top:0,behavior:'smooth'})" style="flex-shrink:0;width:72px;cursor:pointer;">
+        <div style="display:flex;overflow-x:auto;gap:8px;padding-bottom:4px;scrollbar-width:none;">
+          ${allFilms.map(([id,f])=>`<div onclick="st.newSortie={...st.newSortie,filmId:'${id}',cinemaId:null,heure:null};render()" style="flex-shrink:0;width:72px;cursor:pointer;">
             <div style="width:72px;height:100px;border-radius:9px;overflow:hidden;background:${f.bg};position:relative;border:2px solid ${selectedFilmId===id?AC:'transparent'};">
               ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:32px;">${f.e}</span>`}
+              ${selectedFilmId===id?'<div style="position:absolute;inset:0;background:rgba(255,63,91,0.2);display:flex;align-items:center;justify-content:center;"><span style="font-size:20px;">✓</span></div>':''}
             </div>
             <div style="font-size:8px;margin-top:3px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:${selectedFilmId===id?TX:MU};">${esc(f.t)}</div>
           </div>`).join('')}
         </div>
       </div>
-      ${selectedFilmId?`<div style="margin-bottom:18px;">
+
+      ${selectedFilmId?`
+      <!-- Step 2: Cinéma -->
+      <div style="margin-bottom:18px;">
         <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisCinema')}</div>
         ${cinemasForFilm.length===0?`<div style="font-size:12px;color:${MU};">${T('aucunFilmDispo')}</div>`:`<div style="display:flex;flex-direction:column;gap:6px;">
           ${cinemasForFilm.map(c=>`<div onclick="st.newSortie={...st.newSortie,cinemaId:'${c.id}',heure:null};render()" style="padding:10px 14px;border-radius:12px;background:${selectedCinemaId===c.id?'rgba(255,63,91,0.1)':S1};border:1px solid ${selectedCinemaId===c.id?AC:BD};cursor:pointer;display:flex;align-items:center;gap:8px;">
             <span style="font-size:16px;">${CHAIN_ICONS[c.chain]||'🎬'}</span>
             <span style="font-size:13px;font-weight:${selectedCinemaId===c.id?700:400};color:${CC[c.chain]||TX};">${esc(c.name)}</span>
-            ${selectedCinemaId===c.id?'<span style="margin-left:auto;color:#ff3f5b;">✓</span>':''}
+            ${selectedCinemaId===c.id?`<span style="margin-left:auto;color:${AC};">✓</span>`:''}
           </div>`).join('')}
         </div>`}
       </div>`:''}
-      ${selectedCinemaId?`<div style="margin-bottom:18px;">
+
+      ${selectedCinemaId?`
+      <!-- Step 3: Séance -->
+      <div style="margin-bottom:18px;">
         <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisSeance')}</div>
         ${dayPicker()}
-        ${seancesForPair.length===0?`<div style="font-size:12px;color:${MU};">${T('aucuneSeance')}</div>`:`<div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${seancesForPair.map(h=>`<div onclick="st.newSortie={...st.newSortie,heure:'${h}',date:'${selectedDate}'};render()" style="padding:8px 14px;border-radius:10px;background:${selectedHeure===h?'rgba(255,63,91,0.15)':S2};border:1px solid ${selectedHeure===h?AC:BD};cursor:pointer;font-size:13px;font-weight:600;">${h}</div>`).join('')}
+        ${seancesForPair.length===0?`<div style="font-size:12px;color:${MU};">${T('aucuneSeance')}</div>`:`<div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${seancesForPair.map(h=>`<div onclick="st.newSortie={...st.newSortie,heure:'${h}',date:'${selectedDate}'};render()" style="padding:10px 16px;border-radius:12px;background:${selectedHeure===h?'rgba(255,63,91,0.15)':S2};border:2px solid ${selectedHeure===h?AC:BD};cursor:pointer;font-size:14px;font-weight:600;">${h}</div>`).join('')}
         </div>`}
       </div>`:''}
-      ${selectedHeure?`<div style="margin-bottom:18px;">
-        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('combienPersonnes')}</div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <div onclick="if(maxM>2){st.newSortie={...st.newSortie,max:${Math.max(2,maxM-1)}};render()}" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;">−</div>
-          <div style="font-size:22px;font-weight:700;min-width:32px;text-align:center;">${maxM}</div>
-          <div onclick="if(maxM<20){st.newSortie={...st.newSortie,max:${Math.min(20,maxM+1)}};render()}" style="width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;">+</div>
-          <div style="font-size:12px;color:${MU};">${T('personnesInclus')}</div>
+
+      ${selectedHeure?`
+      <!-- Step 4: Participants -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">${T('combienPersonnes')}</div>
+        <div style="display:flex;align-items:center;gap:20px;justify-content:center;margin-bottom:8px;">
+          <div onclick="st.newSortie={...st.newSortie,max:Math.max(2,${maxM}-1)};render()" style="width:44px;height:44px;border-radius:50%;background:${S1};border:2px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;">−</div>
+          <div style="font-size:40px;font-weight:700;min-width:48px;text-align:center;">${maxM}</div>
+          <div onclick="st.newSortie={...st.newSortie,max:Math.min(20,${maxM}+1)};render()" style="width:44px;height:44px;border-radius:50%;background:${AC};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:#fff;">+</div>
         </div>
-      </div>`:''}
-      ${selectedFilmId&&selectedCinemaId&&selectedHeure?`<button onclick="creerSortie('${selectedFilmId}','${selectedCinemaId}','${selectedHeure}','${selectedDate}',${maxM})" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;">${T('creerSortieBtn')}</button>`:''}
+        <div style="text-align:center;font-size:12px;color:${MU};">${maxM} ${T('personnesInclus')}</div>
+      </div>
+      <button onclick="creerSortie('${selectedFilmId}','${selectedCinemaId}','${selectedHeure}','${selectedDate}',${maxM})" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:var(--sp-md);font-size:var(--fs-md);font-weight:700;cursor:pointer;">${T('creerSortieBtn')}</button>`:''}
     </div>
-  </div>`;}
+  </div>`;
+}
 
 // ══════════════════════════════════════════════════════════════
 // PROFILE SCREENS
@@ -1855,9 +1914,17 @@ function uploadProfilePhoto(){
         ctx.drawImage(img, x, y, img.width*scale, img.height*scale);
         const fmt = canvas.toDataURL('image/webp',0.01).startsWith('data:image/webp')?'image/webp':'image/jpeg';
         canvas.toBlob(async (blob) => {
-          const fileName = `avatar_${st.userId}_${Date.now()}.jpg`;
+          const ext = fmt.includes('webp') ? 'webp' : 'jpg';
+          const fileName = `${st.userId}/avatar_${Date.now()}.${ext}`;
           const { data, error } = await supa.storage.from('avatars').upload(fileName, blob, { contentType:fmt, upsert:true });
-          if(error){ toast('Erreur upload: '+error.message,'error'); return; }
+          if(error){
+            if(error.message?.includes('security')||error.message?.includes('policy')){
+              toast('⚠️ Autorise les photos dans Supabase Storage','error',4000);
+            } else {
+              toast('Erreur: '+error.message,'error');
+            }
+            return;
+          }
           const { data:{ publicUrl } } = supa.storage.from('avatars').getPublicUrl(fileName);
           await supa.from('profiles').update({ photo_url: publicUrl }).eq('id', st.userId);
           toast('Photo mise à jour ! 📸','success');
