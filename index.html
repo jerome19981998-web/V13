@@ -133,9 +133,20 @@ let st={screen:'loading',lang:_saved.lang||'fr',pseudo:_saved.pseudo||'',pseudoI
   friendsTab:'friends',friendSearch:'',chatWith:null,notificationsViewed:false,messagesSearch:'',groupTab:'upcoming'};
 function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang}));}catch(e){}}
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
+function buildSeancesForDate(allSeances, date){
+  const sm={};
+  for(const[cinId,films]of Object.entries(allSeances)){
+    sm[cinId]={};
+    for(const[filmId,dates]of Object.entries(films)){
+      const heures=dates[date]||[];
+      if(heures.length>0) sm[cinId][filmId]=heures;
+    }
+  }
+  return sm;
+}
 
 // ── DATA ─────────────────────────────────────────────────────
-let FILMS={},CINEMAS=[],SEANCES={},AVAILABLE_DATES=[],DATA_LOADED=false;
+let FILMS={},CINEMAS=[],SEANCES={},SEANCES_ALL={},AVAILABLE_DATES=[],DATA_LOADED=false;
 let sortiesPubliques=[],createSortieScroll=0;
 let myFriends=[],friendRequests=[],sentRequests=[],userSearchResults=[];
 let conversations=[],currentPrivateMsgs=[],privateMsgChannel=null;
@@ -157,14 +168,16 @@ function pseudoInitial(p){return(p||'?')[0].toUpperCase();}
 function getAvatar(pseudo){const m=myFriends.find(f=>f.pseudo===pseudo);return m?.avatar||null;}
 function avatarEl(pseudo,size=38,radius='50%'){const av=getAvatar(pseudo)||(pseudo===st.pseudo?st.avatar:null);if(av&&av.length<=2)return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.52)}px;flex-shrink:0;">${av}</div>`;return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(pseudo)}</div>`;}
 function isPast(heure){const now=new Date();const[h,m]=(heure||'').replace('h',':').split(':').map(Number);const t=new Date();t.setHours(h,m,0,0);if(st.date!==todayStr())return false;return t<now;}
-async function changeDate(ds){st.date=ds;await initDynamicData(ds);render();}
+async function changeDate(ds){st.date=ds;if(SEANCES_ALL&&Object.keys(SEANCES_ALL).length>0){SEANCES=buildSeancesForDate(SEANCES_ALL,ds);render();}else{await initDynamicData(ds);render();}}
 function formatDate(ds){if(!ds)return'';const d=new Date(ds+'T12:00:00');const jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];const mois=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];return jours[d.getDay()]+' '+d.getDate()+' '+mois[d.getMonth()];}
 function countdown(date,heure){if(!date||!heure)return'';const h=(heure||'').replace('h',':');const target=new Date(date+'T'+h+':00');const now=new Date();const diff=target-now;if(diff<=0)return T('seancePassee');const days=Math.floor(diff/86400000);const hrs=Math.floor((diff%86400000)/3600000);const mins=Math.floor((diff%3600000)/60000);if(days>0)return`dans ${days}j ${hrs}h`;if(hrs>0)return`dans ${hrs}h ${mins}min`;return`dans ${mins}min`;}
 function dayPicker(){
   const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
   const months=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
   let html='<div style="display:flex;gap:6px;overflow-x:auto;padding:0 0 12px;flex-shrink:0;">';
-  const dates=AVAILABLE_DATES.length?AVAILABLE_DATES:[st.date];
+  const allDates=AVAILABLE_DATES.length?AVAILABLE_DATES:[st.date];
+  const todayD=todayStr();
+  const dates=allDates.filter(d=>d>=todayD);
   for(const ds of dates){const d=new Date(ds+'T12:00:00');const active=ds===st.date;html+=`<div onclick="changeDate('${ds}')" style="flex-shrink:0;width:44px;text-align:center;padding:7px 4px;border-radius:12px;cursor:pointer;background:${active?AC:'rgba(255,255,255,0.03)'};border:1px solid ${active?AC:BD};"><div style="font-size:9px;color:${active?'#fff':MU};">${days[d.getDay()]}</div><div style="font-size:clamp(13px,3.8vw,16px);font-weight:600;color:${active?'#fff':TX};">${d.getDate()}</div><div style="font-size:9px;color:${active?'rgba(255,255,255,0.7)':MU};">${months[d.getMonth()]}</div></div>`;}
   return html+'</div>';}
 function posterCardLg(id,f,onClick){
@@ -232,10 +245,19 @@ async function initDynamicData(dateStr){
       CINEMAS=(cinemasRes.data||[]).map(c=>({id:c.id,lat:c.lat,lng:c.lng,chain:c.chain,icon:CHAIN_ICONS[c.chain]||'🎬',name:c.name,addr:c.addr||'',metro:c.metro||'',salles:c.salles||0,tech:c.tech||[],films:[]}));
     }
     const targetDate=dateStr||st.date;
-    const seancesRes=await supa.from('seances_dyn').select('*').eq('date',targetDate);
+    // Load ALL available dates seances (not just today) for complete schedule
+    const today=new Date().toISOString().slice(0,10);
+    const seancesRes=await supa.from('seances_dyn').select('*').gte('date',today).order('date',{ascending:true});
     const sm={};
-    for(const s of(seancesRes.data||[])){if(!sm[s.cinema_id])sm[s.cinema_id]={};sm[s.cinema_id][s.film_id]=s.heures||[];}
-    SEANCES=sm;
+    for(const s of(seancesRes.data||[])){
+      if(!sm[s.cinema_id])sm[s.cinema_id]={};
+      // Store heures per cinema/film/date
+      if(!sm[s.cinema_id][s.film_id])sm[s.cinema_id][s.film_id]={};
+      sm[s.cinema_id][s.film_id][s.date]=s.heures||[];
+    }
+    // Flat view for today (backwards compat): SEANCES[cinId][filmId] = heures for selected date
+    SEANCES_ALL=sm;
+    SEANCES=buildSeancesForDate(sm,targetDate||today);
     CINEMAS=CINEMAS.map(c=>({...c,films:Object.keys(sm[c.id]||{}).map(id=>({id}))}));
     DATA_LOADED=true;
   }catch(e){console.error('initDynamicData:',e);}
@@ -499,7 +521,7 @@ async function init_social(){
   subscribeNotifs();
   if(st.lbdPseudo)loadLbd(st.lbdPseudo);
 }
-async function loadProfile(userId){const{data}=await supa.from('profiles').select('*').eq('id',userId).single();if(data){st.pseudo=data.pseudo||'';st.avatar=data.avatar||'🎬';st.lang=data.lang||st.lang;if(data.photo_url)window._profilePhotoCache=data.photo_url;save();return true;}return false;}
+async function loadProfile(userId){const{data}=await supa.from('profiles').select('*').eq('id',userId).single();if(data){st.pseudo=data.pseudo||'';st.avatar=data.avatar||'🎬';st.lang=data.lang||st.lang;if(data.photo_url)window._profilePhotoCache=data.photo_url;if(data.fav_films?.length){try{localStorage.setItem('cm_fav_'+(data.pseudo||''),JSON.stringify(data.fav_films));}catch(e){}}save();return true;}return false;}
 supa.auth.onAuthStateChange((event,session)=>{
   if(event==='INITIAL_SESSION')handleSession(session);
   else if(event==='SIGNED_IN'){_authDone=false;handleSession(session);}
@@ -909,7 +931,12 @@ function sHome(){
     </div>`;
 
   if(tab==='films'){
-    const allFilms=Object.entries(FILMS);
+    const today=todayStr();
+    const allFilms=Object.entries(FILMS).filter(([id])=>
+      Object.entries(SEANCES).some(([cinId,films])=>
+        films[id]?.length>0
+      )
+    );
     const genresList=T('genres');
     const searchQ=norm(st.search||'');
     const activeGenre=st.genre||'tous';
@@ -1111,7 +1138,7 @@ function openMemberProfile(pseudo){st.viewedMember={pseudo};st.screen='member-pr
 
 let memberProfileData={};
 async function loadMemberProfile(pseudo){
-  const{data}=await supa.from('profiles').select('id,pseudo,avatar,bio,fav_genres').eq('pseudo',pseudo).single();
+  const{data}=await supa.from('profiles').select('id,pseudo,avatar,bio,fav_genres,fav_films,photo_url').eq('pseudo',pseudo).single();
   if(data){memberProfileData[pseudo]=data;render();}
 }
 
@@ -1199,7 +1226,7 @@ function sCinemas(){
 function sCinemaDetail(){
   const c=CINEMAS.find(x=>x.id===st.cinema);
   if(!c)return'<div style="padding:60px 18px;flex:1;">Cinéma introuvable</div>';
-  const filmIds=Object.keys(SEANCES[c.id]||{});
+  const filmIds=Object.keys(SEANCES[c.id]||{}).filter(fid=>(SEANCES[c.id][fid]||[]).some(h=>!isPast(h)));
   const links=CINEMA_LINKS[c.id]||{};
   const col=CC[c.chain]||MU;
   const dist=(userPos&&c.lat&&c.lng)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
@@ -1585,11 +1612,7 @@ function sProfile(){
         <div style="margin-bottom:24px;">
           <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">Paramètres</div>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            <div onclick="openAvatarPicker()" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
-              <span style="font-size:28px;">${st.avatar}</span>
-              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Avatar</div><div style="font-size:11px;color:${MU};">Choisir un animal</div></div>
-              <span style="color:${MU};">›</span>
-            </div>
+            
             <div onclick="openLbdModal()" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
               <span style="font-size:20px;">📽️</span>
               <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Letterboxd</div><div style="font-size:11px;color:${st.lbdPseudo?LB:MU};">${st.lbdPseudo?'@'+st.lbdPseudo:'Connecter'}</div></div>
@@ -1617,47 +1640,88 @@ function sMemberProfile(){
   const profile=memberProfileData[pseudo];
   const isMe=pseudo===st.pseudo;
   const friendStatus=isMe?'self':getFriendStatus(profile?.id);
-  const sharedFriends=myFriends.filter(f=>myFriends.some(mf=>mf.pseudo===pseudo));
+  
+  // Mutual friends
+  const mutualFriends=myFriends.filter(f=>
+    sortiesPubliques.some(s=>s._avatars?.some(a=>a.pseudo===f.pseudo)&&s._avatars?.some(a=>a.pseudo===pseudo))
+  );
+  
+  // Their fav films (stored in their profile data)
+  const theirFavIds=(profile?.fav_films||[]);
+  const theirFavFilms=theirFavIds.map(id=>[id,FILMS[id]]).filter(([id,f])=>!!f);
+  
+  // Their upcoming sorties
   const theirSorties=sortiesPubliques.filter(s=>s._avatars?.some(a=>a.pseudo===pseudo));
+  
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <div style="padding:50px 18px 14px;border-bottom:1px solid ${BD};flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <div onclick="history.back()||go('home')" onclick="window.history.back()" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+        <div onclick="st.screen='home';render()" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
         <div style="flex:1;"></div>
       </div>
       <div style="display:flex;gap:14px;align-items:flex-start;">
-        ${avatarEl(pseudo,64,'50%')}
+        <div style="position:relative;flex-shrink:0;">
+          ${profile?.photo_url
+            ?`<div style="width:68px;height:68px;border-radius:50%;overflow:hidden;"><img src="${profile.photo_url}" style="width:100%;height:100%;object-fit:cover;"></div>`
+            :avatarEl(pseudo,68,'50%')}
+        </div>
         <div style="flex:1;">
           <div class="serif" style="font-size:clamp(18px,5.6vw,22px);">${esc(pseudo)}</div>
           <div style="font-size:11px;color:${MU};margin-top:2px;">@${pseudo.toLowerCase()}</div>
-          ${profile?.bio?`<div style="font-size:12px;color:${MU};margin-top:6px;">${esc(profile.bio)}</div>`:''}
+          ${profile?.bio?`<div style="font-size:12px;color:${MU};margin-top:5px;line-height:1.5;">${esc(profile.bio)}</div>`:''}
+          <div style="display:flex;gap:14px;margin-top:8px;">
+            <div style="text-align:center;"><div style="font-size:15px;font-weight:700;">${theirSorties.length}</div><div style="font-size:9px;color:${MU};">Sorties</div></div>
+            ${mutualFriends.length>0?`<div style="text-align:center;"><div style="font-size:15px;font-weight:700;">${mutualFriends.length}</div><div style="font-size:9px;color:${MU};">En commun</div></div>`:''}
+          </div>
           <div style="display:flex;gap:8px;margin-top:10px;">
-            ${isMe?`<div onclick="go('friends')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${AC};font-size:12px;font-weight:700;cursor:pointer;color:#fff;">👥 Mes amis</div>`:
-              friendStatus==='friend'?
+            ${isMe?`<div onclick="go('profile')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${AC};font-size:12px;font-weight:700;cursor:pointer;color:#fff;">Mon profil</div>`
+              :friendStatus==='friend'?
                 `<div onclick="openPrivateChat('${profile?.id||''}','${esc(pseudo)}','${profile?.avatar||'🎬'}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:rgba(0,192,48,0.1);border:1px solid rgba(0,192,48,0.3);font-size:12px;font-weight:700;cursor:pointer;color:${LB};">💬 Message</div>
-                <div onclick="removeFriend('${profile?.id||''}','${esc(pseudo)}')" style="padding:8px 12px;border-radius:12px;background:${S1};border:1px solid ${BD};font-size:12px;cursor:pointer;color:${MU};">Retirer</div>`:
-              friendStatus==='sent'?
-                `<div style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${S1};border:1px solid ${BD};font-size:12px;color:${MU};">Demande envoyée ✓</div>`:
-              friendStatus==='received'?
-                `<div onclick="acceptFriendRequest('${friendRequests.find(r=>r.from_user_id===profile?.id)?.id}','${profile?.id||''}','${esc(pseudo)}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${AC};font-size:12px;font-weight:700;cursor:pointer;color:#fff;">Accepter la demande</div>`:
-              profile?.id?`<div onclick="sendFriendRequest('${profile.id}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);font-size:12px;font-weight:700;cursor:pointer;color:#4a9eff;">+ Ajouter en ami</div>`:''}
+                <div onclick="removeFriend('${profile?.id||''}','${esc(pseudo)}')" style="padding:8px 12px;border-radius:12px;background:${S1};border:1px solid ${BD};font-size:12px;cursor:pointer;color:${MU};">Retirer</div>`
+              :friendStatus==='sent'?
+                `<div style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${S1};border:1px solid ${BD};font-size:12px;color:${MU};">Demande envoyée ✓</div>`
+              :friendStatus==='received'?
+                `<div onclick="acceptFriendRequest('${friendRequests.find(r=>r.from_user_id===profile?.id)?.id}','${profile?.id||''}','${esc(pseudo)}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${AC};font-size:12px;font-weight:700;cursor:pointer;color:#fff;">Accepter la demande</div>`
+              :profile?.id?`<div onclick="sendFriendRequest('${profile.id}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);font-size:12px;font-weight:700;cursor:pointer;color:#4a9eff;">+ Ajouter en ami</div>`:''
+            }
           </div>
         </div>
       </div>
     </div>
     <div style="flex:1;overflow-y:auto;padding:14px 18px 20px;">
-      ${theirSorties.length>0?`<div style="margin-bottom:16px;">
+      ${theirFavFilms.length>0?`<div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">🎬 Films préférés</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+          ${theirFavFilms.map(([id,f])=>`<div onclick="openFilm('${id}','profile')" class="tap" style="cursor:pointer;">
+            <div style="height:80px;border-radius:8px;overflow:hidden;background:${f.bg};position:relative;">
+              ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:26px;">${f.e}</span>`}
+            </div>
+            <div style="font-size:7px;margin-top:2px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(f.t)}</div>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+      ${theirSorties.length>0?`<div style="margin-bottom:18px;">
         <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">🍿 Sorties à venir</div>
         ${theirSorties.slice(0,3).map(s=>{const film=FILMS[s.film_id]||{t:s.nom,e:'🎬',bg:'#111'};const cinema=CINEMAS.find(c=>c.id===s.confirmed_cinema);
           return `<div onclick="openGroup('${s.film_id}','${s.id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px 12px;display:flex;gap:10px;cursor:pointer;margin-bottom:6px;">
             <div style="width:36px;height:50px;border-radius:7px;overflow:hidden;background:${film.bg};flex-shrink:0;position:relative;">
-              ${posters[s.film_id]?`<img src="${posters[s.film_id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:20px;">${film.e}</span>`}
+              ${posters[s.film_id]?`<img src="${posters[s.film_id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:18px;">${film.e}</span>`}
             </div>
-            <div><div style="font-size:13px;font-weight:600;">${esc(film.t||s.nom)}</div>${cinema?`<div style="font-size:10px;color:${MU};margin-top:2px;">${esc(cinema.name)} · ${s.confirmed_heure}</div>`:''}
+            <div><div style="font-size:13px;font-weight:600;">${esc(film.t||s.nom)}</div>
+            ${cinema?`<div style="font-size:10px;color:${MU};margin-top:2px;">${esc(cinema.name)} · ${s.confirmed_heure}</div>`:''}
             </div>
           </div>`;}).join('')}
       </div>`:''}
-      ${!profile?`<div style="text-align:center;padding:40px;color:${MU};">Chargement…</div>`:''}
+      ${mutualFriends.length>0?`<div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">👥 Amis en commun</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          ${mutualFriends.slice(0,6).map(f=>`<div onclick="openMemberProfile('${esc(f.pseudo)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
+            ${avatarEl(f.pseudo,36,'50%')}
+            <div style="font-size:9px;color:${MU};max-width:44px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(f.pseudo)}</div>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+      ${!profile?`<div style="text-align:center;padding:40px;color:${MU};font-size:13px;">Chargement…</div>`:''}
     </div>
   </div>`;}
 
@@ -1717,6 +1781,7 @@ function setFavFilm(filmId){
   if(list.includes(filmId))list=list.filter(x=>x!==filmId);
   else{if(list.length>=4)list.shift();list.push(filmId);}
   try{localStorage.setItem('cm_fav_'+(st.pseudo||''),JSON.stringify(list));}catch(e){}
+  if(st.userId) supa.from('profiles').update({fav_films:list}).eq('id',st.userId);
   render();
   openFavFilmPicker();
 }
@@ -1781,22 +1846,23 @@ function uploadProfilePhoto(){
     const reader = new FileReader();
     reader.onload = async (ev) => {
       img.onload = async () => {
-        const size = 200;
+        const size = 300;
         canvas.width = size; canvas.height = size;
         const ctx = canvas.getContext('2d');
         const scale = Math.max(size/img.width, size/img.height);
         const x = (size - img.width*scale)/2;
         const y = (size - img.height*scale)/2;
         ctx.drawImage(img, x, y, img.width*scale, img.height*scale);
+        const fmt = canvas.toDataURL('image/webp',0.01).startsWith('data:image/webp')?'image/webp':'image/jpeg';
         canvas.toBlob(async (blob) => {
           const fileName = `avatar_${st.userId}_${Date.now()}.jpg`;
-          const { data, error } = await supa.storage.from('avatars').upload(fileName, blob, { contentType:'image/jpeg', upsert:true });
+          const { data, error } = await supa.storage.from('avatars').upload(fileName, blob, { contentType:fmt, upsert:true });
           if(error){ toast('Erreur upload: '+error.message,'error'); return; }
           const { data:{ publicUrl } } = supa.storage.from('avatars').getPublicUrl(fileName);
           await supa.from('profiles').update({ photo_url: publicUrl }).eq('id', st.userId);
           toast('Photo mise à jour ! 📸','success');
           render();
-        }, 'image/jpeg', 0.82);
+        }, fmt, 0.85);
       };
       img.src = ev.target.result;
     };
