@@ -235,8 +235,9 @@ async function initDynamicData(dateStr){
   const isFirstLoad=!DATA_LOADED;
   try{
     if(isFirstLoad){
-      const[filmsRes,cinemasRes,datesRes]=await Promise.all([supa.from('films_dyn').select('*').limit(200),supa.from('cinemas_dyn').select('*'),supa.from('seances_dyn').select('date').limit(1000)]);
-      const dateSet=new Set((datesRes.data||[]).map(r=>r.date));
+      const[filmsRes,cinemasRes,datesRes]=await Promise.all([supa.from('films_dyn').select('*').limit(200),supa.from('cinemas_dyn').select('*'),supa.from('seances_dyn').select('date').gte('date',new Date().toISOString().slice(0,10)).limit(1000)]);
+      const today0=new Date().toISOString().slice(0,10);
+      const dateSet=new Set((datesRes.data||[]).map(r=>r.date).filter(d=>d>=today0));
       AVAILABLE_DATES=[...dateSet].sort();
       if(!dateStr||!AVAILABLE_DATES.includes(dateStr))dateStr=AVAILABLE_DATES[0]||todayStr();
       st.date=dateStr;
@@ -933,8 +934,8 @@ function sHome(){
   if(tab==='films'){
     const today=todayStr();
     const allFilms=Object.entries(FILMS).filter(([id])=>
-      Object.entries(SEANCES).some(([cinId,films])=>
-        films[id]?.length>0
+      Object.values(SEANCES_ALL||SEANCES).some(c=>
+        c[id] && (Array.isArray(c[id]) ? c[id].length>0 : Object.values(c[id]).some(h=>h.length>0))
       )
     );
     const genresList=T('genres');
@@ -949,7 +950,7 @@ function sHome(){
     }).sort((a,b)=>a[1].t.localeCompare(b[1].t));
     const isSearching=searchQ.length>0;
     const isFiltering=st.filmGridMode||activeGenre!=='tous';
-    const topFilms=[...allFilms].sort(([a],[b])=>{const sA=Object.values(SEANCES).reduce((s,c)=>s+(c[a]?.length||0),0);const sB=Object.values(SEANCES).reduce((s,c)=>s+(c[b]?.length||0),0);return sB-sA;}).slice(0,10);
+    const topFilms=[...allFilms].sort(([a],[b])=>{const sA=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[a];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);const sB=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[b];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);return sB-sA;}).slice(0,10);
     const filmIdsWithSorties=new Set(sortiesPubliques.map(s=>s.film_id));
     const filmsWithSorties=allFilms.filter(([id])=>filmIdsWithSorties.has(id));
     const heroEntry=allFilms.find(([id])=>posters[id])||allFilms[0];
@@ -1024,7 +1025,7 @@ function sHome(){
               <div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🎬 Nouveautés</div>
               <div style="font-size:11px;color:${MU};cursor:pointer;" onclick="setGenre('tous')">Tous →</div>
             </div>
-            <div class="row-scroll">${[...allFilms].sort(([a],[b])=>{const sA=Object.values(SEANCES).reduce((s,c)=>s+(c[a]?.length||0),0);const sB=Object.values(SEANCES).reduce((s,c)=>s+(c[b]?.length||0),0);return sB-sA;}).slice(0,12).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
+            <div class="row-scroll">${[...allFilms].sort(([a],[b])=>{const sA=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[a];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);const sB=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[b];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);return sB-sA;}).slice(0,12).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
           </div>
           ${topFilms.length>0&&ratings[topFilms[0]?.[0]]?`<div style="margin-bottom:20px;">
             <div style="display:flex;align-items:center;padding:0 18px;margin-bottom:8px;"><div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🔥 Populaires</div></div>
@@ -1147,7 +1148,10 @@ function sFilm(){
   if(!f)return'<div style="padding:60px 18px;text-align:center;color:#555;flex:1;">Film introuvable</div>';
   const hasP=!!posters[id];const note=ratings[id]?.note;const vu=isVu(id),wl=isWatchlist(id)&&!isVu(id);
   const wantToSee=getWantToSee();const wantId=wantToSee.includes(id);
-  const cinemasAvec=CINEMAS.filter(c=>{const h=(SEANCES[c.id]||{})[id]||[];return h.some(heure=>!isPast(heure));});
+  const cinemasAvec=CINEMAS.filter(c=>{
+        const filmDates=SEANCES_ALL[c.id]?.[id]||{};
+        return Object.entries(filmDates).some(([d,heures])=>d>=todayStr()&&heures.length>0);
+      });
   const friendsFilm=myFriends.filter(fr=>sortiesPubliques.some(s=>s.film_id===id&&s._avatars?.some(a=>a.pseudo===fr.pseudo)));
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <div style="flex:1;overflow-y:auto;">
@@ -1178,7 +1182,8 @@ function sFilm(){
         ${cinemasAvec.length>0?`<div style="margin-bottom:16px;">
           <div style="font-size:9px;color:${MU};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Séances disponibles</div>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            ${cinemasAvec.slice(0,5).map(c=>{const seances=(SEANCES[c.id]||{})[id]||[];const col=CC[c.chain]||MU;return `<div style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;">
+            ${cinemasAvec.slice(0,5).map(c=>{const filmDates2=SEANCES_ALL[c.id]?.[id]||{};
+              const seances=Object.entries(filmDates2).filter(([d])=>d>=todayStr()).sort(([a],[b])=>a.localeCompare(b)).flatMap(([d,h])=>h.filter(t=>!isPast(t)||d>todayStr()));const col=CC[c.chain]||MU;return `<div style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;">
               <div style="flex:1;min-width:0;cursor:pointer;" onclick="openCinema('${c.id}')">
                 <div style="font-size:12px;font-weight:600;color:${col};">${esc(c.name)}</div>
                 <div style="font-size:10px;color:${MU};">${c.metro?'M '+esc(c.metro):''}</div>
@@ -1532,10 +1537,15 @@ function sCreateSortie(){
 
   // Full flow (called from group tab without context)
   const allFilms = Object.entries(FILMS).filter(([id])=>
-    Object.values(SEANCES).some(c=>c[id]?.length>0)
+    Object.values(SEANCES_ALL).some(c=>c[id]&&Object.values(c[id]).some(h=>h.length>0))
   ).sort((a,b)=>a[1].t.localeCompare(b[1].t));
-  const cinemasForFilm = selectedFilmId ? CINEMAS.filter(c=>Object.keys(SEANCES[c.id]||{}).includes(selectedFilmId)) : [];
-  const seancesForPair = (selectedFilmId&&selectedCinemaId) ? (SEANCES[selectedCinemaId]||{})[selectedFilmId]||[] : [];
+  const cinemasForFilm = selectedFilmId ? CINEMAS.filter(c=>SEANCES_ALL[c.id]?.[selectedFilmId] && Object.keys(SEANCES_ALL[c.id][selectedFilmId]).length>0) : [];
+  const seancesForPair = (selectedFilmId&&selectedCinemaId) 
+    ? Object.entries(SEANCES_ALL[selectedCinemaId]?.[selectedFilmId]||{})
+        .filter(([d])=>d>=todayStr())
+        .sort(([a],[b])=>a.localeCompare(b))
+        .flatMap(([d,h])=>h.map(t=>({date:d,heure:t})))
+    : [];
 
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <div style="padding:50px 18px 12px;flex-shrink:0;border-bottom:1px solid ${BD};display:flex;align-items:center;gap:10px;">
@@ -1577,7 +1587,7 @@ function sCreateSortie(){
         <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisSeance')}</div>
         ${dayPicker()}
         ${seancesForPair.length===0?`<div style="font-size:12px;color:${MU};">${T('aucuneSeance')}</div>`:`<div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${seancesForPair.map(h=>`<div onclick="st.newSortie={...st.newSortie,heure:'${h}',date:'${selectedDate}'};render()" style="padding:10px 16px;border-radius:12px;background:${selectedHeure===h?'rgba(255,63,91,0.15)':S2};border:2px solid ${selectedHeure===h?AC:BD};cursor:pointer;font-size:14px;font-weight:600;">${h}</div>`).join('')}
+          ${seancesForPair.map(({date:sd,heure:h})=>`<div onclick="st.newSortie={...st.newSortie,heure:'${h}',date:'${sd}'};render()" style="padding:10px 16px;border-radius:12px;background:${selectedHeure===h&&selectedDate===sd?'rgba(255,63,91,0.15)':S2};border:2px solid ${selectedHeure===h&&selectedDate===sd?AC:BD};cursor:pointer;font-size:14px;font-weight:600;"><div>${h}</div><div style="font-size:9px;color:${MU};margin-top:2px;">${formatDate(sd)}</div></div>`).join('')}
         </div>`}
       </div>`:''}
 
