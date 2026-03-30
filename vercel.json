@@ -6,21 +6,25 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/sw.js", "dest": "/sw.js", "headers": { "Cache-Control": "no-cache, no-store" } },
     { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/push-reminders",
+      "schedule": "0 * * * *"
+    }
   ],
   "env": {
     "TMDB_TOKEN": "@tmdb_token",
     "SUPABASE_URL": "@supabase_url",
-    "SUPABASE_ANON_KEY": "@supabase_anon_key"
+    "SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "SUPABASE_SERVICE_KEY": "@supabase_service_key",
+    "VAPID_PUBLIC_KEY": "@vapid_public_key",
+    "VAPID_PRIVATE_KEY": "@vapid_private_key",
+    "CRON_SECRET": "@cron_secret"
   },
   "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" }
-      ]
-    },
     {
       "source": "/(.*)",
       "headers": [
