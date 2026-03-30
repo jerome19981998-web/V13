@@ -266,7 +266,7 @@ async function initDynamicData(dateStr){
     SEANCES=buildSeancesForDate(sm,targetDate||today);
     CINEMAS=CINEMAS.map(c=>({...c,films:Object.keys(sm[c.id]||{}).map(id=>({id}))}));
     DATA_LOADED=true;
-  }catch(e){console.error('initDynamicData:',e);}
+  }catch(e){handleSupaError(e,'initDynamicData');}
 }
 
 async function enrichGenresFromTMDB(){
@@ -312,7 +312,7 @@ async function loadSorties(){
     (membresRes.data||[]).forEach(m=>{counts[m.groupe]=(counts[m.groupe]||0)+1;if(!avatarsMap[m.groupe])avatarsMap[m.groupe]=[];if(avatarsMap[m.groupe].length<3)avatarsMap[m.groupe].push({pseudo:m.pseudo,avatar:m.avatar||'🎬'});});
     (msgsRes.data||[]).forEach(m=>{msgCounts[m.groupe]=(msgCounts[m.groupe]||0)+1;});
     sortiesPubliques=data.map(g=>({...g,_nb:counts[g.id]||0,_avatars:avatarsMap[g.id]||[],_msgs:msgCounts[g.id]||0}));
-  }catch(e){console.error('loadSorties:',e);}
+  }catch(e){handleSupaError(e,'loadSorties');}
 }
 
 async function loadMembres(){const g=st.groupe||'general';const{data}=await supa.from('groupe_membres').select('*').eq('groupe',g);membresData=data||[];renderMembresDOM();}
@@ -526,6 +526,8 @@ async function init_social(){
   loadConversations();
   subscribeNotifs();
   if(st.lbdPseudo)loadLbd(st.lbdPseudo);
+  // Ask for push permission after 3 seconds (not immediately on login)
+  setTimeout(requestPushPermission, 3000);
 }
 async function loadProfile(userId){const{data}=await supa.from('profiles').select('*').eq('id',userId).single();if(data){st.pseudo=data.pseudo||'';st.avatar=data.avatar||'🎬';st.lang=data.lang||st.lang;if(data.photo_url)window._profilePhotoCache=data.photo_url;if(data.fav_films?.length){try{localStorage.setItem('cm_fav_'+(data.pseudo||''),JSON.stringify(data.fav_films));}catch(e){}}save();return true;}return false;}
 supa.auth.onAuthStateChange((event,session)=>{
@@ -1954,6 +1956,126 @@ function uploadProfilePhoto(){
   setTimeout(() => input.remove(), 5000);
 }
 
+// ─── SERVICE WORKER + PUSH NOTIFICATIONS ─────────────────────────────────────
+const VAPID_PUBLIC_KEY = 'BMzJ5F6WGnvOz3Bp3O0fjK6b97jj22BZX2Gnb6LSLk6zGBOQxg6d-Xl3I43eBQBUpsqZsAqH93x8Rn0LFY_xjtU';
+
+async function registerServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  try{
+    const reg = await navigator.serviceWorker.register('/sw.js', {scope:'/'});
+    console.log('SW registered');
+    // Listen for messages from SW (navigation, sync)
+    navigator.serviceWorker.addEventListener('message', e => {
+      if(e.data?.type === 'NAVIGATE') { window.location.hash = e.data.url; }
+      if(e.data?.type === 'SYNC_MESSAGES') { if(st.groupe) loadMessages(); }
+    });
+    return reg;
+  }catch(e){ console.warn('SW registration failed:', e); }
+}
+
+async function subscribeToPush(){
+  if(!('PushManager' in window)) return;
+  if(!st.userId) return;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    // Save subscription to server
+    await fetch('/api/push-subscribe', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ subscription: sub.toJSON(), userId: st.userId }),
+    });
+    console.log('Push subscribed');
+  }catch(e){ console.warn('Push subscription failed:', e.message); }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function requestPushPermission(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'granted'){ await subscribeToPush(); return; }
+  if(Notification.permission === 'denied') return;
+  // Show in-app prompt before asking browser permission
+  const granted = await new Promise(resolve => {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;bottom:80px;left:16px;right:16px;background:#1a1a2e;border:1px solid rgba(255,63,91,0.4);border-radius:18px;padding:16px;z-index:9998;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+    d.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="font-size:28px;">🔔</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Activer les notifications</div>
+          <div style="font-size:12px;color:#555570;margin-bottom:12px;">Reçois un rappel avant tes sorties et sois averti des nouveaux messages.</div>
+          <div style="display:flex;gap:8px;">
+            <button id="push-accept" style="flex:1;background:#ff3f5b;border:none;color:#fff;border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Activer</button>
+            <button id="push-deny" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.07);color:#555570;border-radius:10px;padding:9px;font-size:12px;cursor:pointer;font-family:inherit;">Plus tard</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(d);
+    d.querySelector('#push-accept').onclick = () => { d.remove(); resolve(true); };
+    d.querySelector('#push-deny').onclick  = () => { d.remove(); resolve(false); };
+    setTimeout(() => { d.remove(); resolve(false); }, 15000);
+  });
+  if(!granted) return;
+  const permission = await Notification.requestPermission();
+  if(permission === 'granted') await subscribeToPush();
+}
+
+// ─── NETWORK STATUS ──────────────────────────────────────────────────────────
+let _isOnline = navigator.onLine;
+let _offlineBanner = null;
+
+function updateNetworkStatus(online){
+  _isOnline = online;
+  if(!online){
+    if(_offlineBanner) return;
+    _offlineBanner = document.createElement('div');
+    _offlineBanner.id = 'offline-banner';
+    _offlineBanner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f0a030;color:#000;text-align:center;padding:8px 16px;font-size:12px;font-weight:600;z-index:10000;';
+    _offlineBanner.textContent = '📵 Hors ligne — certaines fonctionnalités sont indisponibles';
+    document.body.appendChild(_offlineBanner);
+  } else {
+    if(_offlineBanner){ _offlineBanner.remove(); _offlineBanner = null; }
+    // Reconnected — reload data
+    if(st.screen === 'home') { loadSorties(); }
+    if(st.screen === 'group' && st.groupe) { loadMessages(); }
+    toast('✅ Connexion rétablie','success',2000);
+  }
+}
+
+window.addEventListener('online',  () => updateNetworkStatus(true));
+window.addEventListener('offline', () => updateNetworkStatus(false));
+
+// ─── GLOBAL ERROR HANDLER pour Supabase ──────────────────────────────────────
+function handleSupaError(e, context=''){
+  if(!_isOnline){ toast('📵 Pas de connexion internet','warning'); return; }
+  const msg = e?.message || String(e);
+  if(msg.includes('JWT') || msg.includes('token')) {
+    toast('Session expirée — reconnexion…','warning');
+    setTimeout(() => { st.screen='auth'; render(); }, 1500);
+    return;
+  }
+  if(msg.includes('rate') || msg.includes('Too many')) {
+    toast('⏳ Trop de requêtes, réessaie dans quelques secondes','warning');
+    return;
+  }
+  if(context) console.error(`[${context}]`, e);
+  toast('Une erreur est survenue','error');
+}
+
 function render(){
   const inner=document.getElementById('inner');if(!inner)return;
   let html='';
@@ -1994,6 +2116,7 @@ function render(){
 }
 
 async function init(){
+  registerServiceWorker(); // non-blocking
   st.screen='loading';render();
   await initDynamicData(st.date);
   // Load session
