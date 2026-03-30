@@ -97,9 +97,14 @@ const CINEMA_LINKS={
   'gaumont-aquaboulevard':{tickets:'https://www.gaumont.fr/fr/cinemas/gaumont-aquaboulevard.html',maps:'https://maps.google.com/?q=Gaumont+Aquaboulevard+Paris'},
 };
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-const _t1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKaGRXUWlPaUl6TXpZME0yRXdNRFJpWkdNeVl6ZGxObUl5WVRGak9XTXpaV0k1WkRobFl5SXNJbQ=='),_t2=atob('NWlaaUk2TVRjM016QXdNVEl6Tnk0Mk9EWXNJbk4xWWlJNklqWTVZV1JrWVRFMU1tVm1OV014Wm1ZNU5XWmpZbU5sT0NJc0luTmpiM0Js'),_t3=atob('Y3lJNld5SmhjR2xmY21WaFpDSmRMQ0oyWlhKemFXOXVJam94ZlEuYlJXMlVWcXUxcDg5eFB1c0tWNS1telc0WmVSU2s4aWo4MTFGV09Jd29CTQ==');
-const TMDB_TOKEN=_t1+_t2+_t3;
+// TMDB token removed — calls go through /api/tmdb server-side proxy
 const TMDB_IMG='https://image.tmdb.org/t/p/w500';
+async function tmdbFetch(path, params={}){
+  const qs=new URLSearchParams({path,...params}).toString();
+  const r=await fetch('/api/tmdb?'+qs);
+  if(!r.ok) return null;
+  return r.json();
+}
 const CHAIN_ICONS={ugc:'🎬',pathe:'🌟',gaumont:'🔵'};
 const GENRE_EMOJI={'drame':'🎭','comedie':'😂','comédie':'😂','horreur':'👻','thriller':'🔪','romance':'💕','animation':'🎨','polar':'🕵️','action':'💥','aventure':'🌍','sci-fi':'🚀','biopic':'📖','documentaire':'🎞️','fantastique':'✨','guerre':'⚔️'};
 const ANIMAL_EMOJIS=['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦖','🦕','🐢','🐍','🦎','🦏','🦛','🐙','🦑','🦐','🦞','🦀','🐡','🐟','🐠','🐬','🐳','🦈','🐊','🐅','🐆','🦓','🐘','🦒','🦘','🐃','🐂','🐎','🐖','🐑','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿','🦔','🐉','🐲'];
@@ -271,7 +276,7 @@ async function enrichGenresFromTMDB(){
     const batch=toFetch.slice(i,i+5);
     await Promise.all(batch.map(async([id,f])=>{
       if(tmdbGenreCache[id]){applyGenre(id,tmdbGenreCache[id]);return;}
-      try{const q=encodeURIComponent(f.t);const r=await fetch(`https://api.themoviedb.org/3/search/movie?query=${q}&language=fr-FR&page=1`,{headers:{Authorization:'Bearer '+TMDB_TOKEN}});const data=await r.json();const results=data.results||[];
+      try{const q=encodeURIComponent(f.t);const data=await tmdbFetch('search/movie',{query:q,'language':'fr-FR',page:1});const results=data.results||[];
         const norm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
         const titleN=norm(f.t);const currentYear=new Date().getFullYear();
         const scored=results.map(r=>{let sc=0;if(norm(r.title)===titleN||norm(r.original_title)===titleN)sc+=100;else if(norm(r.title).startsWith(titleN)||titleN.startsWith(norm(r.title)))sc+=30;const ry=r.release_date?parseInt(r.release_date.slice(0,4)):0;if(ry>=currentYear-1&&ry<=currentYear+1)sc+=50;if(r.poster_path)sc+=10;sc+=Math.min(20,(r.popularity||0)/5);return{...r,_sc:sc};}).sort((a,b)=>b._sc-a._sc);
@@ -2006,6 +2011,22 @@ async function init(){
   // Refresh sorties every 5 min
   setInterval(()=>{if(st.screen==='home')loadSorties();},300000);
   setInterval(()=>{if(st.userId){loadNotifications();loadConversations();}},60000);
+  // Check data freshness
+  checkDataFreshness();
+}
+
+async function checkDataFreshness(){
+  try{
+    const r=await fetch('/api/health');
+    if(!r.ok)return;
+    const h=await r.json();
+    if(h.stale||!h.ok){
+      const msg=h.error?'⚠️ Données cinéma potentiellement périmées':
+        h.stale?`⚠️ Données mises à jour il y a ${h.age_hours}h`:'⚠️ Données cinéma indisponibles';
+      toast(msg,'warning',5000);
+      console.warn('Scraper health:',h);
+    }
+  }catch(e){/* health check optional */}
 }
 init();
 </script>
