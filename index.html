@@ -2020,13 +2020,15 @@ async function subscribeToPush(){
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
     }
-    // Save subscription to server
-    await fetch('/api/push-subscribe', {
+    // Save subscription to server (non-blocking)
+    fetch('/api/push-subscribe', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ subscription: sub.toJSON(), userId: st.userId }),
-    });
-    console.log('Push subscribed');
+    }).then(r => {
+      if(r.ok) console.log('Push subscribed');
+      else r.text().then(t => console.warn('push-subscribe:', r.status, t));
+    }).catch(e => console.warn('push-subscribe failed:', e.message));
   }catch(e){ console.warn('Push subscription failed:', e.message); }
 }
 
