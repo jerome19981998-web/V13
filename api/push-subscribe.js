@@ -1,5 +1,4 @@
 // POST /api/push-subscribe
-// Saves user's push subscription to Supabase
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -10,14 +9,11 @@ module.exports = async function handler(req, res) {
   const SUPA_URL = process.env.SUPABASE_URL;
   const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-  // Graceful fail if not configured yet
   if (!SUPA_URL || !SUPA_KEY) {
-    console.warn('push-subscribe: missing env vars SUPABASE_URL or SUPABASE_SERVICE_KEY');
     return res.status(200).json({ ok: false, reason: 'not_configured' });
   }
 
-  const body = req.body || {};
-  const { subscription, userId } = body;
+  const { subscription, userId } = req.body || {};
   if (!subscription || !userId) {
     return res.status(400).json({ error: 'Missing subscription or userId' });
   }
@@ -29,6 +25,7 @@ module.exports = async function handler(req, res) {
         'Content-Type': 'application/json',
         apikey: SUPA_KEY,
         Authorization: `Bearer ${SUPA_KEY}`,
+        // ON CONFLICT DO UPDATE — upsert sur l'endpoint
         Prefer: 'resolution=merge-duplicates',
       },
       body: JSON.stringify({
@@ -39,15 +36,16 @@ module.exports = async function handler(req, res) {
         updated_at: new Date().toISOString(),
       }),
     });
+
     if (!r.ok) {
       const errText = await r.text();
-      // Table doesn't exist yet → not a fatal error
-      if (errText.includes('does not exist') || errText.includes('relation')) {
-        console.warn('push_subscriptions table not created yet - run migration_push.sql');
-        return res.status(200).json({ ok: false, reason: 'table_missing' });
+      // 23505 = unique violation → subscription already exists, that's fine
+      if (errText.includes('23505') || errText.includes('duplicate')) {
+        return res.json({ ok: true, note: 'already_subscribed' });
       }
       throw new Error(errText);
     }
+
     return res.json({ ok: true });
   } catch (e) {
     console.error('push-subscribe:', e.message);
