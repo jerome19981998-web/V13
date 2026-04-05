@@ -1,61 +1,15 @@
+const webpush = require('web-push');
+
 // POST /api/push-send
 // Sends a push notification to one or multiple users
 // Called internally by other API routes (message sent, friend request, etc.)
 
 const VAPID_SUBJECT = 'mailto:contact@cinematch.app';
 
-async function sendWebPush(subscription, payload, vapidKeys) {
-  const endpoint = subscription.endpoint;
-  const auth = subscription.auth_key;
-  const p256dh = subscription.p256dh;
-
-  // Build VAPID JWT
-  const url = new URL(endpoint);
-  const audience = `${url.protocol}//${url.host}`;
-  const expiry = Math.floor(Date.now() / 1000) + 12 * 3600; // 12h
-
-  // Import VAPID private key
-  const privKeyBytes = base64UrlDecode(vapidKeys.private);
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    toPkcs8Der(privKeyBytes),
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false, ['sign']
-  );
-
-  const header = base64UrlEncode(JSON.stringify({ typ: 'JWT', alg: 'ES256' }));
-  const claims = base64UrlEncode(JSON.stringify({ aud: audience, exp: expiry, sub: VAPID_SUBJECT }));
-  const sigInput = `${header}.${claims}`;
-  const sig = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    cryptoKey,
-    new TextEncoder().encode(sigInput)
-  );
-  const jwt = `${sigInput}.${base64UrlEncode(Buffer.from(sig))}`;
-
-  // Encrypt payload using Web Push encryption (RFC 8291)
-  const encrypted = await encryptPayload(JSON.stringify(payload), p256dh, auth);
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      Authorization: `vapid t=${jwt},k=${vapidKeys.public}`,
-      'Content-Type': 'application/octet-stream',
-      'Content-Encoding': 'aes128gcm',
-      TTL: '86400',
-      Urgency: payload.urgency || 'normal',
-    },
-    body: encrypted,
-  });
-
-  return response.status;
-}
 
 // ── Simplified approach: use web-push npm package ──────────────────────────
 // Since implementing RFC 8291 from scratch is complex, use the npm package
-const webpush = require('web-push');
-
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY;
