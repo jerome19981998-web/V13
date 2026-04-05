@@ -1,103 +1,163 @@
-// CinéMatch Service Worker v1
-// Gère: Push notifications, offline cache, background sync
+// CinéMatch Service Worker v2
+// Cache: statique (shell) + dynamique (API Supabase/TMDB)
 
-const CACHE = 'cinematch-v1';
-const OFFLINE_URLS = ['/'];
+const CACHE_SHELL    = 'cinematch-shell-v2';    // App shell (HTML, fonts)
+const CACHE_IMAGES   = 'cinematch-images-v1';   // Posters TMDB
+const CACHE_API      = 'cinematch-api-v1';      // Données cinémas/films
 
-// ─── Install & cache ─────────────────────────────────────────────────────────
+const SHELL_URLS = [
+  '/',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+];
+
+// ── Install : pre-cache shell ─────────────────────────────────────────────────
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(OFFLINE_URLS))
+    caches.open(CACHE_SHELL)
+      .then(c => c.addAll(SHELL_URLS).catch(() => {})) // ignore missing icons at first deploy
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
+// ── Activate : clean old caches ───────────────────────────────────────────────
 self.addEventListener('activate', e => {
+  const keep = [CACHE_SHELL, CACHE_IMAGES, CACHE_API];
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => !keep.includes(k)).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// ─── Fetch: réseau d'abord, cache si offline ─────────────────────────────────
+// ── Fetch strategy ────────────────────────────────────────────────────────────
 self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+
+  // POST/non-GET → always network
   if (e.request.method !== 'GET') return;
-  if (e.request.url.includes('/api/')) return; // pas de cache pour les API
 
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        // Mettre en cache les assets statiques
-        if (res.ok && (e.request.url.includes('.js') || e.request.url.includes('.css') || e.request.url === self.location.origin + '/')) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      })
-      .catch(() => caches.match(e.request).then(r => r || caches.match('/')))
-  );
-});
-
-// ─── Push notifications ───────────────────────────────────────────────────────
-self.addEventListener('push', e => {
-  let data = { title: 'CinéMatch', body: 'Nouvelle notification', icon: '/icon-192.png', badge: '/icon-96.png', data: {} };
-  
-  try {
-    const payload = e.data?.json();
-    data = { ...data, ...payload };
-  } catch (_) {
-    data.body = e.data?.text() || data.body;
+  // TMDB poster images → cache-first (images don't change)
+  if (url.hostname === 'image.tmdb.org') {
+    e.respondWith(cacheFirst(e.request, CACHE_IMAGES, 30 * 24 * 3600)); // 30 days
+    return;
   }
 
-  const options = {
+  // Our own API (/api/*) → network-first, short timeout
+  if (url.pathname.startsWith('/api/')) {
+    e.respondWith(networkFirst(e.request, CACHE_API, 5000));
+    return;
+  }
+
+  // Supabase REST/Realtime → always network (real-time data)
+  if (url.hostname.includes('supabase.co')) return;
+
+  // App shell (HTML, manifest, icons) → cache-first with network update
+  if (url.origin === self.location.origin) {
+    e.respondWith(staleWhileRevalidate(e.request, CACHE_SHELL));
+    return;
+  }
+
+  // Google Fonts, CDN → cache-first
+  if (url.hostname.includes('fonts.') || url.hostname.includes('cdnjs.')) {
+    e.respondWith(cacheFirst(e.request, CACHE_SHELL, 7 * 24 * 3600));
+    return;
+  }
+});
+
+// ── Cache strategies ──────────────────────────────────────────────────────────
+async function cacheFirst(request, cacheName, maxAgeSeconds) {
+  const cached = await caches.match(request);
+  if (cached) {
+    // Check age if maxAge specified
+    if (maxAgeSeconds) {
+      const date = cached.headers.get('sw-cached-at');
+      if (date && (Date.now() - parseInt(date)) > maxAgeSeconds * 1000) {
+        // Expired — fetch in background
+        fetch(request).then(res => putInCache(request, res, cacheName)).catch(() => {});
+      }
+    }
+    return cached;
+  }
+  try {
+    const response = await fetch(request);
+    if (response.ok) putInCache(request, response.clone(), cacheName);
+    return response;
+  } catch {
+    return new Response('Offline', { status: 503 });
+  }
+}
+
+async function networkFirst(request, cacheName, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(request, { signal: controller.signal });
+    clearTimeout(timer);
+    if (response.ok) putInCache(request, response.clone(), cacheName);
+    return response;
+  } catch {
+    clearTimeout(timer);
+    const cached = await caches.match(request);
+    return cached || new Response(JSON.stringify({ error: 'offline', cached: false }), {
+      status: 503, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cached = await caches.match(request);
+  const networkPromise = fetch(request).then(res => {
+    if (res.ok) putInCache(request, res.clone(), cacheName);
+    return res;
+  }).catch(() => null);
+  return cached || networkPromise || new Response('Offline', { status: 503 });
+}
+
+async function putInCache(request, response, cacheName) {
+  if (!response || !response.ok) return;
+  try {
+    // Add timestamp header for cache expiry
+    const headers = new Headers(response.headers);
+    headers.set('sw-cached-at', Date.now().toString());
+    const modifiedResponse = new Response(await response.blob(), { status: response.status, headers });
+    const cache = await caches.open(cacheName);
+    await cache.put(request, modifiedResponse);
+  } catch(e) { /* quota exceeded etc */ }
+}
+
+// ── Push notifications ────────────────────────────────────────────────────────
+self.addEventListener('push', e => {
+  let data = { title:'CinéMatch 🎬', body:'Nouvelle notification', icon:'/icons/icon-192.png', badge:'/icons/icon-72.png', url:'/' };
+  try { Object.assign(data, e.data?.json()); } catch { data.body = e.data?.text() || data.body; }
+
+  e.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,
-    icon: data.icon || '/icon-192.png',
-    badge: data.badge || '/icon-96.png',
-    image: data.image,
+    icon: data.icon,
+    badge: data.badge,
     vibrate: [200, 100, 200],
     tag: data.tag || 'cinematch-' + Date.now(),
     renotify: true,
-    requireInteraction: data.requireInteraction || false,
-    data: { url: data.url || '/', ...data.data },
-    actions: data.actions || [],
-  };
-
-  e.waitUntil(self.registration.showNotification(data.title, options));
+    data: { url: data.url },
+  }));
 });
 
-// ─── Clic sur notification ────────────────────────────────────────────────────
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = e.notification.data?.url || '/';
-
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      // Si l'app est déjà ouverte → focus + navigation
-      for (const client of list) {
-        if (client.url.includes(self.location.origin)) {
-          client.focus();
-          client.postMessage({ type: 'NAVIGATE', url });
-          return;
-        }
-      }
-      // Sinon ouvrir une nouvelle fenêtre
+      const existing = list.find(c => c.url.includes(self.location.origin));
+      if (existing) { existing.focus(); existing.postMessage({ type: 'NAVIGATE', url }); return; }
       return clients.openWindow(url);
     })
   );
 });
 
-// ─── Background sync (retry envoi message si offline) ────────────────────────
+// ── Background sync ───────────────────────────────────────────────────────────
 self.addEventListener('sync', e => {
   if (e.tag === 'sync-messages') {
-    e.waitUntil(syncPendingMessages());
+    e.waitUntil(clients.matchAll().then(list => list.forEach(c => c.postMessage({ type: 'SYNC_MESSAGES' }))));
   }
 });
-
-async function syncPendingMessages() {
-  // Les messages en attente sont stockés dans IndexedDB par l'app
-  // Le SW les renvoie quand la connexion revient
-  const clients_list = await clients.matchAll();
-  clients_list.forEach(c => c.postMessage({ type: 'SYNC_MESSAGES' }));
-}
