@@ -1,12 +1,39 @@
 {
   "version": 2,
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/:path*.js" }
+  ],
   "routes": [
-    { "src": "/sw.js", "dest": "/sw.js", "headers": { "Cache-Control": "no-cache, no-store" } },
-    { "src": "/manifest.json", "dest": "/manifest.json", "headers": { "Content-Type": "application/manifest+json" } },
-    { "src": "/icons/(.*)", "dest": "/icons/$1" },
-    { "src": "/api/(.*)", "dest": "/api/$1.js" },
-    { "src": "/(.*\\.(png|ico|svg|webp|jpg|jpeg|css|js|json|txt|woff2?))", "dest": "/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "src": "/sw\\.js",
+      "dest": "/sw.js",
+      "headers": { "Cache-Control": "no-cache, no-store, must-revalidate" }
+    },
+    {
+      "src": "/manifest\\.json",
+      "dest": "/manifest.json",
+      "headers": { "Content-Type": "application/manifest+json; charset=utf-8" }
+    },
+    {
+      "src": "/icons/(.+)",
+      "dest": "/icons/$1"
+    },
+    {
+      "src": "/favicon\\.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/favicon\\.svg",
+      "dest": "/favicon.svg"
+    },
+    {
+      "src": "/api/(.+)",
+      "dest": "/api/$1.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ],
   "crons": [
     { "path": "/api/push-reminders", "schedule": "0 8 * * *" }
