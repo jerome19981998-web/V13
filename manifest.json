@@ -1,14 +1,60 @@
 {
-  "name": "cinematch-scraper",
-  "version": "6.0.0",
-  "description": "Scraper UGC + Pathé/Gaumont pour CinéMatch",
-  "main": "scraper.js",
-  "scripts": {
-    "scrape": "node scraper.js",
-    "test": "node scraper.js --dry-run"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.0.0",
-    "node-fetch": "^2.7.0"
-  }
+  "name": "CinéMatch",
+  "short_name": "CinéMatch",
+  "description": "Le réseau social du cinéma parisien — sorties ciné, amis, séances",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#07070f",
+  "theme_color": "#07070f",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["entertainment", "social", "lifestyle"],
+  "icons": [
+    { "src": "/icons/icon-72.png",  "sizes": "72x72",   "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-96.png",  "sizes": "96x96",   "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Découvre les films en salle"
+    },
+    {
+      "src": "/screenshots/sorties.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Organise tes sorties ciné"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Sorties à venir",
+      "short_name": "Sorties",
+      "description": "Voir les sorties ciné planifiées",
+      "url": "/?screen=home",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "Accéder à tes messages",
+      "url": "/?screen=messages",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
