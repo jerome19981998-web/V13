@@ -1,7 +1,6 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/sw.js", "destination": "/api/sw.js" },
     { "source": "/api/:path*", "destination": "/api/:path*.js" },
     { "source": "/((?!api|icons|manifest.json|favicon.ico|favicon.svg).*)", "destination": "/index.html" }
   ],
