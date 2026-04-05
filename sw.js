@@ -1,163 +1,2480 @@
-// CinéMatch Service Worker v2
-// Cache: statique (shell) + dynamique (API Supabase/TMDB)
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
+  <title>CinéMatch — Sorties ciné à Paris</title>
+  <meta name="description" content="Découvre les films en salle à Paris, organise des sorties avec tes amis et rencontre des cinéphiles."/>
 
-const CACHE_SHELL    = 'cinematch-shell-v2';    // App shell (HTML, fonts)
-const CACHE_IMAGES   = 'cinematch-images-v1';   // Posters TMDB
-const CACHE_API      = 'cinematch-api-v1';      // Données cinémas/films
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json"/>
 
-const SHELL_URLS = [
-  '/',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-];
+  <!-- Theme -->
+  <meta name="theme-color" content="#07070f"/>
+  <meta name="background-color" content="#07070f"/>
+  <meta name="color-scheme" content="dark"/>
 
-// ── Install : pre-cache shell ─────────────────────────────────────────────────
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_SHELL)
-      .then(c => c.addAll(SHELL_URLS).catch(() => {})) // ignore missing icons at first deploy
-      .then(() => self.skipWaiting())
-  );
-});
+  <!-- iOS PWA -->
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="CinéMatch"/>
 
-// ── Activate : clean old caches ───────────────────────────────────────────────
-self.addEventListener('activate', e => {
-  const keep = [CACHE_SHELL, CACHE_IMAGES, CACHE_API];
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => !keep.includes(k)).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
-});
+  <!-- Icons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png"/>
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png"/>
+  <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-120.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png"/>
 
-// ── Fetch strategy ────────────────────────────────────────────────────────────
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
+  <!-- iOS Splash Screens (generated via generate-icons.html) -->
+  <link rel="apple-touch-startup-image" media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)" href="/splash/splash-1170x2532.png"/>
+  <link rel="apple-touch-startup-image" media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3)" href="/splash/splash-1125x2436.png"/>
+  <link rel="apple-touch-startup-image" media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:2)" href="/splash/splash-828x1792.png"/>
+  <link rel="apple-touch-startup-image" media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2)" href="/splash/splash-750x1334.png"/>
 
-  // POST/non-GET → always network
-  if (e.request.method !== 'GET') return;
-
-  // TMDB poster images → cache-first (images don't change)
-  if (url.hostname === 'image.tmdb.org') {
-    e.respondWith(cacheFirst(e.request, CACHE_IMAGES, 30 * 24 * 3600)); // 30 days
-    return;
-  }
-
-  // Our own API (/api/*) → network-first, short timeout
-  if (url.pathname.startsWith('/api/')) {
-    e.respondWith(networkFirst(e.request, CACHE_API, 5000));
-    return;
-  }
-
-  // Supabase REST/Realtime → always network (real-time data)
-  if (url.hostname.includes('supabase.co')) return;
-
-  // App shell (HTML, manifest, icons) → cache-first with network update
-  if (url.origin === self.location.origin) {
-    e.respondWith(staleWhileRevalidate(e.request, CACHE_SHELL));
-    return;
-  }
-
-  // Google Fonts, CDN → cache-first
-  if (url.hostname.includes('fonts.') || url.hostname.includes('cdnjs.')) {
-    e.respondWith(cacheFirst(e.request, CACHE_SHELL, 7 * 24 * 3600));
-    return;
-  }
-});
-
-// ── Cache strategies ──────────────────────────────────────────────────────────
-async function cacheFirst(request, cacheName, maxAgeSeconds) {
-  const cached = await caches.match(request);
-  if (cached) {
-    // Check age if maxAge specified
-    if (maxAgeSeconds) {
-      const date = cached.headers.get('sw-cached-at');
-      if (date && (Date.now() - parseInt(date)) > maxAgeSeconds * 1000) {
-        // Expired — fetch in background
-        fetch(request).then(res => putInCache(request, res, cacheName)).catch(() => {});
-      }
+  <!-- Open Graph -->
+  <meta property="og:title" content="CinéMatch"/>
+  <meta property="og:description" content="Le réseau social du cinéma parisien"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:image" content="/icons/icon-512.png"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{height:100%;overflow:hidden;position:fixed;width:100%;}
+    body{margin:0;padding:0;width:100%;height:100%;background:#07070f;font-family:'Outfit',sans-serif;overflow:hidden;position:fixed;-webkit-overflow-scrolling:touch;}
+    html,body{height:100%;height:-webkit-fill-available;}
+    .serif{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;}
+    .phone{width:100%;height:100%;height:100dvh;height:-webkit-fill-available;background:#07070f;display:flex;flex-direction:column;color:#e8e0d4;font-size:13px;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0;}
+    .notch{display:none;}
+    @media(min-width:600px){
+      body{display:flex;align-items:center;justify-content:center;background:#04040a;overflow:auto;position:static;}
+      html{overflow:auto;position:static;}
+      .phone{position:relative;width:390px;height:844px;height:min(844px,95vh);border-radius:46px;border:1.5px solid #252535;box-shadow:0 30px 80px rgba(0,0,0,0.9);top:auto;left:auto;right:auto;bottom:auto;}
+      .notch{display:flex;position:absolute;top:12px;left:50%;transform:translateX(-50%);width:100px;height:28px;background:#07070f;border-radius:28px;z-index:100;align-items:center;justify-content:center;}
+      .notch-bar{width:52px;height:5px;background:#1a1a2e;border-radius:3px;}
     }
-    return cached;
+    #inner{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:max(env(safe-area-inset-top),0px);}
+    @media(min-width:600px){#inner{padding-top:40px;}}
+    .tap{transition:opacity .15s;} .tap:active{opacity:.6;}
+    ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:#252535;border-radius:3px;}
+    :root{--fs-xs:10px;--fs-sm:11px;--fs-md:13px;--fs-lg:15px;--fs-xl:18px;--fs-2xl:24px;--fs-3xl:28px;--sp-xs:6px;--sp-sm:10px;--sp-md:14px;--sp-lg:18px;--sp-xl:24px;--btn-h:48px;--nav-h:64px;--radius:14px;}
+    @media(max-height:680px){:root{--fs-xs:9px;--fs-sm:10px;--fs-md:12px;--fs-lg:14px;--fs-xl:16px;--fs-2xl:20px;--fs-3xl:24px;--sp-xs:4px;--sp-sm:8px;--sp-md:10px;--sp-lg:14px;--sp-xl:18px;--btn-h:42px;--nav-h:56px;--radius:12px;}}
+    @media(min-height:900px){:root{--fs-xs:11px;--fs-sm:12px;--fs-md:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:26px;--fs-3xl:32px;--sp-xs:8px;--sp-sm:12px;--sp-md:16px;--sp-lg:22px;--sp-xl:28px;--btn-h:54px;--nav-h:72px;--radius:16px;}}
+    input,button{font-family:'Outfit',sans-serif;}
+    .row-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 18px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+    .row-scroll::-webkit-scrollbar{display:none;}
+    .poster-card-lg{flex-shrink:0;width:110px;cursor:pointer;position:relative;}
+    .poster-card-lg .poster-img{width:110px;height:165px;border-radius:10px;overflow:hidden;position:relative;}
+    .poster-card-lg .poster-img img{width:100%;height:100%;object-fit:cover;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    .fade-up{animation:fadeUp 0.3s ease forwards;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+    @keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+    .slide-in{animation:slideIn 0.25s ease forwards;}
+    .notif-badge{position:absolute;top:-4px;right:-6px;min-width:16px;height:16px;border-radius:8px;background:#ff3f5b;border:2px solid #07070f;display:none;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;padding:0 3px;}
+    .hero-film{cursor:pointer;overflow:hidden;}
+    .hero-film img{width:100%;height:100%;object-fit:cover;filter:brightness(0.4);}
+  </style>
+<script>
+function applyScale(){
+  if(window.innerWidth>=600)return;
+  const scale=Math.min(window.innerHeight/844,1);
+  const r=document.documentElement;
+  [['--fs-xs',10],['--fs-sm',11],['--fs-md',13],['--fs-lg',15],['--fs-xl',18],['--fs-2xl',24],['--fs-3xl',28],
+   ['--sp-xs',6],['--sp-sm',10],['--sp-md',14],['--sp-lg',18],['--sp-xl',24],['--btn-h',48],['--nav-h',64],
+  ].forEach(([k,v])=>r.style.setProperty(k,Math.round(v*scale)+'px'));
+}
+applyScale();window.addEventListener('resize',applyScale);
+</script>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"><div class="notch-bar"></div></div>
+  <div id="inner"><div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;"><div style="font-size:56px;">🎬</div><div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:28px;">CinéMatch</div><div style="width:32px;height:3px;background:#ff3f5b;border-radius:2px;animation:pulse 1.2s ease-in-out infinite;"></div></div></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════════════
+const BG='#07070f',S1='#111120',S2='#1a1a2e',TX='#e8e0d4',MU='#555570',BD='rgba(255,255,255,0.07)';
+const AC='#ff3f5b',GD='#f0c060',LB='#00c030';
+const CC={ugc:'#ff3f5b',pathe:'#f0c060',gaumont:'#4a9eff'};
+const CINEMA_LINKS={
+  'ugc-halles':{tickets:'https://www.ugc.fr/cinema/cinema-les-halles/cinema-id-167.html',maps:'https://maps.google.com/?q=UGC+Les+Halles+Paris'},
+  'ugc-bercy':{tickets:'https://www.ugc.fr/cinema/cinema-cine-cite-bercy/cinema-id-157.html',maps:'https://maps.google.com/?q=UGC+Bercy+Paris'},
+  'ugc-paris19':{tickets:'https://www.ugc.fr/cinema/cinema-cine-cite-paris-19/cinema-id-173.html',maps:'https://maps.google.com/?q=UGC+Paris+19'},
+  'ugc-maillot':{tickets:'https://www.ugc.fr/cinema/cinema-maillot/cinema-id-162.html',maps:'https://maps.google.com/?q=UGC+Maillot+Neuilly'},
+  'ugc-opera':{tickets:'https://www.ugc.fr/cinema/cinema-opera/cinema-id-164.html',maps:'https://maps.google.com/?q=UGC+Opera+Paris'},
+  'ugc-danton':{tickets:'https://www.ugc.fr/cinema/cinema-danton/cinema-id-158.html',maps:'https://maps.google.com/?q=UGC+Danton+Paris'},
+  'ugc-montparnasse':{tickets:'https://www.ugc.fr/cinema/cinema-montparnasse/cinema-id-163.html',maps:'https://maps.google.com/?q=UGC+Montparnasse+Paris'},
+  'ugc-lyon':{tickets:'https://www.ugc.fr/cinema/cinema-lyon-bastille/cinema-id-161.html',maps:'https://maps.google.com/?q=UGC+Lyon+Bastille+Paris'},
+  'pathe-beaugrenelle':{tickets:'https://www.pathe.fr/cinemas/cinema-pathe-beaugrenelle',maps:'https://maps.google.com/?q=Pathe+Beaugrenelle+Paris'},
+  'pathe-convention':{tickets:'https://www.pathe.fr/cinemas/cinema-pathe-convention',maps:'https://maps.google.com/?q=Pathe+Convention+Paris'},
+  'pathe-parnasse':{tickets:'https://www.pathe.fr/cinemas/cinema-pathe-parnasse',maps:'https://maps.google.com/?q=Pathe+Parnasse+Paris'},
+  'pathe-wepler':{tickets:'https://www.pathe.fr/cinemas/cinema-pathe-wepler',maps:'https://maps.google.com/?q=Pathe+Wepler+Paris'},
+  'pathe-alesia':{tickets:'https://www.pathe.fr/cinemas/cinema-pathe-alesia',maps:'https://maps.google.com/?q=Pathe+Alesia+Paris'},
+  'pathe-batignolles':{tickets:'https://www.pathe.fr/cinemas/cinema-les-7-batignolles',maps:'https://maps.google.com/?q=Les+7+Batignolles+Paris'},
+  'gaumont-opera':{tickets:'https://www.gaumont.fr/fr/cinemas/gaumont-opera-premier.html',maps:'https://maps.google.com/?q=Gaumont+Opera+Paris'},
+  'gaumont-convention':{tickets:'https://www.gaumont.fr/fr/cinemas/gaumont-convention.html',maps:'https://maps.google.com/?q=Gaumont+Convention+Paris'},
+  'gaumont-aquaboulevard':{tickets:'https://www.gaumont.fr/fr/cinemas/gaumont-aquaboulevard.html',maps:'https://maps.google.com/?q=Gaumont+Aquaboulevard+Paris'},
+};
+function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+// TMDB token removed — calls go through /api/tmdb server-side proxy
+const TMDB_IMG='https://image.tmdb.org/t/p/w500';
+async function tmdbFetch(path, params={}){
+  const qs=new URLSearchParams({path,...params}).toString();
+  const r=await fetch('/api/tmdb?'+qs);
+  if(!r.ok) return null;
+  return r.json();
+}
+const CHAIN_ICONS={ugc:'🎬',pathe:'🌟',gaumont:'🔵'};
+const GENRE_EMOJI={'drame':'🎭','comedie':'😂','comédie':'😂','horreur':'👻','thriller':'🔪','romance':'💕','animation':'🎨','polar':'🕵️','action':'💥','aventure':'🌍','sci-fi':'🚀','biopic':'📖','documentaire':'🎞️','fantastique':'✨','guerre':'⚔️'};
+const ANIMAL_EMOJIS=['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦖','🦕','🐢','🐍','🦎','🦏','🦛','🐙','🦑','🦐','🦞','🦀','🐡','🐟','🐠','🐬','🐳','🦈','🐊','🐅','🐆','🦓','🐘','🦒','🦘','🐃','🐂','🐎','🐖','🐑','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿','🦔','🐉','🐲'];
+function genreEmoji(g){if(!g)return'🎬';const k=g.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');for(const[key,v]of Object.entries(GENRE_EMOJI)){if(k.includes(key))return v;}return'🎬';}
+const PALETTE=[
+  ['#1a0a08','linear-gradient(135deg,#0d0805,#2a1008)'],['#0a1520','linear-gradient(135deg,#050a14,#0a1828)'],
+  ['#1a0a1a','linear-gradient(135deg,#100810,#241224)'],['#0a1a10','linear-gradient(135deg,#050d08,#0f2518)'],
+  ['#1e1408','linear-gradient(135deg,#100d05,#2a1c08)'],['#1a0a10','linear-gradient(135deg,#0d0508,#280f14)'],
+  ['#0a0a1a','linear-gradient(135deg,#050508,#10101e)'],['#1a1a08','linear-gradient(135deg,#0d0d05,#2a2808)'],
+];
+function filmPalette(slug){let h=0;for(const c of(slug||''))h=(h*31+c.charCodeAt(0))&0xffff;return PALETTE[h%PALETTE.length];}
+function starsHTML(note,max=5,size=11){if(!note)return'';const n=Math.round((parseFloat(note)/10)*max*2)/2;let html='<span style="letter-spacing:-1px;font-size:'+size+'px;">';for(let i=1;i<=max;i++){if(i<=n)html+='<span style="color:#f0c060;">★</span>';else if(i-0.5<=n)html+='<span style="color:#f0c060;">½</span>';else html+='<span style="color:#2a2a40;">★</span>';}return html+'</span>';}
+function chip(txt,c=TX,bg='rgba(255,255,255,0.06)',b=BD,sz=10){return `<span style="font-size:${sz}px;padding:2px 7px;border-radius:20px;border:1px solid ${b};background:${bg};color:${c};white-space:nowrap;">${txt}</span>`;}
+
+const LANGS={
+  fr:{appTagline:'Trouve des gens pour aller au ciné avec toi',enterPseudo:'Ton pseudo…',enterApp:'Entrer dans CinéMatch →',pseudoVisible:'Ton pseudo est visible de tous',sorties:'🍿 Sorties',films:'🎬 Films',cinemas:'🏛 Cinémas',groupes:'👥 Groupes',profil:'👤 Profil',sorties_publiques:'Sorties publiques',creer:'+ Créer',creerSortie:'Créer une sortie',creerSortieDesc:"Partage ton plan ciné avec d'autres",rejoindre:'+ Rejoindre',complet:'Complet',taSortie:'👑 Ta sortie',jeParticipe:'✓ Je participe',aucuneSortie:"Aucune sortie pour l'instant",aucuneSortieDesc:'Sois le premier à créer une sortie\net invite des gens à te rejoindre !',choisisFilm:'1 · Choisis un film',choisisCinema:'2 · Choisis un cinéma',choisisSeance:'3 · Choisis une séance',combienPersonnes:'4 · Combien de personnes max ?',personnesInclus:'personnes (toi inclus)',creerSortieBtn:'🍿 Créer la sortie publique',aucunFilmDispo:'Aucun cinéma disponible pour ce film',aucuneSeance:'Aucune séance ce jour pour ce film dans ce cinéma',bonsoir:'Bonsoir',rechercher:'🔍  Rechercher un film…',aucunFilmTrouve:'Aucun film trouvé',genres:[['tous','Tous'],['drame','Drame'],['horreur','Horreur'],['romance','Romance'],['thriller','Thriller'],['comedie','Comédie'],['animation','Anim.'],['polar','Polar']],seancesPassee:'passée',votes:(n)=>n===1?'1 vote':`${n} votes`,cestDecide:"✅ C'est décidé !",aucuneSeanceJour:'Aucune séance ce jour',misAJour:'Mis à jour',aLinstant:"à l'instant",synchro:'Synchro…',yAller:'🗺 Y aller',reserver:'🎟 Réserver',membres:(n)=>`${n} membre${n!==1?'s':''}`,presence:'Votre présence',jeViens:'Je viens',peutEtre:'Peut-être',jePeuxPas:'Je peux pas',vote_tab:'Vote',membres_tab:'Membres',chat_tab:'Chat',partager:'🔗 Partager',confirmePlan:'🎬 Plan confirmé',annuler:'Annuler',seancePassee:'✓ Séance passée',monProfil:'Mon Profil',deconnexion:'Se déconnecter',watchlist:'Watchlist',filmsVus:'Films vus'},
+  en:{appTagline:'Find people to go to the movies with',enterPseudo:'Your username…',enterApp:'Enter CinéMatch →',pseudoVisible:'Your username is visible to everyone',sorties:'🍿 Events',films:'🎬 Films',cinemas:'🏛 Cinemas',groupes:'👥 Groups',profil:'👤 Profile',sorties_publiques:'Public events',creer:'+ Create',creerSortie:'Create an event',creerSortieDesc:'Share your cinema plan with others',rejoindre:'+ Join',complet:'Full',taSortie:'👑 Your event',jeParticipe:'✓ Joined',aucuneSortie:'No events yet',aucuneSortieDesc:'Be the first to create an event\nand invite others to join!',choisisFilm:'1 · Choose a film',choisisCinema:'2 · Choose a cinema',choisisSeance:'3 · Choose a showtime',combienPersonnes:'4 · Max number of people?',personnesInclus:'people (including you)',creerSortieBtn:'🍿 Create public event',aucunFilmDispo:'No cinema available for this film',aucuneSeance:'No showtime for this film at this cinema',bonsoir:'Good evening',rechercher:'🔍  Search a film…',aucunFilmTrouve:'No film found',genres:[['tous','All'],['drame','Drama'],['horreur','Horror'],['romance','Romance'],['thriller','Thriller'],['comedie','Comedy'],['animation','Anim.'],['polar','Thriller']],seancesPassee:'past',votes:(n)=>n===1?'1 vote':`${n} votes`,cestDecide:"✅ It's decided!",aucuneSeanceJour:'No showtime today',misAJour:'Updated',aLinstant:'just now',synchro:'Syncing…',yAller:'🗺 Directions',reserver:'🎟 Book',membres:(n)=>`${n} member${n!==1?'s':''}`,presence:'Your attendance',jeViens:"I'm in",peutEtre:'Maybe',jePeuxPas:"Can't make it",vote_tab:'Vote',membres_tab:'Members',chat_tab:'Chat',partager:'🔗 Share',confirmePlan:'🎬 Plan confirmed',annuler:'Cancel',seancePassee:'✓ Past showtime',monProfil:'My Profile',deconnexion:'Sign out',watchlist:'Watchlist',filmsVus:'Films seen'}
+};
+function T(key,...args){const d=LANGS[st.lang||'fr']||LANGS.fr;const v=d[key];if(typeof v==='function')return v(...args);return v||key;}
+
+// ── SUPABASE CLIENT ──────────────────────────────────────────
+const _s1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2'),_s2=atob('SW1Gc2QyWmliV2x1YUdSM2FXNTRZMjk2YW14cUlpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpJNU9EQTFO'),_s3=atob('VFlzSW1WNGNDSTZNakE0T0RVMU5qVTFObjAuT1RyOGx5RHBSUXNtWFVDUEtzbTF3dk5QWWZDQTMyVUJRU2hSaWJJX2JEZw==');
+const SUPA_KEY=_s1+_s2+_s3;
+const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
+try{const lockKeys=Object.keys(localStorage).filter(k=>k.includes('lock:sb-'));lockKeys.forEach(k=>localStorage.removeItem(k));}catch(e){}
+const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
+
+// ── STATE ────────────────────────────────────────────────────
+const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
+let st={screen:'loading',lang:_saved.lang||'fr',pseudo:_saved.pseudo||'',pseudoInput:'',avatar:_saved.avatar||'🎬',userId:null,userEmail:'',authStep:'login',cinema:null,film:null,filmSrc:'home',groupe:null,search:'',genre:'tous',filmGridMode:false,cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',tab:'chat',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',msgs:[],date:todayStr(),lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',viewedMember:null,showAvatarPicker:false,_inviteGroupe:null,_inviteFilm:null,
+  friendsTab:'friends',friendSearch:'',chatWith:null,notificationsViewed:false,messagesSearch:'',groupTab:'upcoming',legalTab:'privacy'};
+function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang}));}catch(e){}}
+function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
+function buildSeancesForDate(allSeances, date){
+  const sm={};
+  for(const[cinId,films]of Object.entries(allSeances)){
+    sm[cinId]={};
+    for(const[filmId,dates]of Object.entries(films)){
+      const heures=dates[date]||[];
+      if(heures.length>0) sm[cinId][filmId]=heures;
+    }
   }
-  try {
-    const response = await fetch(request);
-    if (response.ok) putInCache(request, response.clone(), cacheName);
-    return response;
-  } catch {
-    return new Response('Offline', { status: 503 });
+  return sm;
+}
+
+// ── DATA ─────────────────────────────────────────────────────
+let FILMS={},CINEMAS=[],SEANCES={},SEANCES_ALL={},AVAILABLE_DATES=[],DATA_LOADED=false;
+let sortiesPubliques=[],createSortieScroll=0;
+let myFriends=[],friendRequests=[],sentRequests=[],userSearchResults=[];
+let conversations=[],currentPrivateMsgs=[],privateMsgChannel=null;
+let notifsList=[],notifCount=0;
+const posters={},ratings={},trailers={};
+function loadPosters(){for(const[id,f]of Object.entries(FILMS)){if(f.poster)posters[id]=f.poster;if(f.tmdbNote)ratings[id]={note:f.tmdbNote,votes:null};if(f.trailerKey)trailers[id]=f.trailerKey;}if(['home','cinemas','cinema-detail','film'].includes(st.screen))render();}
+
+// ── UTILITIES ────────────────────────────────────────────────
+const _rl={};
+function rateLimit(key,maxCalls,windowMs){const now=Date.now();if(!_rl[key])_rl[key]=[];_rl[key]=_rl[key].filter(t=>now-t<windowMs);if(_rl[key].length>=maxCalls){const waitSec=Math.ceil((windowMs-(now-_rl[key][0]))/1000);toast(`⏳ Réessaie dans ${waitSec}s`,'error');return false;}_rl[key].push(now);return true;}
+function toast(msg,type='info',dur=2800){const colors={info:MU,success:LB,error:AC,warning:GD};const t=document.createElement('div');t.style.cssText=`position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:${S2};border:1px solid ${colors[type]||BD};border-radius:12px;padding:10px 16px;font-size:clamp(10px,3vw,13px);color:${TX};z-index:9999;opacity:0;transition:all 0.25s;white-space:nowrap;max-width:300px;text-align:center;`;t.textContent=msg;document.body.appendChild(t);requestAnimationFrame(()=>{t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';});setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(10px)';setTimeout(()=>t.remove(),300);},dur);}
+let userPos=null;
+function getDistance(lat1,lng1,lat2,lng2){const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function distLabel(km){return km<1?Math.round(km*1000)+'m':km.toFixed(1)+'km';}
+function requestGeoLoc(){if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>{userPos={lat:p.coords.latitude,lng:p.coords.longitude};if(['cinemas','cinema-detail','home'].includes(st.screen))render();},()=>{},{timeout:8000});}
+requestGeoLoc();
+function pseudoColor(p){const h=[...(p||'?')].reduce((a,c)=>a+c.charCodeAt(0),0);const colors=['#e54','#d4a','#59e','#4b9','#e84','#a5e','#4ce','#e75'];return colors[h%colors.length];}
+function pseudoInitial(p){return(p||'?')[0].toUpperCase();}
+function getAvatar(pseudo){const m=myFriends.find(f=>f.pseudo===pseudo);return m?.avatar||null;}
+function avatarEl(pseudo,size=38,radius='50%'){const av=getAvatar(pseudo)||(pseudo===st.pseudo?st.avatar:null);if(av&&av.length<=2)return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.52)}px;flex-shrink:0;">${av}</div>`;return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${pseudoColor(pseudo)};display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.42)}px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(pseudo)}</div>`;}
+function isPast(heure){const now=new Date();const[h,m]=(heure||'').replace('h',':').split(':').map(Number);const t=new Date();t.setHours(h,m,0,0);if(st.date!==todayStr())return false;return t<now;}
+async function changeDate(ds){st.date=ds;if(SEANCES_ALL&&Object.keys(SEANCES_ALL).length>0){SEANCES=buildSeancesForDate(SEANCES_ALL,ds);render();}else{await initDynamicData(ds);render();}}
+function formatDate(ds){if(!ds)return'';const d=new Date(ds+'T12:00:00');const jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];const mois=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];return jours[d.getDay()]+' '+d.getDate()+' '+mois[d.getMonth()];}
+function countdown(date,heure){if(!date||!heure)return'';const h=(heure||'').replace('h',':');const target=new Date(date+'T'+h+':00');const now=new Date();const diff=target-now;if(diff<=0)return T('seancePassee');const days=Math.floor(diff/86400000);const hrs=Math.floor((diff%86400000)/3600000);const mins=Math.floor((diff%3600000)/60000);if(days>0)return`dans ${days}j ${hrs}h`;if(hrs>0)return`dans ${hrs}h ${mins}min`;return`dans ${mins}min`;}
+function dayPicker(){
+  const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const months=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+  let html='<div style="display:flex;gap:6px;overflow-x:auto;padding:0 0 12px;flex-shrink:0;">';
+  const allDates=AVAILABLE_DATES.length?AVAILABLE_DATES:[st.date];
+  const todayD=todayStr();
+  const dates=allDates.filter(d=>d>=todayD);
+  for(const ds of dates){const d=new Date(ds+'T12:00:00');const active=ds===st.date;html+=`<div onclick="changeDate('${ds}')" style="flex-shrink:0;width:44px;text-align:center;padding:7px 4px;border-radius:12px;cursor:pointer;background:${active?AC:'rgba(255,255,255,0.03)'};border:1px solid ${active?AC:BD};"><div style="font-size:9px;color:${active?'#fff':MU};">${days[d.getDay()]}</div><div style="font-size:clamp(13px,3.8vw,16px);font-weight:600;color:${active?'#fff':TX};">${d.getDate()}</div><div style="font-size:9px;color:${active?'rgba(255,255,255,0.7)':MU};">${months[d.getMonth()]}</div></div>`;}
+  return html+'</div>';}
+function posterCardLg(id,f,onClick){
+  const hasP=!!posters[id];const note=ratings[id]?.note;const vu=isVu(id),wl=isWatchlist(id)&&!isVu(id);
+  const friendsLike=myFriends.filter(fr=>sortiesPubliques.some(s=>s.film_id===id&&s._avatars?.some(a=>a.pseudo===fr.pseudo))).length;
+  return `<div class="poster-card-lg tap fade-up" onclick="${onClick||`openFilm('${id}','home')`}">
+    <div class="poster-img" style="background:${f.bg};">
+      ${hasP?`<img src="${posters[id]}" alt="${esc(f.t)}" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:44px;">${f.e}</span>`}
+      ${vu?'<div style="position:absolute;top:5px;right:5px;background:rgba(0,192,48,0.85);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;">✓</div>':''}
+      ${wl?'<div style="position:absolute;top:5px;right:5px;background:rgba(240,192,96,0.85);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;">🔖</div>':''}
+      ${friendsLike>0?`<div style="position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.75);border-radius:8px;padding:2px 5px;font-size:8px;color:#4a9eff;">👥 ${friendsLike}</div>`:''}
+    </div>
+    <div style="font-size:10px;font-weight:500;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(f.t)}</div>
+    ${note?`<div style="margin-top:2px;">${starsHTML(note,5,9)}</div>`:`<div style="font-size:9px;color:${MU};margin-top:2px;">${f.g||''}</div>`}
+  </div>`;}
+function posterCardSm(id,f){return `<div onclick="openFilm('${id}','home')" class="tap" style="flex-shrink:0;width:60px;cursor:pointer;"><div style="width:60px;height:90px;border-radius:7px;overflow:hidden;background:${f.bg};position:relative;">${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:26px;">${f.e}</span>`}</div><div style="font-size:9px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(f.t)}</div></div>`;}
+function nav(active){return `<div style="display:flex;background:${S1};border-top:1px solid ${BD};flex-shrink:0;padding-bottom:max(env(safe-area-inset-bottom,0px),0px);">
+  ${[['home','🍿','Sorties'],['cinemas','🏛','Cinémas'],['group','👥','Groupes'],['messages','💬','Messages'],['profile','👤','Profil']].map(([sc,ic,lb])=>{
+    const isActive=active===sc||(sc==='home'&&st.screen==='home'&&st.homeTab==='sorties')||(sc==='cinemas'&&st.screen==='cinemas')||(sc==='cinemas'&&st.screen==='cinema-detail')||(sc==='group'&&(st.screen==='group'||st.screen==='create-sortie'))||(sc==='messages'&&['messages','private-chat'].includes(st.screen))||(sc==='profile'&&['profile','want-to-see','friends','notifications','member-profile'].includes(st.screen));
+    return `<div onclick="navGo('${sc}')" style="flex:1;padding:8px 0 4px;text-align:center;cursor:pointer;opacity:${isActive?1:0.45};position:relative;">
+      <div style="font-size:clamp(15px,4.6vw,20px);position:relative;display:inline-block;">${ic}
+        ${sc==='profile'?`<div class="notif-badge" style="display:${notifCount>0?'flex':'none'}">${notifCount>9?'9+':notifCount}</div>`:''}
+        ${sc==='messages'?(()=>{const u=conversations.reduce((s,c)=>s+(c.unread||0),0);return u>0?`<div class="notif-badge" style="display:flex">${u>9?'9+':u}</div>`:''})():''}
+      </div>
+      <div style="font-size:9px;color:${MU};">${lb}</div>
+    </div>`;}).join('')}
+</div>`;}
+function navGo(sc){
+  if(sc==='messages'){go('messages');loadConversations();return;}
+  if(sc==='cinemas'){st.screen='cinemas';render();return;}
+  if(sc==='home'){st.homeTab='sorties';st.screen='home';render();return;}
+  if(sc==='group'){st.groupe=null;st.screen='group';render();return;}
+  go(sc);
+}
+function go(sc){st.screen=sc;render();}
+
+// ── LBD ──────────────────────────────────────────────────────
+function normTitle(t){return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
+let lbdSeen=new Set(),lbdWatchlist=new Set();
+function filmInLbd(filmId,list){const f=FILMS[filmId];if(!f)return false;const titles=[f.t,...(f.alt||[])].map(normTitle);for(const t of list){for(const n of titles){if(t.includes(n)||n.includes(t))return true;}}return false;}
+function isVu(id){return filmInLbd(id,lbdSeen);}
+function isWatchlist(id){return filmInLbd(id,lbdWatchlist);}
+async function loadLbd(pseudo){try{const r=await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);if(!r.ok)return false;const d=await r.json();lbdSeen=new Set();lbdWatchlist=new Set();(d.items||[]).forEach(item=>{const n=normTitle(item.title);if(item.cats&&item.cats.includes('wishlist'))lbdWatchlist.add(n);else lbdSeen.add(n);});return true;}catch(e){return false;}}
+const membresLbd={};
+async function loadMemberLbd(pseudo){if(membresLbd[pseudo])return membresLbd[pseudo];try{const r=await fetch(`/api/letterboxd?pseudo=${encodeURIComponent(pseudo)}`);if(!r.ok)return null;const d=await r.json();const seen=new Set(),wl=new Set();(d.items||[]).forEach(item=>{const n=normTitle(item.title);if(item.cats&&item.cats.includes('wishlist'))wl.add(n);else seen.add(n);});membresLbd[pseudo]={seen,wl};return membresLbd[pseudo];}catch(e){return null;}}
+function getWantToSee(){try{return JSON.parse(localStorage.getItem('cm_want_'+(st.pseudo||''))||'[]');}catch(e){return[];}}
+function toggleWantToSee(filmId){let list=getWantToSee();if(list.includes(filmId))list=list.filter(x=>x!==filmId);else list=[filmId,...list];try{localStorage.setItem('cm_want_'+(st.pseudo||''),JSON.stringify(list));}catch(e){}render();}
+</script>
+
+<script>
+const tmdbGenreCache=JSON.parse(localStorage.getItem('cm_genres')||'{}');
+const TMDB_GENRE_MAP={28:'action',12:'aventure',16:'animation',35:'comedie',80:'polar',99:'documentaire',18:'drame',10751:'comedie',14:'fantastique',36:'biopic',27:'horreur',10402:'comedie',9648:'thriller',10749:'romance',878:'sci-fi',10770:'drame',53:'thriller',10752:'guerre',37:'aventure'};
+
+async function initDynamicData(dateStr){
+  const isFirstLoad=!DATA_LOADED;
+  try{
+    if(isFirstLoad){
+      const[filmsRes,cinemasRes,datesRes]=await Promise.all([supa.from('films_dyn').select('*').limit(200),supa.from('cinemas_dyn').select('*'),supa.from('seances_dyn').select('date').gte('date',new Date().toISOString().slice(0,10)).limit(1000)]);
+      const today0=new Date().toISOString().slice(0,10);
+      const dateSet=new Set((datesRes.data||[]).map(r=>r.date).filter(d=>d>=today0));
+      AVAILABLE_DATES=[...dateSet].sort();
+      if(!dateStr||!AVAILABLE_DATES.includes(dateStr))dateStr=AVAILABLE_DATES[0]||todayStr();
+      st.date=dateStr;
+      FILMS={};
+      for(const f of(filmsRes.data||[])){const[c,bg]=filmPalette(f.id);FILMS[f.id]={e:genreEmoji(f.genre),c,bg,g:(f.genre||'DIVERS').toUpperCase(),t:f.title,d:(()=>{const dur=String(f.duration||'');return dur&&!dur.includes('NaN')&&/^\d+h\d{2}$/.test(dur)?dur:'';})(),dir:f.director||'',s:f.synopsis||'',poster:f.poster_url||null,tmdbNote:f.tmdb_note||null,trailerKey:f.trailer_key||null,lbd:false};}
+      CINEMAS=(cinemasRes.data||[]).map(c=>({id:c.id,lat:c.lat,lng:c.lng,chain:c.chain,icon:CHAIN_ICONS[c.chain]||'🎬',name:c.name,addr:c.addr||'',metro:c.metro||'',salles:c.salles||0,tech:c.tech||[],films:[]}));
+    }
+    const targetDate=dateStr||st.date;
+    // Load ALL available dates seances (not just today) for complete schedule
+    const today=new Date().toISOString().slice(0,10);
+    const seancesRes=await supa.from('seances_dyn').select('*').gte('date',today).order('date',{ascending:true});
+    const sm={};
+    for(const s of(seancesRes.data||[])){
+      if(!sm[s.cinema_id])sm[s.cinema_id]={};
+      // Store heures per cinema/film/date
+      if(!sm[s.cinema_id][s.film_id])sm[s.cinema_id][s.film_id]={};
+      sm[s.cinema_id][s.film_id][s.date]=s.heures||[];
+    }
+    // Flat view for today (backwards compat): SEANCES[cinId][filmId] = heures for selected date
+    SEANCES_ALL=sm;
+    SEANCES=buildSeancesForDate(sm,targetDate||today);
+    CINEMAS=CINEMAS.map(c=>({...c,films:Object.keys(sm[c.id]||{}).map(id=>({id}))}));
+    DATA_LOADED=true;
+  }catch(e){handleSupaError(e,'initDynamicData');}
+}
+
+async function enrichGenresFromTMDB(){
+  const toFetch=Object.entries(FILMS).filter(([id,f])=>!f.genre_enriched&&(!f.g||f.g==='DIVERS'||f.g===''));
+  if(toFetch.length===0)return;
+  for(let i=0;i<toFetch.length;i+=5){
+    const batch=toFetch.slice(i,i+5);
+    await Promise.all(batch.map(async([id,f])=>{
+      if(tmdbGenreCache[id]){applyGenre(id,tmdbGenreCache[id]);return;}
+      try{const q=encodeURIComponent(f.t);const data=await tmdbFetch('search/movie',{query:q,'language':'fr-FR',page:1});const results=data.results||[];
+        const norm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+        const titleN=norm(f.t);const currentYear=new Date().getFullYear();
+        const scored=results.map(r=>{let sc=0;if(norm(r.title)===titleN||norm(r.original_title)===titleN)sc+=100;else if(norm(r.title).startsWith(titleN)||titleN.startsWith(norm(r.title)))sc+=30;const ry=r.release_date?parseInt(r.release_date.slice(0,4)):0;if(ry>=currentYear-1&&ry<=currentYear+1)sc+=50;if(r.poster_path)sc+=10;sc+=Math.min(20,(r.popularity||0)/5);return{...r,_sc:sc};}).sort((a,b)=>b._sc-a._sc);
+        const movie=scored[0];
+        if(movie?.genre_ids?.length){const genre=TMDB_GENRE_MAP[movie.genre_ids[0]]||'divers';tmdbGenreCache[id]=genre;applyGenre(id,genre);if(!posters[id]&&movie.poster_path)posters[id]=TMDB_IMG+movie.poster_path;if(!ratings[id]&&movie.vote_average>0)ratings[id]={note:movie.vote_average.toFixed(1)};}
+      }catch(e){}
+    }));
+  }
+  try{localStorage.setItem('cm_genres',JSON.stringify(tmdbGenreCache));}catch(e){}
+  if(['home','film'].includes(st.screen))render();
+}
+function applyGenre(id,genre){if(!FILMS[id])return;FILMS[id].g=genre.charAt(0).toUpperCase()+genre.slice(1);FILMS[id].e=genreEmoji(genre);FILMS[id].genre_enriched=true;}
+
+// ── LETTERBOXD ──
+
+function filmInLbd(filmId,list){const f=FILMS[filmId];if(!f)return false;const titles=[f.t,...(f.alt||[])].map(normTitle);for(const t of list){for(const n of titles){if(t.includes(n)||n.includes(t))return true;}}return false;}
+
+
+let mesGroupes=[],membresData=[],votesData={},realtimeChannel=null,votesChannel=null;
+let reactionsData={},groupeInfo={};
+
+async function loadMesGroupes(){if(!st.pseudo)return;const{data:membres}=await supa.from('groupe_membres').select('groupe').eq('pseudo',st.pseudo);if(!membres||membres.length===0){mesGroupes=[];return;}const ids=membres.map(m=>m.groupe);const{data}=await supa.from('groupes').select('id,film_id,nom,confirmed_cinema,confirmed_heure,confirmed_date,createur').in('id',ids);mesGroupes=data||[];}
+
+async function loadSorties(){
+  if(!userPos)requestGeoLoc();
+  try{
+    const today=todayStr();
+    const{data}=await supa.from('groupes').select('id,film_id,nom,confirmed_cinema,confirmed_heure,confirmed_date,max_membres,createur').eq('is_public',true).not('confirmed_heure','is',null).gte('confirmed_date',today).order('confirmed_date',{ascending:true}).limit(30);
+    if(!data||data.length===0){sortiesPubliques=[];return;}
+    const ids=data.map(g=>g.id);
+    const[membresRes,msgsRes]=await Promise.all([supa.from('groupe_membres').select('groupe,pseudo,avatar').in('groupe',ids),supa.from('messages').select('groupe').in('groupe',ids).neq('pseudo','📢 CinéMatch')]);
+    const counts={},avatarsMap={},msgCounts={};
+    (membresRes.data||[]).forEach(m=>{counts[m.groupe]=(counts[m.groupe]||0)+1;if(!avatarsMap[m.groupe])avatarsMap[m.groupe]=[];if(avatarsMap[m.groupe].length<3)avatarsMap[m.groupe].push({pseudo:m.pseudo,avatar:m.avatar||'🎬'});});
+    (msgsRes.data||[]).forEach(m=>{msgCounts[m.groupe]=(msgCounts[m.groupe]||0)+1;});
+    sortiesPubliques=data.map(g=>({...g,_nb:counts[g.id]||0,_avatars:avatarsMap[g.id]||[],_msgs:msgCounts[g.id]||0}));
+  }catch(e){handleSupaError(e,'loadSorties');}
+}
+
+async function loadMembres(){const g=st.groupe||'general';const{data}=await supa.from('groupe_membres').select('*').eq('groupe',g);membresData=data||[];renderMembresDOM();}
+async function loadMessages(){const g=st.groupe||'general';const{data}=await supa.from('messages').select('*').eq('groupe',g).order('created_at',{ascending:true}).limit(100);const ca=document.getElementById('chat-area');if(!ca)return;ca.innerHTML=(data||[]).map(m=>msgHTML(m)).join('');ca.scrollTop=ca.scrollHeight;loadReactions();}
+async function sendMsg(){if(!rateLimit('msg_'+st.userId,5,10000))return;const inp=document.getElementById('msg-input');if(!inp)return;const txt=inp.value.trim();if(!txt)return;inp.value='';const g=st.groupe||'general';await supa.from('messages').insert({groupe:g,pseudo:st.pseudo,texte:txt,reactions:[],user_id:st.userId});}
+async function loadVotes(){const g=st.groupe||'general';const{data}=await supa.from('votes').select('*').eq('groupe',g);votesData={};(data||[]).forEach(v=>{const k=(v.date||'')+' '+v.heure;if(!votesData[k])votesData[k]=[];votesData[k].push(v);if(v.pseudo===st.pseudo)st.voted=k;});renderVotesDOM();}
+async function voterCinema(cinemaId){if(!rateLimit('vote_'+st.userId,10,60000))return;st.cinema=cinemaId;render();setTimeout(renderVotesDOM,50);const g=st.groupe||'general';await supa.from('groupe_membres').update({cinema_pref:cinemaId}).eq('groupe',g).eq('user_id',st.userId);await loadMembres();renderVotesDOM();}
+async function voter(heure){const g=st.groupe||'general';const k=st.date+' '+heure;const dejàVoté=(votesData[k]||[]).some(v=>v.pseudo===st.pseudo);await supa.from('votes').delete().eq('groupe',g).eq('user_id',st.userId);if(!dejàVoté){await supa.from('votes').insert({groupe:g,pseudo:st.pseudo,heure,date:st.date,user_id:st.userId});st.voted=k;toast('Vote enregistré pour '+heure+' ✓','success',1800);}else{st.voted=null;toast('Vote retiré','info',1500);}await loadVotes();}
+async function loadGroupeInfo(){if(!st.groupe)return;const{data}=await supa.from('groupes').select('confirmed_cinema,confirmed_heure,confirmed_date').eq('id',st.groupe).single();groupeInfo=data||{};}
+async function confirmerPlan(cinemaId,heure,date){const cinema=CINEMAS.find(c=>c.id===cinemaId);const f=FILMS[st.film];await supa.from('groupes').update({confirmed_cinema:cinemaId,confirmed_heure:heure,confirmed_date:date}).eq('id',st.groupe);const msg='🎬 Plan confirmé ! '+(f?.t||'')+' au '+(cinema?.name||cinemaId)+', le '+formatDate(date)+' à '+heure+' 🍿';await supa.from('messages').insert({groupe:st.groupe,pseudo:'📢 CinéMatch',texte:msg,reactions:[]});await loadGroupeInfo();toast('Plan confirmé ! 🎉','success');render();}
+async function annulerConfirmation(){if(!st.groupe)return;await supa.from('groupes').update({confirmed_cinema:null,confirmed_heure:null,confirmed_date:null}).eq('id',st.groupe);groupeInfo={};render();}
+async function setStatut(s){if(!st.groupe||!st.pseudo)return;await supa.from('groupe_membres').update({statut:s}).eq('groupe',st.groupe).eq('user_id',st.userId);await loadMembres();}
+async function rejoindreGroupe(){const g=st.groupe||'general';await supa.from('groupe_membres').upsert({groupe:g,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});await loadMembres();}
+
+function subscribeAll(){
+  if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
+  if(votesChannel){supa.removeChannel(votesChannel);votesChannel=null;}
+  const g=st.groupe||'general';
+  realtimeChannel=supa.channel('db-msg-'+g).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`groupe=eq.${g}`},p=>appendMsg(p.new)).on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:`groupe=eq.${g}`},p=>{if(p.new.reactions!==undefined){reactionsData[p.new.id]=p.new.reactions||[];refreshReactionsDOM();}}).subscribe();
+  votesChannel=supa.channel('db-votes-'+g).on('postgres_changes',{event:'*',schema:'public',table:'votes',filter:`groupe=eq.${g}`},async()=>await loadVotes()).on('postgres_changes',{event:'UPDATE',schema:'public',table:'groupes',filter:`id=eq.${g}`},async()=>{await loadGroupeInfo();render();if(st.tab==='vote')renderVotesDOM();if(st.tab==='membres')renderMembresDOM();}).subscribe();
+}
+function appendMsg(m){const ca=document.getElementById('chat-area');if(!ca)return;ca.insertAdjacentHTML('beforeend',msgHTML(m));ca.scrollTop=ca.scrollHeight;}
+
+const REACTION_EMOJIS=['❤️','😂','🔥','👏','😮','🎬'];
+async function loadReactions(){const g=st.groupe||'general';const{data}=await supa.from('messages').select('id,reactions').eq('groupe',g);reactionsData={};(data||[]).forEach(m=>{if(m.reactions)reactionsData[m.id]=m.reactions;});refreshReactionsDOM();}
+function refreshReactionsDOM(){document.querySelectorAll('[data-reactions]').forEach(el=>{el.innerHTML=reactionsHTML(el.dataset.reactions);});}
+function reactionsHTML(msgId){const reacts=reactionsData[msgId]||[];const grouped={};reacts.forEach(r=>{if(!grouped[r.emoji])grouped[r.emoji]=[];grouped[r.emoji].push(r.pseudo);});const myReact=reacts.find(r=>r.pseudo===st.pseudo)?.emoji;let html=Object.entries(grouped).map(([e,users])=>`<span onclick="toggleReaction('${msgId}','${e}')" style="display:inline-flex;align-items:center;gap:3px;background:${myReact===e?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.06)'};border:1px solid ${myReact===e?AC:BD};border-radius:20px;padding:2px 7px;font-size:clamp(9px,2.8vw,12px);cursor:pointer;">${e}<span style="font-size:9px;color:${MU};">${users.length}</span></span>`).join('');html+=`<span onclick="showReactionPicker('${msgId}')" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:50%;font-size:clamp(9px,2.8vw,12px);cursor:pointer;opacity:0.5;">+</span>`;return html;}
+function showReactionPicker(msgId){const existing=document.getElementById('rpicker');if(existing){existing.remove();return;}const picker=document.createElement('div');picker.id='rpicker';picker.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid rgba(255,255,255,0.1);border-radius:30px;padding:8px 12px;display:flex;gap:8px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,0.5);';picker.innerHTML=REACTION_EMOJIS.map(e=>`<span onclick="toggleReaction('${msgId}','${e}');document.getElementById('rpicker')?.remove();" style="font-size:clamp(18px,5.6vw,24px);cursor:pointer;">${e}</span>`).join('');document.body.appendChild(picker);setTimeout(()=>picker.remove(),4000);}
+async function toggleReaction(msgId,emoji){const reacts=reactionsData[msgId]||[];const existing=reacts.find(r=>r.pseudo===st.pseudo&&r.emoji===emoji);let newReacts;if(existing){newReacts=reacts.filter(r=>!(r.pseudo===st.pseudo&&r.emoji===emoji));}else{const withoutMe=reacts.filter(r=>r.pseudo!==st.pseudo);newReacts=[...withoutMe,{emoji,pseudo:st.pseudo}];}reactionsData[msgId]=newReacts;refreshReactionsDOM();await supa.from('messages').update({reactions:newReacts}).eq('id',msgId);}
+
+async function creerSortie(filmId,cinemaId,heure,date,maxM){
+  if(!rateLimit('creer_'+st.userId,3,60000))return;
+  if(!filmId||!cinemaId||!heure||!date){toast('Remplis tous les champs','error');return;}
+  const film=FILMS[filmId];
+  const{data,error}=await supa.from('groupes').insert({film_id:filmId,nom:film?.t||filmId,createur:st.pseudo,user_id:st.userId,is_public:true,max_membres:maxM||8,confirmed_cinema:cinemaId,confirmed_heure:heure,confirmed_date:date}).select('id').single();
+  if(error){toast('Erreur création','error');return;}
+  await supa.from('groupe_membres').upsert({groupe:data.id,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});
+  toast('Sortie créée ! 🎉','success');st.newSortie=null;await loadSorties();await loadMesGroupes();openGroup(filmId,data.id);
+}
+
+async function rejoindreSortie(groupId,filmId){
+  if(!rateLimit('rejoindre_'+st.userId,5,60000))return;
+  await supa.from('groupe_membres').upsert({groupe:groupId,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});
+  toast('Tu rejoins la sortie ! 🍿','success');await loadSorties();openGroup(filmId,groupId);
+}
+
+// ── SOCIAL: FRIENDS ──────────────────────────────────────────
+async function loadFriends(){
+  if(!st.userId)return;
+  try{
+    const{data:reqs}=await supa.from('friend_requests').select('*').or(`from_user_id.eq.${st.userId},to_user_id.eq.${st.userId}`);
+    const accepted=(reqs||[]).filter(r=>r.status==='accepted');
+    const incoming=(reqs||[]).filter(r=>r.to_user_id===st.userId&&r.status==='pending');
+    const outgoing=(reqs||[]).filter(r=>r.from_user_id===st.userId&&r.status==='pending');
+    const friendIds=accepted.map(r=>r.from_user_id===st.userId?r.to_user_id:r.from_user_id);
+    const incomingIds=incoming.map(r=>r.from_user_id);
+    const outgoingIds=outgoing.map(r=>r.to_user_id);
+    const allIds=[...new Set([...friendIds,...incomingIds,...outgoingIds])];
+    if(allIds.length>0){
+      const{data:profiles}=await supa.from('profiles').select('id,pseudo,avatar').in('id',allIds);
+      const pMap={};(profiles||[]).forEach(p=>pMap[p.id]=p);
+      myFriends=friendIds.map(id=>pMap[id]).filter(Boolean);
+      friendRequests=incoming.map(r=>({...r,profile:pMap[r.from_user_id]})).filter(r=>r.profile);
+      sentRequests=outgoing.map(r=>({...r,profile:pMap[r.to_user_id]})).filter(r=>r.profile);
+    }else{myFriends=[];friendRequests=[];sentRequests=[];}
+  }catch(e){console.error('loadFriends:',e);}
+}
+
+function getFriendStatus(userId){
+  if(!userId)return'none';
+  if(myFriends.some(f=>f.id===userId))return'friend';
+  if(sentRequests.some(r=>r.to_user_id===userId))return'sent';
+  if(friendRequests.some(r=>r.from_user_id===userId))return'received';
+  return'none';
+}
+
+async function sendFriendRequest(toUserId){
+  if(!rateLimit('friend_'+st.userId,10,60000))return;
+  const{error}=await supa.from('friend_requests').insert({from_user_id:st.userId,to_user_id:toUserId,status:'pending'});
+  if(!error){
+    try{await supa.from('notifs').insert({user_id:toUserId,type:'friend_request',data:{pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId}});}catch(e){}
+    toast('Demande envoyée ! 👋','success');await loadFriends();render();
+  }else if(error.code==='23505'){toast('Demande déjà envoyée','info');}
+  else toast('Erreur : '+error.message,'error');
+}
+
+async function acceptFriendRequest(requestId,fromUserId,fromPseudo){
+  await supa.from('friend_requests').update({status:'accepted'}).eq('id',requestId);
+  try{await supa.from('notifs').insert({user_id:fromUserId,type:'friend_accepted',data:{pseudo:st.pseudo,avatar:st.avatar}});}catch(e){}
+  toast(`Vous êtes amis avec ${fromPseudo} ! 🎉`,'success');await loadFriends();render();
+}
+
+async function rejectFriendRequest(requestId){
+  await supa.from('friend_requests').update({status:'rejected'}).eq('id',requestId);
+  await loadFriends();render();
+}
+
+async function removeFriend(friendId,friendPseudo){
+  if(!confirm(`Retirer ${friendPseudo} de vos amis ?`))return;
+  await supa.from('friend_requests').delete().or(`and(from_user_id.eq.${st.userId},to_user_id.eq.${friendId}),and(from_user_id.eq.${friendId},to_user_id.eq.${st.userId})`);
+  await loadFriends();render();toast('Ami retiré','info');
+}
+
+async function doSearchUsers(){
+  const q=st.friendSearch?.trim()||'';
+  if(!q||q.length<2){userSearchResults=[];render();return;}
+  const{data}=await supa.from('profiles').select('id,pseudo,avatar').ilike('pseudo',`%${q}%`).neq('id',st.userId).limit(12);
+  userSearchResults=data||[];render();
+}
+
+// ── SOCIAL: PRIVATE MESSAGES ─────────────────────────────────
+async function loadConversations(){
+  if(!st.userId)return;
+  try{
+    const{data}=await supa.from('private_messages').select('*').or(`sender_id.eq.${st.userId},receiver_id.eq.${st.userId}`).order('created_at',{ascending:false});
+    const convMap={};
+    for(const msg of(data||[])){
+      const partnerId=msg.sender_id===st.userId?msg.receiver_id:msg.sender_id;
+      if(!convMap[partnerId])convMap[partnerId]={partnerId,lastMsg:msg,unread:0};
+      if(!msg.read_at&&msg.receiver_id===st.userId)convMap[partnerId].unread++;
+    }
+    const partnerIds=Object.keys(convMap);
+    if(partnerIds.length>0){
+      const{data:profiles}=await supa.from('profiles').select('id,pseudo,avatar').in('id',partnerIds);
+      const pMap={};(profiles||[]).forEach(p=>pMap[p.id]=p);
+      conversations=Object.values(convMap).map(c=>({...c,partner:pMap[c.partnerId]})).filter(c=>c.partner).sort((a,b)=>new Date(b.lastMsg.created_at)-new Date(a.lastMsg.created_at));
+    }else{conversations=[];}
+  }catch(e){console.error('loadConversations:',e);}
+}
+
+async function openPrivateChat(partnerId,partnerPseudo,partnerAvatar){
+  st.chatWith={userId:partnerId,pseudo:partnerPseudo,avatar:partnerAvatar||'🎬'};
+  st.screen='private-chat';render();
+  await loadPrivateMessages(partnerId);
+  subscribePrivateMsgs(partnerId);
+}
+
+async function loadPrivateMessages(partnerId){
+  const{data}=await supa.from('private_messages').select('*').or(`and(sender_id.eq.${st.userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${st.userId})`).order('created_at',{ascending:true}).limit(100);
+  currentPrivateMsgs=data||[];renderPrivateMsgsDOM();
+  await supa.from('private_messages').update({read_at:new Date().toISOString()}).eq('receiver_id',st.userId).eq('sender_id',partnerId).is('read_at',null);
+}
+
+function subscribePrivateMsgs(partnerId){
+  if(privateMsgChannel){supa.removeChannel(privateMsgChannel);privateMsgChannel=null;}
+  privateMsgChannel=supa.channel('pm-'+[st.userId,partnerId].sort().join('-')).on('postgres_changes',{event:'INSERT',schema:'public',table:'private_messages'},p=>{const m=p.new;if((m.sender_id===st.userId&&m.receiver_id===partnerId)||(m.sender_id===partnerId&&m.receiver_id===st.userId)){if(!currentPrivateMsgs.find(x=>x.id===m.id)){currentPrivateMsgs.push(m);renderPrivateMsgsDOM();}}}).subscribe();
+}
+
+async function sendPrivateMessage(){
+  const inp=document.getElementById('pm-input');if(!inp||!st.chatWith)return;
+  const content=inp.value.trim();if(!content)return;inp.value='';
+  if(!rateLimit('pm_'+st.userId,10,10000))return;
+  const tmp={id:'tmp-'+Date.now(),sender_id:st.userId,receiver_id:st.chatWith.userId,content,created_at:new Date().toISOString()};
+  currentPrivateMsgs.push(tmp);renderPrivateMsgsDOM();
+  const{data,error}=await supa.from('private_messages').insert({sender_id:st.userId,receiver_id:st.chatWith.userId,content}).select('id').single();
+  if(!error){const idx=currentPrivateMsgs.findIndex(m=>m.id===tmp.id);if(idx>=0)currentPrivateMsgs[idx].id=data.id;}
+  try{await supa.from('notifs').insert({user_id:st.chatWith.userId,type:'private_message',data:{from_pseudo:st.pseudo,from_avatar:st.avatar,preview:content.slice(0,50)}});}catch(e){}
+}
+
+function renderPrivateMsgsDOM(){
+  const area=document.getElementById('pm-area');if(!area)return;
+  area.innerHTML=currentPrivateMsgs.map(m=>{
+    const me=m.sender_id===st.userId;
+    const t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    return `<div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-end;flex-direction:${me?'row-reverse':'row'};">
+      <div style="max-width:220px;">
+        <div style="padding:9px 13px;border-radius:16px;font-size:clamp(11px,3.3vw,14px);line-height:1.5;word-break:break-word;background:${me?AC:S2};border-bottom-${me?'right':'left'}-radius:4px;">${esc(m.content)}</div>
+        <div style="font-size:9px;color:${MU};margin-top:2px;text-align:${me?'right':'left'};">${t}</div>
+      </div>
+    </div>`;
+  }).join('');area.scrollTop=area.scrollHeight;
+}
+
+// ── SOCIAL: NOTIFICATIONS ─────────────────────────────────────
+async function loadNotifications(){
+  if(!st.userId)return;
+  try{
+    const{data}=await supa.from('notifs').select('*').eq('user_id',st.userId).order('created_at',{ascending:false}).limit(30);
+    notifsList=data||[];notifCount=notifsList.filter(n=>!n.read).length;
+    document.querySelectorAll('.notif-badge').forEach(el=>{el.style.display=notifCount>0?'flex':'none';el.textContent=notifCount>9?'9+':notifCount;});
+  }catch(e){}
+}
+
+async function markNotifsRead(){
+  await supa.from('notifs').update({read:true}).eq('user_id',st.userId).eq('read',false);
+  notifsList.forEach(n=>n.read=true);notifCount=0;
+  document.querySelectorAll('.notif-badge').forEach(el=>{el.style.display='none';});
+  render();
+}
+
+function subscribeNotifs(){
+  supa.channel('notifs-'+st.userId).on('postgres_changes',{event:'INSERT',schema:'public',table:'notifs',filter:`user_id=eq.${st.userId}`},p=>{notifsList.unshift(p.new);notifCount++;document.querySelectorAll('.notif-badge').forEach(el=>{el.style.display='flex';el.textContent=notifCount>9?'9+':notifCount;});}).subscribe();
+}
+
+// ── AUTH & SESSION ────────────────────────────────────────────
+let _explicitLogout=false,_authDone=false;
+async function handleSession(session){
+  if(_authDone)return;_authDone=true;
+  if(session?.user){
+    st.userId=session.user.id;st.userEmail=session.user.email||'';
+    if(window.location.hash&&window.location.hash.includes('access_token'))history.replaceState({},'',window.location.pathname);
+    const hasProfile=await loadProfile(st.userId);
+    if(hasProfile){st.screen='home';render();init_social();if(st._inviteGroupe&&st._inviteFilm){const gid=st._inviteGroupe,fid=st._inviteFilm;st._inviteGroupe=null;st._inviteFilm=null;openGroup(fid,gid);}}
+    else{st.screen='pseudo';st.pseudoInput='';render();}
+  }else{
+    if(shouldShowOnboarding()){ st.screen='onboarding'; st.onboardingStep=0; }
+    else { st.screen='auth'; st.authStep='login'; }
+    render();
   }
 }
-
-async function networkFirst(request, cacheName, timeoutMs) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(request, { signal: controller.signal });
-    clearTimeout(timer);
-    if (response.ok) putInCache(request, response.clone(), cacheName);
-    return response;
-  } catch {
-    clearTimeout(timer);
-    const cached = await caches.match(request);
-    return cached || new Response(JSON.stringify({ error: 'offline', cached: false }), {
-      status: 503, headers: { 'Content-Type': 'application/json' }
-    });
-  }
+async function init_social(){
+  loadMesGroupes();loadSorties();
+  await loadFriends();
+  await loadNotifications();
+  loadConversations();
+  subscribeNotifs();
+  if(st.lbdPseudo)loadLbd(st.lbdPseudo);
+  // Ask for push permission after 3 seconds (not immediately on login)
+  setTimeout(requestPushPermission, 3000);
 }
-
-async function staleWhileRevalidate(request, cacheName) {
-  const cached = await caches.match(request);
-  const networkPromise = fetch(request).then(res => {
-    if (res.ok) putInCache(request, res.clone(), cacheName);
-    return res;
-  }).catch(() => null);
-  return cached || networkPromise || new Response('Offline', { status: 503 });
-}
-
-async function putInCache(request, response, cacheName) {
-  if (!response || !response.ok) return;
-  try {
-    // Add timestamp header for cache expiry
-    const headers = new Headers(response.headers);
-    headers.set('sw-cached-at', Date.now().toString());
-    const modifiedResponse = new Response(await response.blob(), { status: response.status, headers });
-    const cache = await caches.open(cacheName);
-    await cache.put(request, modifiedResponse);
-  } catch(e) { /* quota exceeded etc */ }
-}
-
-// ── Push notifications ────────────────────────────────────────────────────────
-self.addEventListener('push', e => {
-  let data = { title:'CinéMatch 🎬', body:'Nouvelle notification', icon:'/icons/icon-192.png', badge:'/icons/icon-72.png', url:'/' };
-  try { Object.assign(data, e.data?.json()); } catch { data.body = e.data?.text() || data.body; }
-
-  e.waitUntil(self.registration.showNotification(data.title, {
-    body: data.body,
-    icon: data.icon,
-    badge: data.badge,
-    vibrate: [200, 100, 200],
-    tag: data.tag || 'cinematch-' + Date.now(),
-    renotify: true,
-    data: { url: data.url },
-  }));
+async function loadProfile(userId){const{data}=await supa.from('profiles').select('*').eq('id',userId).single();if(data){st.pseudo=data.pseudo||'';st.avatar=data.avatar||'🎬';st.lang=data.lang||st.lang;if(data.photo_url)window._profilePhotoCache=data.photo_url;if(data.fav_films?.length){try{localStorage.setItem('cm_fav_'+(data.pseudo||''),JSON.stringify(data.fav_films));}catch(e){}}save();return true;}return false;}
+supa.auth.onAuthStateChange((event,session)=>{
+  if(event==='INITIAL_SESSION')handleSession(session);
+  else if(event==='SIGNED_IN'){_authDone=false;handleSession(session);}
+  else if(event==='SIGNED_OUT'&&_explicitLogout){_explicitLogout=false;_authDone=false;st.userId=null;st.screen='auth';st.authStep='login';render();}
 });
+setTimeout(()=>{if(st.screen==='loading'){st.screen='auth';st.authStep='login';render();}},4000);
+async function logoutApp(){if(!confirm(T('deconnexion')+' ?'))return;_explicitLogout=true;await supa.auth.signOut();try{localStorage.removeItem('cm2');}catch(e){}st.pseudo='';st.userId=null;st.screen='auth';st.authStep='login';render();}
+async function deleteAccount(){const confirmEl=document.createElement('div');confirmEl.style.cssText='position:fixed;inset:0;background:rgba(7,7,15,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';confirmEl.innerHTML=`<div style="background:#1a1a2e;border:1px solid rgba(255,63,91,0.4);border-radius:18px;padding:24px;max-width:290px;text-align:center;"><div style="font-size:40px;margin-bottom:12px;">⚠️</div><div style="font-size:16px;font-weight:700;margin-bottom:8px;">Supprimer mon compte ?</div><div style="font-size:12px;color:#555570;margin-bottom:18px;">Cette action est irréversible.</div><div style="display:flex;gap:10px;"><button id="del-cancel" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px;font-size:14px;color:#e8e0d4;cursor:pointer;font-family:inherit;">Annuler</button><button id="del-ok" style="flex:1;background:rgba(255,63,91,0.2);border:1px solid rgba(255,63,91,0.5);border-radius:12px;padding:11px;font-size:14px;color:#ff3f5b;cursor:pointer;font-weight:700;font-family:inherit;">Supprimer</button></div></div>`;document.body.appendChild(confirmEl);const ok=await new Promise(res=>{confirmEl.querySelector('#del-ok').onclick=()=>{confirmEl.remove();res(true);};confirmEl.querySelector('#del-cancel').onclick=()=>{confirmEl.remove();res(false);};});if(!ok)return;if(!st.userId)return;try{await Promise.all([supa.from('groupe_membres').delete().eq('user_id',st.userId),supa.from('votes').delete().eq('user_id',st.userId),supa.from('messages').delete().eq('user_id',st.userId),supa.from('groupes').delete().eq('user_id',st.userId),supa.from('friend_requests').delete().or(`from_user_id.eq.${st.userId},to_user_id.eq.${st.userId}`),supa.from('private_messages').delete().or(`sender_id.eq.${st.userId},receiver_id.eq.${st.userId}`),supa.from('notifs').delete().eq('user_id',st.userId),supa.from('profiles').delete().eq('id',st.userId)]);await supa.rpc('delete_user');_explicitLogout=true;await supa.auth.signOut();try{localStorage.removeItem('cm2');}catch(e){}st.screen='auth';st.authStep='login';render();}catch(e){alert('Erreur : '+e.message);}}
+</script>
 
-self.addEventListener('notificationclick', e => {
-  e.notification.close();
-  const url = e.notification.data?.url || '/';
-  e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      const existing = list.find(c => c.url.includes(self.location.origin));
-      if (existing) { existing.focus(); existing.postMessage({ type: 'NAVIGATE', url }); return; }
-      return clients.openWindow(url);
-    })
+<script>
+function sLoading(){return `<div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;"><div style="font-size:56px;">🎬</div><div class="serif" style="font-size:28px;">CinéMatch</div><div style="width:32px;height:3px;background:#ff3f5b;border-radius:2px;animation:pulse 1.2s ease-in-out infinite;"></div></div>`;}
+
+function sAuth(){
+  const lang=st.lang||'fr';const mode=st.authStep||'login';
+  const inp=(id,type,ph,kb)=>`<input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;background:${S2};border:1px solid ${BD};border-radius:var(--radius);padding:var(--sp-md) var(--sp-lg);font-size:var(--fs-md);color:${TX};outline:none;box-sizing:border-box;margin-bottom:10px;" onkeydown="if(event.key==='Enter')${kb}">`;
+  let body='';
+  if(mode==='login'){body=`<div style="font-size:var(--fs-sm);color:${MU};margin-bottom:var(--sp-xl);">${lang==='fr'?'Connecte-toi à ton compte':'Sign in to your account'}</div>${inp('authPseudo','text',lang==='fr'?'Ton pseudo':'Your username','loginWithPassword()')}<div style="position:relative;width:100%;margin-bottom:6px;">${inp('authPass','password',lang==='fr'?'Mot de passe':'Password','loginWithPassword()')}<span onclick="togglePwd('authPass')" style="position:absolute;right:14px;top:14px;cursor:pointer;font-size:17px;opacity:.5;">👁</span></div><div id="auth-err" style="font-size:12px;color:${AC};margin-bottom:10px;min-height:16px;"></div><button onclick="loginWithPassword()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">${lang==='fr'?'Se connecter →':'Sign in →'}</button><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:1px;background:${BD};"></div><div style="font-size:11px;color:${MU};">ou</div><div style="flex:1;height:1px;background:${BD};"></div></div><button onclick="signInWithGoogle()" style="width:100%;background:${S1};border:1px solid ${BD};color:${TX};border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>${lang==='fr'?'Continuer avec Google':'Continue with Google'}</button><div style="display:flex;justify-content:space-between;margin-top:18px;"><span onclick="st.authStep='register';render()" style="font-size:13px;color:${AC};cursor:pointer;">${lang==='fr'?'Créer un compte':'Create account'}</span><span onclick="st.authStep='forgot';render()" style="font-size:13px;color:${MU};cursor:pointer;">${lang==='fr'?'Mot de passe oublié ?':'Forgot password?'}</span></div>`;}
+  else if(mode==='register'){body=`<div style="font-size:var(--fs-sm);color:${MU};margin-bottom:var(--sp-xl);">${lang==='fr'?'Crée ton compte CinéMatch':'Create your CinéMatch account'}</div>${inp('regPseudo','text',lang==='fr'?'Choisis un pseudo':'Choose a username','registerWithPassword()')}${inp('regEmail','email',lang==='fr'?'ton@email.fr':'your@email.com','registerWithPassword()')}<div style="position:relative;width:100%;margin-bottom:6px;">${inp('regPass','password',lang==='fr'?'Mot de passe (min 6 caractères)':'Password (min 6 chars)','registerWithPassword()')}<span onclick="togglePwd('regPass')" style="position:absolute;right:14px;top:14px;cursor:pointer;font-size:17px;opacity:.5;">👁</span></div><div id="auth-err" style="font-size:12px;color:${AC};margin-bottom:10px;min-height:16px;"></div><button onclick="registerWithPassword()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">${lang==='fr'?'Créer mon compte →':'Create my account →'}</button><span onclick="st.authStep='login';render()" style="font-size:13px;color:${MU};cursor:pointer;">${lang==='fr'?'Déjà un compte ? Se connecter':'Already have an account? Sign in'}</span>`;}
+  else if(mode==='forgot'){body=`${inp('forgotEmail','email',lang==='fr'?'ton@email.fr':'your@email.com','sendResetEmail()')}<div id="auth-err" style="font-size:12px;color:${AC};margin-bottom:10px;min-height:16px;"></div><button onclick="sendResetEmail()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">${lang==='fr'?'Envoyer le lien':'Send reset link'}</button><span onclick="st.authStep='login';render()" style="font-size:13px;color:${MU};cursor:pointer;">← Retour</span>`;}
+  else if(mode==='sent'){body=`<div style="font-size:56px;margin-bottom:16px;">📬</div><div style="font-size:15px;font-weight:600;margin-bottom:8px;">${lang==='fr'?'Email envoyé !':'Email sent!'}</div><span onclick="st.authStep='login';render()" style="font-size:13px;color:${AC};cursor:pointer;">${lang==='fr'?'← Retour':'← Back'}</span>`;}
+  else if(mode==='confirm'){const mail=st._confirmEmail||'';body=`<div style="font-size:56px;margin-bottom:16px;">✉️</div><div style="font-size:15px;font-weight:600;margin-bottom:8px;">Confirme ton email</div><div style="font-size:13px;color:${MU};margin-bottom:6px;">Email envoyé à</div><div style="font-size:14px;font-weight:600;margin-bottom:20px;">${mail}</div><button onclick="st.authStep='login';render()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">Aller à la connexion →</button>`;}
+  return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
+    <div style="position:absolute;top:16px;right:16px;"><select onchange="st.lang=this.value;save();render()" style="background:${S1};border:1px solid ${BD};border-radius:10px;padding:6px 10px;font-size:13px;color:${TX};cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;padding-right:24px;"><option value="fr" ${lang==='fr'?'selected':''}>🇫🇷 FR</option><option value="en" ${lang==='en'?'selected':''}>🇬🇧 EN</option></select></div>
+    <div style="font-size:64px;margin-bottom:12px;">🎬</div>
+    <div class="serif" style="font-size:var(--fs-3xl);margin-bottom:var(--sp-lg);">CinéMatch</div>
+    <div style="font-size:13px;color:${MU};margin-bottom:24px;">Réseau social du cinéma</div>
+    <div style="width:100%;max-width:320px;">${body}</div>
+  </div>`;}
+
+function togglePwd(id){const el=document.getElementById(id);if(el)el.type=el.type==='password'?'text':'password';}
+function showAuthErr(msg){const el=document.getElementById('auth-err');if(el)el.textContent=msg;}
+
+async function loginWithPassword(){
+  const pseudo=(document.getElementById('authPseudo')?.value||'').trim();const pass=(document.getElementById('authPass')?.value||'').trim();
+  if(!pseudo||!pass){showAuthErr('Remplis tous les champs');return;}
+  const btn=document.querySelector('[onclick="loginWithPassword()"]');if(btn){btn.disabled=true;btn.textContent='Connexion...';}showAuthErr('');
+  try{
+    const{data:profile,error:pErr}=await supa.from('profiles').select('id,email').ilike('pseudo',pseudo).limit(1).single();
+    if(pErr||!profile){showAuthErr('Pseudo introuvable ❌');return;}
+    const{error}=await supa.auth.signInWithPassword({email:profile.email,password:pass});
+    if(error){showAuthErr('Mot de passe incorrect ❌');}
+  }catch(e){showAuthErr('Erreur : '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Se connecter →';}}
+}
+async function registerWithPassword(){
+  const pseudo=(document.getElementById('regPseudo')?.value||'').trim();const email=(document.getElementById('regEmail')?.value||'').trim();const pass=(document.getElementById('regPass')?.value||'').trim();
+  if(!pseudo||!email||!pass){showAuthErr('Remplis tous les champs');return;}
+  if(pass.length<6){showAuthErr('Mot de passe trop court');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthErr('Email invalide');return;}
+  const btn=document.querySelector('[onclick="registerWithPassword()"]');if(btn){btn.disabled=true;btn.textContent='Création...';}showAuthErr('');
+  try{
+    const{data:existing}=await supa.from('profiles').select('id').eq('pseudo',pseudo).limit(1);
+    if(existing&&existing.length>0){showAuthErr('Ce pseudo est déjà pris ❌');return;}
+    const{data,error}=await supa.auth.signUp({email,password:pass,options:{emailRedirectTo:window.location.origin}});
+    if(error){showAuthErr(error.message);return;}
+    if(data?.user){await supa.from('profiles').upsert({id:data.user.id,pseudo,avatar:st.avatar||'🎬',lang:st.lang||'fr',email},{onConflict:'id'});st.pseudo=pseudo;save();}
+    const{error:loginErr}=await supa.auth.signInWithPassword({email,password:pass});
+    if(loginErr){st.authStep='confirm';st._confirmEmail=email;render();}
+  }catch(e){showAuthErr('Erreur : '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Créer mon compte →';}}
+}
+async function sendResetEmail(){const email=(document.getElementById('forgotEmail')?.value||'').trim();if(!email){showAuthErr('Email invalide');return;}const{error}=await supa.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'?reset=1'});if(!error){st.authStep='sent';render();}else showAuthErr(error.message);}
+async function signInWithGoogle(){const{error}=await supa.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});if(error)alert('Erreur Google : '+error.message);}
+
+function openAvatarPicker(){st.showAvatarPicker=true;const wrap=document.getElementById('avatar-picker-wrap');if(wrap)wrap.innerHTML=buildPickerGrid();}
+
+function buildPickerGrid(){let html=`<div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><span style="font-size:12px;color:${MU};font-weight:600;letter-spacing:1px;text-transform:uppercase;">Choisir votre animal</span><span onclick="closeAvatarPicker()" style="font-size:12px;color:${AC};cursor:pointer;padding:2px 8px;border:1px solid rgba(255,63,91,0.3);border-radius:8px;">✕</span></div><div style="display:flex;flex-wrap:wrap;gap:5px;max-height:180px;overflow-y:auto;">`;ANIMAL_EMOJIS.forEach(e=>{const active=st.avatar===e;html+=`<div data-emoji="${e}" onclick="pickAvatar(this)" style="width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;background:${active?'rgba(255,63,91,0.15)':'rgba(255,255,255,0.03)'};border:1px solid ${active?'#ff3f5b':'rgba(255,255,255,0.07)'};">${e}</div>`;});return html+'</div></div>';}
+function closeAvatarPicker(){st.showAvatarPicker=false;const wrap=document.getElementById('avatar-picker-wrap');if(wrap)wrap.innerHTML=buildAvatarBtn();}
+function buildAvatarBtn(){return `<div onclick="openAvatarPicker()" style="display:flex;align-items:center;gap:10px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:12px 16px;cursor:pointer;"><div style="width:44px;height:44px;border-radius:50%;background:${pseudoColor(st.pseudoInput||'A')};display:flex;align-items:center;justify-content:center;font-size:26px;">${st.avatar}</div><div style="flex:1;text-align:left;"><div style="font-size:13px;font-weight:500;">Votre avatar</div><div style="font-size:11px;color:${MU};">Appuyez pour choisir</div></div><span style="color:${MU};">›</span></div>`;}
+function pickAvatar(el){const e=el.dataset.emoji;if(!e)return;st.avatar=e;st.showAvatarPicker=false;save();if(st.userId&&st.pseudo)supa.from('profiles').update({avatar:e}).eq('id',st.userId);if(st.screen==='pseudo'){const wrap=document.getElementById('avatar-picker-wrap');if(wrap)wrap.innerHTML=buildAvatarBtn();return;}render();}
+
+function sPseudo(){
+  const lang=st.lang||'fr';
+  return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
+    <div style="font-size:64px;margin-bottom:16px;">🎬</div>
+    <div class="serif" style="font-size:var(--fs-3xl);margin-bottom:6px;">CinéMatch</div>
+    <div style="font-size:13px;color:${MU};margin-bottom:20px;line-height:1.7;">${T('appTagline')}</div>
+    <div style="position:absolute;top:16px;right:16px;"><select onchange="st.lang=this.value;save();render()" style="background:${S1};border:1px solid ${BD};border-radius:10px;padding:6px 10px;font-size:13px;color:${TX};cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;"><option value="fr" ${lang==='fr'?'selected':''}>🇫🇷 FR</option><option value="en" ${lang==='en'?'selected':''}>🇬🇧 EN</option></select></div>
+    <div style="width:100%;margin-bottom:12px;"><input id="pseudoInput" type="text" placeholder="${T('enterPseudo')}" maxlength="20" style="width:100%;background:${S2};border:1px solid ${BD};border-radius:var(--radius);padding:var(--sp-md) var(--sp-lg);font-size:var(--fs-md);color:${TX};outline:none;text-align:center;" onkeydown="if(event.key==='Enter')confirmPseudo()" oninput="st.pseudoInput=this.value" value="${st.pseudoInput}"></div>
+    <div id="avatar-picker-wrap" style="width:100%;margin-bottom:12px;">${st.showAvatarPicker?buildPickerGrid():buildAvatarBtn()}</div>
+    <div id="pseudo-err" style="font-size:12px;color:${AC};margin-bottom:8px;opacity:0;transition:opacity .3s;"></div>
+    <button onclick="confirmPseudo()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;">${T('enterApp')}</button>
+    <div style="margin-top:20px;font-size:11px;color:${MU};">${T('pseudoVisible')}</div>
+  </div>`;}
+
+async function confirmPseudo(){
+  const inp=document.getElementById('pseudoInput');const val=(inp?inp.value:st.pseudoInput).trim();
+  if(!val||!st.userId)return;
+  const{data:existing}=await supa.from('profiles').select('id').eq('pseudo',val).neq('id',st.userId).limit(1);
+  if(existing&&existing.length>0){const err=document.getElementById('pseudo-err');if(err){err.textContent='Ce pseudo est déjà pris ❌';err.style.opacity='1';}return;}
+  await supa.from('profiles').upsert({id:st.userId,pseudo:val,avatar:st.avatar,lang:st.lang},{onConflict:'id'});
+  st.pseudo=val;save();st.screen='home';render();init_social();
+}
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// SOCIAL SCREENS
+// ══════════════════════════════════════════════════════════════
+
+function friendActionBtn(user){
+  const status=getFriendStatus(user.id);
+  if(status==='friend')return `<button onclick="event.stopPropagation();openPrivateChat('${user.id}','${user.pseudo}','${user.avatar||'🎬'}')" style="padding:6px 12px;background:rgba(0,192,48,0.12);border:1px solid rgba(0,192,48,0.3);border-radius:10px;font-size:11px;font-weight:600;color:#00c030;cursor:pointer;">💬 Message</button>`;
+  if(status==='sent')return `<span style="padding:6px 12px;background:rgba(255,255,255,0.04);border:1px solid ${BD};border-radius:10px;font-size:11px;color:${MU};">Envoyé ✓</span>`;
+  if(status==='received')return `<button onclick="event.stopPropagation();acceptFriendRequest('${friendRequests.find(r=>r.from_user_id===user.id)?.id}','${user.id}','${user.pseudo}')" style="padding:6px 12px;background:rgba(255,63,91,0.12);border:1px solid rgba(255,63,91,0.3);border-radius:10px;font-size:11px;font-weight:600;color:${AC};cursor:pointer;">Accepter</button>`;
+  return `<button onclick="event.stopPropagation();sendFriendRequest('${user.id}')" style="padding:6px 12px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);border-radius:10px;font-size:11px;font-weight:600;color:#4a9eff;cursor:pointer;">+ Ajouter</button>`;
+}
+
+function userRow(u,extra=''){
+  const mutualFriends=myFriends.filter(f=>{return false;}).length; // placeholder
+  return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid ${BD};">
+    <div onclick="openMemberProfile('${esc(u.pseudo)}')" style="cursor:pointer;">${avatarEl(u.pseudo,42)}</div>
+    <div style="flex:1;min-width:0;cursor:pointer;" onclick="openMemberProfile('${esc(u.pseudo)}')">
+      <div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;">${esc(u.pseudo)}</div>
+      ${extra?`<div style="font-size:9px;color:${MU};">${extra}</div>`:''}
+    </div>
+    ${friendActionBtn(u)}
+  </div>`;}
+
+function sFriends(){
+  const tab=st.friendsTab||'friends';
+  const pendingCount=friendRequests.length;
+  const header=`<div style="padding:52px 18px 0;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+      <div class="serif" style="font-size:clamp(18px,5.6vw,24px);flex:1;">Mes amis</div>
+      <div style="font-size:13px;color:${MU};">${myFriends.length} ami${myFriends.length!==1?'s':''}</div>
+    </div>
+    <div style="display:flex;gap:0;background:${S1};border:1px solid ${BD};border-radius:14px;padding:3px;margin-bottom:4px;">
+      ${[['friends','👥 Amis'],['requests','🔔 Demandes'],['find','🔍 Trouver']].map(([id,lb])=>`<div onclick="st.friendsTab='${id}';render()" style="flex:1;text-align:center;padding:6px 4px;border-radius:11px;cursor:pointer;font-size:clamp(9px,2.8vw,12px);font-weight:600;background:${tab===id?AC:'transparent'};color:${tab===id?'#fff':MU};">${lb}${id==='requests'&&pendingCount?` <span style="background:rgba(255,255,255,0.3);color:#fff;border-radius:8px;padding:1px 5px;font-size:8px;">${pendingCount}</span>`:''}</div>`).join('')}
+    </div>
+  </div>`;
+
+  let content='';
+
+  if(tab==='friends'){
+    if(myFriends.length===0){
+      content=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;gap:12px;">
+        <div style="font-size:52px;">👥</div>
+        <div class="serif" style="font-size:20px;">Pas encore d'amis</div>
+        <div style="font-size:13px;color:${MU};line-height:1.6;">Cherche des utilisateurs ou rencontre des gens dans les groupes et sorties cinéma !</div>
+        <div onclick="st.friendsTab='find';render()" style="padding:10px 20px;background:${AC};border-radius:12px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">🔍 Trouver des amis</div>
+      </div>`;
+    }else{
+      content=myFriends.map(f=>{
+        const conv=conversations.find(c=>c.partnerId===f.id);
+        const extra=conv?.unread?`💬 ${conv.unread} nouveau${conv.unread>1?'x':''} message`:'';
+        return userRow(f,extra);
+      }).join('');
+    }
+  }
+
+  else if(tab==='requests'){
+    let html='';
+    if(friendRequests.length>0){
+      html+=`<div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">Demandes reçues</div>`;
+      html+=friendRequests.map(r=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid ${BD};">
+        ${avatarEl(r.profile.pseudo,42)}
+        <div style="flex:1;cursor:pointer;" onclick="openMemberProfile('${esc(r.profile.pseudo)}')">
+          <div style="font-size:14px;font-weight:600;">${esc(r.profile.pseudo)}</div>
+          <div style="font-size:10px;color:${MU};">veut être votre ami</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="acceptFriendRequest('${r.id}','${r.from_user_id}','${esc(r.profile.pseudo)}')" style="padding:6px 10px;background:rgba(0,192,48,0.12);border:1px solid rgba(0,192,48,0.3);border-radius:10px;font-size:11px;font-weight:600;color:${LB};cursor:pointer;">✓</button>
+          <button onclick="rejectFriendRequest('${r.id}')" style="padding:6px 10px;background:rgba(255,63,91,0.08);border:1px solid rgba(255,63,91,0.25);border-radius:10px;font-size:11px;color:${MU};cursor:pointer;">✕</button>
+        </div>
+      </div>`).join('');
+    }
+    if(sentRequests.length>0){
+      html+=`<div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin:16px 0 8px;">Demandes envoyées</div>`;
+      html+=sentRequests.map(r=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid ${BD};">
+        ${avatarEl(r.profile.pseudo,42)}
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;">${esc(r.profile.pseudo)}</div>
+          <div style="font-size:10px;color:${MU};">En attente…</div>
+        </div>
+        <span style="font-size:11px;color:${MU};padding:4px 8px;border:1px solid ${BD};border-radius:8px;">⏳</span>
+      </div>`).join('');
+    }
+    if(!friendRequests.length&&!sentRequests.length){
+      html=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;gap:10px;"><div style="font-size:40px;">🔔</div><div style="font-size:14px;color:${MU};">Aucune demande en cours</div></div>`;
+    }
+    content=html;
+  }
+
+  else if(tab==='find'){
+    content=`<div style="margin-bottom:12px;">
+      <div style="position:relative;">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;">🔍</span>
+        <input placeholder="Rechercher un pseudo…" value="${st.friendSearch||''}"
+          oninput="st.friendSearch=this.value;clearTimeout(window._fst);window._fst=setTimeout(doSearchUsers,400)"
+          onkeydown="if(event.key==='Enter')doSearchUsers()"
+          style="width:100%;background:${S1};border:1px solid ${BD};border-radius:20px;padding:10px 12px 10px 36px;font-size:13px;color:${TX};outline:none;box-sizing:border-box;">
+      </div>
+    </div>
+    ${userSearchResults.length>0?userSearchResults.map(u=>userRow(u)).join(''):
+      st.friendSearch&&st.friendSearch.length>=2?`<div style="text-align:center;padding:30px;color:${MU};font-size:13px;">Aucun résultat pour "${esc(st.friendSearch)}"</div>`:
+      `<div style="text-align:center;padding:40px 20px;"><div style="font-size:40px;margin-bottom:10px;">👥</div><div style="font-size:13px;color:${MU};">Tape un pseudo pour chercher</div></div>`}`;
+  }
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    ${header}
+    <div style="flex:1;overflow-y:auto;padding:12px 18px 20px;">${content}</div>
+  </div>`;}
+
+// ── MESSAGES SCREEN ─────────────────────────────────────────
+function timeAgo(dateStr){
+  if(!dateStr) return '';
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if(diff < 60) return "à l'instant";
+  if(diff < 3600) return `il y a ${Math.floor(diff/60)} min`;
+  if(diff < 86400) return `il y a ${Math.floor(diff/3600)}h`;
+  if(diff < 604800) return `il y a ${Math.floor(diff/86400)}j`;
+  return new Date(dateStr).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+}
+
+function sMessages(){
+  const totalUnread = conversations.reduce((sum,c) => sum+(c.unread||0), 0);
+  const filter = st.messagesFilter || 'all';
+  const search = (st.messagesSearch || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  const filtered = conversations.filter(conv => {
+    if(filter === 'unread' && !conv.unread) return false;
+    if(search) {
+      const pseudo = (conv.partner?.pseudo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const msg = (conv.lastMsg?.content||'').toLowerCase();
+      if(!pseudo.includes(search) && !msg.includes(search)) return false;
+    }
+    return true;
+  });
+
+  const tabs = [
+    ['all','💬','Tous', conversations.length],
+    ['unread','🔵','Non lus', totalUnread],
+    ['friends','👥','Amis', myFriends.length],
+  ];
+
+  const convList = filtered.length === 0
+    ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;gap:12px;flex:1;">
+        <div style="font-size:52px;">${search ? '🔍' : '💬'}</div>
+        <div style="font-size:16px;font-weight:600;">${search ? 'Aucun résultat' : 'Aucune conversation'}</div>
+        <div style="font-size:13px;color:${MU};">${search ? 'Essaie un autre terme' : 'Tes messages avec tes amis apparaîtront ici'}</div>
+        ${!search ? `<div onclick="go('friends')" style="padding:10px 20px;background:${AC};border-radius:12px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">Voir mes amis</div>` : ''}
+      </div>`
+    : filtered.map(conv => {
+        const p = conv.partner; if(!p) return '';
+        const msg = conv.lastMsg;
+        const preview = (msg?.content||'').slice(0,45) + ((msg?.content||'').length>45?'…':'');
+        const time = timeAgo(msg?.created_at);
+        const me = msg?.sender_id === st.userId;
+        const av = getAvatar(p.pseudo) || p.avatar;
+        const avatarDiv = (av && av.length <= 2)
+          ? `<div style="width:48px;height:48px;border-radius:50%;background:${pseudoColor(p.pseudo)};display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">${av}</div>`
+          : p.photo_url
+            ? `<div style="width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0;"><img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;"></div>`
+            : `<div style="width:48px;height:48px;border-radius:50%;background:${pseudoColor(p.pseudo)};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;">${pseudoInitial(p.pseudo)}</div>`;
+        return `<div onclick="openPrivateChat('${p.id}','${esc(p.pseudo)}','${p.avatar||'🎬'}')" class="tap" style="display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;border-bottom:1px solid ${BD};background:${conv.unread?'rgba(255,63,91,0.03)':'transparent'};">
+          <div style="position:relative;flex-shrink:0;">
+            ${avatarDiv}
+            ${conv.unread ? `<div style="position:absolute;bottom:0;right:0;width:14px;height:14px;border-radius:50%;background:${AC};border:2px solid ${BG};"></div>` : ''}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px;">
+              <div style="font-size:14px;font-weight:${conv.unread?700:500};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${esc(p.pseudo)}</div>
+              <div style="font-size:10px;color:${conv.unread?AC:MU};flex-shrink:0;margin-left:6px;">${time}</div>
+            </div>
+            <div style="font-size:12px;color:${conv.unread?TX:MU};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${me?`<span style="color:${MU}">Vous: </span>`:''}${esc(preview)||'…'}
+            </div>
+          </div>
+          ${conv.unread ? `<div style="min-width:20px;height:20px;border-radius:10px;background:${AC};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;padding:0 5px;flex-shrink:0;">${conv.unread}</div>` : ''}
+        </div>`;
+      }).join('');
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <!-- Header -->
+    <div style="padding:50px 18px 10px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="serif" style="font-size:clamp(20px,6.2vw,26px);">Messages</div>
+        ${totalUnread > 0 ? `<div style="background:${AC};color:#fff;border-radius:10px;padding:3px 9px;font-size:11px;font-weight:700;">${totalUnread} non lu${totalUnread>1?'s':''}</div>` : ''}
+      </div>
+      <!-- Search bar -->
+      <div style="position:relative;margin-bottom:10px;">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;color:${MU};">🔍</span>
+        <input placeholder="Rechercher une conversation…" value="${st.messagesSearch||''}"
+          oninput="st.messagesSearch=this.value;render()"
+          style="width:100%;background:${S1};border:1px solid ${BD};border-radius:20px;padding:9px 14px 9px 34px;font-size:13px;color:${TX};outline:none;box-sizing:border-box;">
+        ${st.messagesSearch ? `<span onclick="st.messagesSearch='';render()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:${MU};cursor:pointer;">✕</span>` : ''}
+      </div>
+      <!-- Filter tabs -->
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;">
+        ${tabs.map(([id,ic,lb,cnt]) => `<div onclick="st.messagesFilter='${id}';render()" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;flex-shrink:0;border:1px solid ${filter===id?AC:BD};background:${filter===id?AC:'rgba(255,255,255,0.03)'};color:${filter===id?'#fff':MU};">
+          ${ic} ${lb}${cnt>0?` <span style="background:${filter===id?'rgba(255,255,255,0.3)':S2};border-radius:8px;padding:1px 5px;font-size:10px;">${cnt}</span>`:''}
+        </div>`).join('')}
+      </div>
+    </div>
+    <!-- Conversation list -->
+    <div style="flex:1;overflow-y:auto;">
+      ${convList}
+    </div>
+    ${nav('messages')}
+  </div>`;
+}
+
+function sPrivateChat(){
+  const p=st.chatWith;if(!p)return'<div>Erreur</div>';
+  const status=getFriendStatus(p.userId);
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:52px 18px 10px;flex-shrink:0;border-bottom:1px solid ${BD};">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div onclick="go('messages');loadConversations()" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div>
+        <div style="width:38px;height:38px;border-radius:50%;background:${pseudoColor(p.pseudo)};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">${p.avatar}</div>
+        <div style="flex:1;min-width:0;cursor:pointer;" onclick="openMemberProfile('${esc(p.pseudo)}')">
+          <div style="font-size:14px;font-weight:600;">${esc(p.pseudo)}</div>
+          <div style="font-size:10px;color:${status==='friend'?LB:MU};">${status==='friend'?'✓ Ami':'Inconnu'}</div>
+        </div>
+      </div>
+    </div>
+    <div id="pm-area" style="flex:1;overflow-y:auto;padding:14px 18px;"></div>
+    ${status==='friend'?`<div style="padding:10px 18px 14px;background:${BG};border-top:1px solid ${BD};display:flex;gap:8px;flex-shrink:0;">
+      <input id="pm-input" placeholder="Message…" style="flex:1;background:${S1};border:1px solid ${BD};border-radius:20px;padding:9px 14px;font-size:14px;color:${TX};outline:none;" onkeydown="if(event.key==='Enter')sendPrivateMessage()">
+      <button onclick="sendPrivateMessage()" style="width:36px;height:36px;border-radius:50%;background:${AC};border:none;color:#fff;font-size:17px;cursor:pointer;flex-shrink:0;">↑</button>
+    </div>`:`<div style="padding:12px 18px;text-align:center;font-size:12px;color:${MU};border-top:1px solid ${BD};">Vous devez être amis pour envoyer des messages</div>`}
+  </div>`;}
+
+// ── NOTIFICATIONS SCREEN ─────────────────────────────────────
+function sNotifications(){
+  const notifIcon={friend_request:'👋',friend_accepted:'🎉',private_message:'💬',group_message:'📢'};
+  const notifLabel={friend_request:'Demande d\'ami',friend_accepted:'Nouvel ami',private_message:'Message privé',group_message:'Message de groupe'};
+  
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:52px 18px 12px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:0;">
+        <div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+        <div class="serif" style="font-size:clamp(18px,5.6vw,24px);flex:1;">Notifications</div>
+        ${notifCount>0?`<div onclick="markNotifsRead()" style="font-size:11px;color:${MU};cursor:pointer;padding:4px 10px;border:1px solid ${BD};border-radius:10px;">Tout lire</div>`:''}
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
+      ${notifsList.length===0?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;gap:12px;">
+        <div style="font-size:52px;">🔔</div>
+        <div class="serif" style="font-size:20px;">Tout est calme</div>
+        <div style="font-size:13px;color:${MU};">Vos notifications apparaîtront ici</div>
+      </div>`:notifsList.map(n=>{
+        const data=n.data||{};
+        const icon=notifIcon[n.type]||'🔔';
+        const label=notifLabel[n.type]||n.type;
+        const time=new Date(n.created_at);
+        const timeStr=time.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' '+time.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        let action='';let detail='';
+        if(n.type==='friend_request'){detail=`${data.pseudo} veut être votre ami`;action=`onclick="st.friendsTab='requests';go('friends')"` ;}
+        else if(n.type==='friend_accepted'){detail=`${data.pseudo} a accepté votre demande`;}
+        else if(n.type==='private_message'){detail=`${data.from_pseudo}: ${data.preview||''}`;action=`onclick="openPrivateChat('${data.from_pseudo}','${data.from_pseudo}','${data.from_avatar||'🎬'}')"` /* note: ideally we'd pass userId */;}
+        return `<div ${action} style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid ${BD};cursor:${action?'pointer':'default'};background:${n.read?'transparent':'rgba(255,63,91,0.04)'};border-radius:8px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:${n.read?S1:'rgba(255,63,91,0.12)'};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">${icon}</div>
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:${n.read?400:600};color:${n.read?MU:TX};margin-bottom:3px;">${label}</div>
+            <div style="font-size:13px;line-height:1.4;">${esc(detail)}</div>
+            <div style="font-size:10px;color:${MU};margin-top:3px;">${timeStr}</div>
+          </div>
+          ${!n.read?`<div style="width:8px;height:8px;border-radius:50%;background:${AC};flex-shrink:0;margin-top:6px;"></div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;}
+</script>
+
+<script>
+
+
+function getSearchHistory(){try{return JSON.parse(localStorage.getItem('cm_searches_'+(st.pseudo||'_'))||'[]');}catch(e){return[];}}
+function saveSearch(q){if(!q||q.trim().length<2)return;q=q.trim();try{const key='cm_searches_'+(st.pseudo||'_');let hist=getSearchHistory();hist=hist.filter(h=>h!==q);hist.unshift(q);hist=hist.slice(0,8);localStorage.setItem(key,JSON.stringify(hist));}catch(e){}}
+function clearSearchHistory(){try{localStorage.removeItem('cm_searches_'+(st.pseudo||'_'));}catch(e){}st.search='';render();}
+function useSearch(q){st.search=q;st.showSearchHistory=false;render();}
+function setGenre(g){st.genre=g;st.search='';st.showSearchHistory=false;st.filmGridMode=true;render();}
+function showSearchHistory(){const hist=getSearchHistory();if(!hist.length||st.search)return;const drop=document.getElementById('search-history-dropdown');if(!drop)return;drop.innerHTML=`<div style="position:absolute;top:4px;left:0;right:0;background:#16162a;border:1px solid ${BD};border-radius:14px;overflow:hidden;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.5);"><div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 6px;border-bottom:1px solid ${BD};"><span style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">Récent</span><span onclick="clearSearchHistory()" style="font-size:9px;color:${MU};cursor:pointer;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,0.06);">Effacer</span></div>${hist.map((h,i)=>`<div onmousedown="useSearch(getSearchHistory()[${i}])" style="padding:9px 12px;font-size:13px;color:${TX};cursor:pointer;display:flex;align-items:center;gap:8px;"><span style="font-size:12px;color:${MU};">🕐</span>${h}</div>`).join('')}</div>`;}
+function hideSearchHistory(){const drop=document.getElementById('search-history-dropdown');if(drop)drop.innerHTML='';}
+function renderSearchResults(){const inp=document.getElementById('search-input');const val=inp?inp.value:'';const pos=inp?inp.selectionStart:0;render();requestAnimationFrame(()=>{const el=document.getElementById('search-input');if(el){el.focus();try{el.setSelectionRange(pos,pos);}catch(e){}}});}
+
+function sHome(){
+  const tab=st.homeTab||'sorties';
+  const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const mySortieIds=new Set(mesGroupes.map(g=>g.id));
+
+  const header=`
+    <div style="padding:50px 18px 0;flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div>
+          <div style="font-size:clamp(9px,2.8vw,12px);color:${MU};letter-spacing:2px;text-transform:uppercase;">${T('bonsoir')}</div>
+          <div class="serif" style="font-size:clamp(18px,5.6vw,24px);display:flex;align-items:center;gap:8px;">${esc(st.pseudo)} <span style="color:${AC}">👋</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div onclick="go('notifications');markNotifsRead()" style="position:relative;width:36px;height:36px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            🔔<div class="notif-badge" style="display:${notifCount>0?'flex':'none'}">${notifCount>9?'9+':notifCount}</div>
+          </div>
+          <div onclick="go('profile')" style="display:flex;align-items:center;gap:7px;background:${S1};border:1px solid ${BD};border-radius:18px;padding:5px 10px 5px 5px;cursor:pointer;">
+            ${avatarEl(st.pseudo,26)}
+            <span style="font-size:12px;">@${st.pseudo.toLowerCase().replace(/\s+/g,'')} <span style="color:${LB}">✓</span></span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:0;background:${S1};border:1px solid ${BD};border-radius:14px;padding:3px;margin-bottom:2px;">
+        <div onclick="st.homeTab='sorties';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:clamp(10px,3vw,13px);font-weight:600;background:${tab==='sorties'?AC:'transparent'};color:${tab==='sorties'?'#fff':MU};transition:all .2s;">${T('sorties')}</div>
+        <div onclick="st.homeTab='films';st.search='';st.filmGridMode=false;st.genre='tous';render()" style="flex:1;text-align:center;padding:7px;border-radius:11px;cursor:pointer;font-size:clamp(10px,3vw,13px);font-weight:600;background:${tab==='films'?S2:'transparent'};color:${tab==='films'?TX:MU};transition:all .2s;">${T('films')}</div>
+      </div>
+    </div>`;
+
+  if(tab==='films'){
+    const today=todayStr();
+    const allFilms=Object.entries(FILMS).filter(([id])=>
+      Object.values(SEANCES_ALL||SEANCES).some(c=>
+        c[id] && (Array.isArray(c[id]) ? c[id].length>0 : Object.values(c[id]).some(h=>h.length>0))
+      )
+    );
+    const genresList=T('genres');
+    const searchQ=norm(st.search||'');
+    const activeGenre=st.genre||'tous';
+    const filmGenre=id=>{const f=FILMS[id];return f?norm(f.g):'';};
+    const filtered=allFilms.filter(([id,f])=>{
+      const gn=norm(activeGenre);
+      const genreOk=activeGenre==='tous'||filmGenre(id).includes(gn)||filmGenre(id).includes(gn.replace('comedie','comedi'));
+      const searchOk=!searchQ||norm(f.t).includes(searchQ)||norm(f.dir||'').includes(searchQ)||norm(f.g).includes(searchQ);
+      return genreOk&&searchOk;
+    }).sort((a,b)=>a[1].t.localeCompare(b[1].t));
+    const isSearching=searchQ.length>0;
+    const isFiltering=st.filmGridMode||activeGenre!=='tous';
+    const topFilms=[...allFilms].sort(([a],[b])=>{const sA=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[a];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);const sB=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[b];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);return sB-sA;}).slice(0,10);
+    const filmIdsWithSorties=new Set(sortiesPubliques.map(s=>s.film_id));
+    const filmsWithSorties=allFilms.filter(([id])=>filmIdsWithSorties.has(id));
+    const heroEntry=allFilms.find(([id])=>posters[id])||allFilms[0];
+    const heroId=heroEntry?.[0],heroFilm=heroEntry?.[1];
+
+    // Recommendations: films your friends have joined sorties for
+    const friendPseudos=new Set(myFriends.map(f=>f.pseudo));
+    const friendFilmIds=new Set(sortiesPubliques.filter(s=>s._avatars?.some(a=>friendPseudos.has(a.pseudo))).map(s=>s.film_id));
+    const friendRecoFilms=allFilms.filter(([id])=>friendFilmIds.has(id)&&!isVu(id));
+
+    return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${header}
+      <div style="padding:10px 18px 0;flex-shrink:0;">
+        <div style="position:relative;margin-bottom:10px;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;">🔍</span>
+          <input id="search-input" placeholder="Titre, réalisateur, genre…" value="${st.search||''}"
+            oninput="st.search=this.value;renderSearchResults()"
+            onfocus="showSearchHistory()"
+            onblur="setTimeout(hideSearchHistory,200)"
+            onkeydown="if(event.key==='Enter'){saveSearch(st.search);hideSearchHistory();}"
+            style="width:100%;background:${S1};border:1px solid ${BD};border-radius:20px;padding:8px 32px 8px 34px;font-size:13px;color:${TX};outline:none;box-sizing:border-box;">
+          ${(st.search||'')?`<span onclick="st.search='';render();" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:${MU};cursor:pointer;">✕</span>`:''}
+          <div id="search-history-dropdown" style="position:relative;"></div>
+        </div>
+        <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;">
+          ${genresList.map(([id,lb])=>`<div onclick="setGenre('${id}')" style="border-radius:20px;padding:5px 12px;font-size:clamp(9px,2.8vw,12px);font-weight:500;cursor:pointer;border:1px solid ${activeGenre===id?AC:BD};background:${activeGenre===id?AC:'rgba(255,255,255,0.03)'};color:${activeGenre===id?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join('')}
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;">
+        ${(isSearching||isFiltering)?`
+          ${filtered.length===0?`<div style="text-align:center;padding:40px 20px;color:${MU};"><div style="font-size:40px;margin-bottom:10px;">🔍</div><div style="font-size:14px;">${T('aucunFilmTrouve')}</div></div>`:''}
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 20px;">
+            ${filtered.map(([id,f])=>`<div onclick="openFilm('${id}','home')" class="tap" style="cursor:pointer;">
+              <div style="height:120px;border-radius:10px;overflow:hidden;background:${f.bg};position:relative;">
+                ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:
+                `<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:36px;">${f.e}</span>`}
+                ${isVu(id)?'<div style="position:absolute;top:4px;right:4px;background:rgba(0,192,48,0.9);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:8px;">✓</div>':''}
+              </div>
+              <div style="padding:4px 2px;">
+                <div style="font-size:9px;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${esc(f.t)}</div>
+                ${ratings[id]?`<div style="margin-top:2px;">${starsHTML(ratings[id].note,5,8)}</div>`:''}
+              </div>
+            </div>`).join('')}
+          </div>
+        `:`
+          ${heroFilm?`<div class="hero-film" onclick="openFilm('${heroId}','home')" style="cursor:pointer;height:185px;position:relative;overflow:hidden;margin-bottom:20px;">
+            ${posters[heroId]?`<img src="${posters[heroId]}" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.45);">`:``}
+            <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.1) 0%,rgba(7,7,15,0.88) 100%);"></div>
+            <div style="position:absolute;bottom:0;left:0;right:0;padding:14px 18px;">
+              <div style="font-size:9px;color:${GD};letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">✦ À l'affiche</div>
+              <div class="serif" style="font-size:clamp(17px,5vw,22px);margin-bottom:4px;">${heroFilm.t}</div>
+              <div style="display:flex;align-items:center;gap:8px;">${ratings[heroId]?`<div>${starsHTML(ratings[heroId].note,5,11)}</div>`:''}
+                <span style="font-size:9px;color:${MU};">${heroFilm.g}${heroFilm.d?' · '+heroFilm.d:''}</span>
+              </div>
+            </div>
+          </div>`:''}
+          ${friendRecoFilms.length>0?`<div style="margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:8px;">
+              <div style="font-size:clamp(13px,4vw,16px);font-weight:700;">👥 Aimés par vos amis</div>
+            </div>
+            <div class="row-scroll">${friendRecoFilms.slice(0,8).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
+          </div>`:''}
+          ${filmsWithSorties.length>0?`<div style="margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:8px;">
+              <div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🍿 Sorties en cours</div>
+              <div style="font-size:11px;color:${MU};cursor:pointer;" onclick="st.homeTab='sorties';render()">Voir tout →</div>
+            </div>
+            <div class="row-scroll">${filmsWithSorties.slice(0,8).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
+          </div>`:''}
+          <div style="margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:8px;">
+              <div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🎬 Nouveautés</div>
+              <div style="font-size:11px;color:${MU};cursor:pointer;" onclick="setGenre('tous')">Tous →</div>
+            </div>
+            <div class="row-scroll">${[...allFilms].sort(([a],[b])=>{const sA=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[a];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);const sB=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[b];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);return sB-sA;}).slice(0,12).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
+          </div>
+          ${topFilms.length>0&&ratings[topFilms[0]?.[0]]?`<div style="margin-bottom:20px;">
+            <div style="display:flex;align-items:center;padding:0 18px;margin-bottom:8px;"><div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🔥 Populaires</div></div>
+            <div class="row-scroll">${topFilms.map(([id,f])=>posterCardLg(id,f)).join('')}</div>
+          </div>`:''}
+          ${st.lbdPseudo&&lbdWatchlist.size>0?`<div style="margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:8px;"><div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🔖 Votre watchlist</div><div style="font-size:11px;color:${GD};">@${esc(st.lbdPseudo)}</div></div>
+            <div class="row-scroll">${Object.entries(FILMS).filter(([id])=>isWatchlist(id)).slice(0,8).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
+          </div>`:''}
+        `}
+        <div style="height:10px;"></div>
+      </div>
+      ${nav('home')}
+    </div>`;}
+
+  // TAB SORTIES
+  const sortieCard=(s)=>{
+    const film=FILMS[s.film_id]||{t:s.nom,e:'🎬',g:'',bg:'#111'};
+    const cinema=CINEMAS.find(c=>c.id===s.confirmed_cinema);
+    const chainColor=CC[cinema?.chain]||MU;
+    const dist=(userPos&&cinema?.lat&&cinema?.lng)?getDistance(userPos.lat,userPos.lng,cinema.lat,cinema.lng):null;
+    const nb=s._nb||0,max=s.max_membres||8,restantes=max-nb;
+    const isMine=mySortieIds.has(s.id),isFull=nb>=max,isCreator=s.createur===st.pseudo;
+    const isHot=!isFull&&restantes<=2&&restantes>0;
+    const avatars=s._avatars||[];
+    const hasFriendIn=avatars.some(a=>myFriends.some(f=>f.pseudo===a.pseudo));
+    const avatarRow=avatars.map(a=>`<div style="width:22px;height:22px;border-radius:50%;background:${pseudoColor(a.pseudo)};border:2px solid ${S1};display:flex;align-items:center;justify-content:center;font-size:clamp(10px,3vw,13px);margin-left:-6px;">${a.avatar||pseudoInitial(a.pseudo)}</div>`).join('');
+    const extraCount=nb>avatars.length?nb-avatars.length:0;
+    const pct=Math.round((nb/max)*100);
+    return `<div onclick="openGroup('${s.film_id}','${s.id}')" class="tap" style="background:${S1};border:1px solid ${hasFriendIn?'rgba(74,158,255,0.35)':isHot?'rgba(255,100,0,0.4)':BD};border-radius:18px;overflow:hidden;cursor:pointer;margin:0 18px 12px;">
+      <div style="display:flex;gap:12px;padding:12px;">
+        <div style="width:64px;height:86px;border-radius:10px;overflow:hidden;background:${film.bg};flex-shrink:0;position:relative;">
+          ${posters[s.film_id]?`<img src="${posters[s.film_id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;">${film.e}</span>`}
+          ${ratings[s.film_id]?`<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(7,7,15,0.75);padding:2px 4px;font-size:8px;color:${GD};text-align:center;">★ ${ratings[s.film_id].note}</div>`:''}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:3px;">
+            <div class="serif" style="font-size:clamp(13px,3.8vw,16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${esc(film.t)}</div>
+            ${hasFriendIn?`<div style="background:rgba(74,158,255,0.15);border:1px solid rgba(74,158,255,0.4);border-radius:8px;padding:2px 6px;font-size:9px;color:#4a9eff;white-space:nowrap;flex-shrink:0;">👥 Ami</div>`:isHot?`<div style="background:rgba(255,100,0,0.15);border:1px solid rgba(255,100,0,0.4);border-radius:8px;padding:2px 6px;font-size:9px;color:#ff6400;white-space:nowrap;flex-shrink:0;">🔥</div>`:''}
+          </div>
+          <div style="font-size:11px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="color:${chainColor};">${cinema?.name||s.confirmed_cinema||'Cinéma'}</span>
+            ${dist!==null?`<span style="color:${MU};font-weight:400;font-size:9px;">📍 ${distLabel(dist)}</span>`:''}
+          </div>
+          <div style="font-size:clamp(11px,3.3vw,14px);font-weight:700;margin-bottom:6px;">${s.confirmed_heure} <span style="font-size:9px;color:${MU};font-weight:400;">${formatDate(s.confirmed_date)}</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:4px;">
+              <div style="display:flex;margin-left:6px;">${avatarRow}</div>
+              ${extraCount?`<span style="font-size:11px;color:${MU};margin-left:4px;">+${extraCount}</span>`:''}
+              <span style="font-size:11px;color:${isFull?AC:MU};margin-left:${avatars.length?'6':'0'}px;">${isFull?T('complet'):`${restantes} place${restantes>1?'s':''}`}</span>
+            </div>
+            ${s._msgs?`<span style="font-size:11px;color:${MU};">💬 ${s._msgs}</span>`:''}
+          </div>
+          <div style="margin-top:6px;height:2px;border-radius:1px;background:rgba(255,255,255,0.06);overflow:hidden;"><div style="height:100%;width:${pct}%;background:${isFull?AC:chainColor};border-radius:1px;"></div></div>
+        </div>
+      </div>
+      <div style="padding:0 12px 12px;display:flex;gap:8px;">
+        ${isCreator?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(240,192,96,0.1);border:1px solid rgba(240,192,96,0.3);font-size:12px;color:${GD};font-weight:600;">${T('taSortie')}</div>`:''}
+        ${isMine&&!isCreator?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(0,192,48,0.1);border:1px solid rgba(0,192,48,0.3);font-size:12px;color:${LB};font-weight:600;">${T('jeParticipe')}</div>`:''}
+        ${!isMine&&!isFull?`<div onclick="event.stopPropagation();rejoindreSortie('${s.id}','${s.film_id}')" style="flex:1;text-align:center;padding:8px;border-radius:12px;background:${AC};font-size:13px;font-weight:700;color:#fff;">${T('rejoindre')}</div>`:''}
+        ${!isMine&&isFull?`<div style="flex:1;text-align:center;padding:8px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid ${BD};font-size:12px;color:${MU};">${T('complet')}</div>`:''}
+      </div>
+    </div>`};
+
+  const emptySorties=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;gap:12px;flex:1;">
+    <div style="font-size:52px;">🍿</div>
+    <div class="serif" style="font-size:20px;">${T('aucuneSortie')}</div>
+    <div style="font-size:13px;color:${MU};line-height:1.5;">${T('aucuneSortieDesc').replace('\n','<br>')}</div>
+    <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="margin-top:8px;padding:12px 24px;background:${AC};border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;color:#fff;">+ Créer</div>
+  </div>`;
+
+  const today=todayStr();
+  const filtered_sorties=sortiesPubliques.filter(s=>{
+    if(st.sortieFilter==='all')return true;
+    const nb=s._nb||0,max=s.max_membres||8;
+    if(st.sortieFilter==='hot')return!(nb>=max)&&(max-nb)<=2;
+    if(st.sortieFilter==='friends')return s._avatars?.some(a=>myFriends.some(f=>f.pseudo===a.pseudo));
+    if(st.sortieFilter==='tonight')return s.confirmed_date===today;
+    if(st.sortieFilter==='near')return userPos&&(()=>{const c=CINEMAS.find(x=>x.id===s.confirmed_cinema);return c?.lat&&getDistance(userPos.lat,userPos.lng,c.lat,c.lng)<5;})();
+    return true;
+  });
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    ${header}
+    <div style="flex:1;overflow-y:auto;padding-top:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:10px;">
+        <div style="font-size:12px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">${T('sorties_publiques')}</div>
+        <div onclick="createSortieScroll=0;st.screen='create-sortie';render()" style="background:${AC};border-radius:20px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:700;color:#fff;">${T('creer')}</div>
+      </div>
+      <div style="display:flex;gap:6px;overflow-x:auto;padding:0 18px 10px;scrollbar-width:none;">
+        ${[['all','🍿 Toutes'],['friends','👥 Amis'],['near','📍 Proche'],['tonight','🎬 Ce soir'],['hot','🔥 Bientôt complet']].map(([f,lb])=>`<div onclick="st.sortieFilter='${f}';render()" style="border-radius:20px;padding:5px 11px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid ${st.sortieFilter===f?AC:BD};background:${st.sortieFilter===f?AC:'rgba(255,255,255,0.03)'};color:${st.sortieFilter===f?'#fff':MU};white-space:nowrap;flex-shrink:0;">${lb}</div>`).join('')}
+      </div>
+      ${filtered_sorties.length===0?emptySorties:filtered_sorties.map(sortieCard).join('')}
+    </div>
+    ${nav('home')}
+  </div>`;}
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// FILM DETAIL SCREEN
+// ══════════════════════════════════════════════════════════════
+function openFilm(id,src){st.film=id;st.filmSrc=src||'home';st.screen='film';render();}
+function openGroup(filmId,groupId){
+  st.film=filmId;st.groupe=groupId;st.screen='group';st.tab='chat';
+  render();
+  Promise.all([initDynamicData(st.date),loadMembres(),loadMessages(),loadVotes(),loadGroupeInfo()]).then(()=>{subscribeAll();render();});
+}
+function openCinema(id){st.cinema=id;st.screen='cinema-detail';render();}
+function openMemberProfile(pseudo){st.viewedMember={pseudo};st.screen='member-profile';render();loadMemberProfile(pseudo);}
+
+let memberProfileData={};
+async function loadMemberProfile(pseudo){
+  const{data}=await supa.from('profiles').select('id,pseudo,avatar,bio,fav_genres,fav_films,photo_url').eq('pseudo',pseudo).single();
+  if(data){memberProfileData[pseudo]=data;render();}
+}
+
+function sFilm(){
+  const id=st.film,f=FILMS[id];
+  if(!f)return'<div style="padding:60px 18px;text-align:center;color:#555;flex:1;">Film introuvable</div>';
+  const hasP=!!posters[id];const note=ratings[id]?.note;const vu=isVu(id),wl=isWatchlist(id)&&!isVu(id);
+  const wantToSee=getWantToSee();const wantId=wantToSee.includes(id);
+  const cinemasAvec=CINEMAS.filter(c=>{
+        const filmDates=SEANCES_ALL[c.id]?.[id]||{};
+        return Object.entries(filmDates).some(([d,heures])=>d>=todayStr()&&heures.length>0);
+      });
+  const friendsFilm=myFriends.filter(fr=>sortiesPubliques.some(s=>s.film_id===id&&s._avatars?.some(a=>a.pseudo===fr.pseudo)));
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="flex:1;overflow-y:auto;">
+      <div style="position:relative;height:260px;flex-shrink:0;">
+        ${hasP?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.35);" loading="lazy">`:`<div style="width:100%;height:100%;background:${f.bg};display:flex;align-items:center;justify-content:center;font-size:80px;">${f.e}</div>`}
+        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,15,0.2) 0%,rgba(7,7,15,0.95) 100%);"></div>
+        <div onclick="${st.filmSrc==='cinema'?`st.screen='cinema-detail';render()`:`st.screen='home';render()`}" style="position:absolute;top:50px;left:18px;width:34px;height:34px;border-radius:50%;background:rgba(7,7,15,0.7);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>
+        <div style="position:absolute;bottom:16px;left:18px;right:18px;">
+          <div class="serif" style="font-size:clamp(20px,6.2vw,28px);margin-bottom:6px;line-height:1.2;">${esc(f.t)}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            ${note?`<div>${starsHTML(note,5,12)}</div><span style="font-size:10px;color:${MU};">${note}/10</span>`:''}
+            ${chip(f.g,TX,'rgba(255,255,255,0.08)')}
+            ${f.d?chip(f.d):''}
+          </div>
+        </div>
+      </div>
+      <div style="padding:0 18px;">
+        <div style="display:flex;gap:8px;margin-bottom:16px;padding-top:12px;">
+          <div onclick="toggleWantToSee('${id}')" style="flex:1;padding:10px 0;text-align:center;border-radius:12px;cursor:pointer;background:${wantId?'rgba(240,192,96,0.15)':S1};border:1px solid ${wantId?GD:BD};font-size:12px;font-weight:600;color:${wantId?GD:MU};">${wantId?'🔖 Ma liste':'🔖 Ma liste'}</div>
+          ${cinemasAvec.length?`<div onclick="createSortieScroll=0;st.newSortie=${cinemasAvec.length===1?`{filmId:'${id}',cinemaId:'${cinemasAvec[0].id}',heure:'${((SEANCES[cinemasAvec[0].id]||{})[id]||[]).filter(h=>!isPast(h))[0]||''}',date:'${selectedDate||todayStr()}'}`:`{filmId:'${id}'}`};st.screen='create-sortie';render()" style="flex:2;padding:10px 0;text-align:center;border-radius:12px;cursor:pointer;background:${AC};font-size:13px;font-weight:700;color:#fff;">🍿 Créer une sortie</div>`:''}
+        </div>
+        ${friendsFilm.length>0?`<div style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+          <div style="display:flex;">${friendsFilm.slice(0,3).map(fr=>`<div style="width:26px;height:26px;border-radius:50%;background:${pseudoColor(fr.pseudo)};display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid ${S1};margin-left:-4px;">${fr.avatar||pseudoInitial(fr.pseudo)}</div>`).join('')}</div>
+          <div style="font-size:12px;color:#4a9eff;">${friendsFilm.length===1?`${friendsFilm[0].pseudo} prévoit d'y aller !`:friendsFilm.length+' de vos amis prévoient d\'y aller !'}</div>
+        </div>`:''}
+        ${f.s?`<p style="font-size:clamp(11px,3.3vw,14px);color:${MU};line-height:1.65;margin:0 0 16px;">${esc(f.s)}</p>`:''}
+        ${f.dir?`<div style="margin-bottom:16px;"><span style="font-size:9px;color:${MU};text-transform:uppercase;letter-spacing:1.5px;">Réalisateur</span><div style="font-size:13px;font-weight:600;margin-top:3px;">${esc(f.dir)}</div></div>`:''}
+        ${cinemasAvec.length>0?`<div style="margin-bottom:16px;">
+          <div style="font-size:9px;color:${MU};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Séances disponibles</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${cinemasAvec.slice(0,5).map(c=>{const filmDates2=SEANCES_ALL[c.id]?.[id]||{};
+              const seances=Object.entries(filmDates2).filter(([d])=>d>=todayStr()).sort(([a],[b])=>a.localeCompare(b)).flatMap(([d,h])=>h.filter(t=>!isPast(t)||d>todayStr()));const col=CC[c.chain]||MU;return `<div style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;">
+              <div style="flex:1;min-width:0;cursor:pointer;" onclick="openCinema('${c.id}')">
+                <div style="font-size:12px;font-weight:600;color:${col};">${esc(c.name)}</div>
+                <div style="font-size:10px;color:${MU};">${c.metro?'M '+esc(c.metro):''}</div>
+              </div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+                ${seances.filter(h=>!isPast(h)).slice(0,4).map(h=>`<span style="font-size:10px;padding:3px 7px;background:${S2};border:1px solid ${BD};border-radius:8px;color:${TX}">${h}</span>`).join('')}
+              </div>
+            </div>`;}).join('')}
+          </div>
+        </div>`:''}
+      </div>
+    </div>
+  </div>`;}
+
+// ══════════════════════════════════════════════════════════════
+// CINEMAS SCREEN
+// ══════════════════════════════════════════════════════════════
+function sCinemas(){
+  const chains=[['tous','Tous'],['ugc','UGC'],['pathe','Pathé'],['gaumont','Gaumont']];
+  const filtered=st.cinFilter==='tous'?CINEMAS:CINEMAS.filter(c=>c.chain===st.cinFilter);
+  const sorted=[...filtered].sort((a,b)=>{if(userPos&&a.lat&&b.lat){return getDistance(userPos.lat,userPos.lng,a.lat,a.lng)-getDistance(userPos.lat,userPos.lng,b.lat,b.lng);}return 0;});
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:50px 18px 0;flex-shrink:0;">
+      <div class="serif" style="font-size:clamp(20px,6.2vw,26px);margin-bottom:12px;">🏛 Cinémas</div>
+      <div style="display:flex;gap:0;background:${S1};border:1px solid ${BD};border-radius:14px;padding:3px;margin-bottom:12px;">
+        ${chains.map(([id,lb])=>`<div onclick="st.cinFilter='${id}';render()" style="flex:1;text-align:center;padding:6px 4px;border-radius:11px;cursor:pointer;font-size:clamp(9px,2.8vw,12px);font-weight:600;background:${st.cinFilter===id?AC:'transparent'};color:${st.cinFilter===id?'#fff':MU};">${lb}</div>`).join('')}
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${sorted.map(c=>{const dist=(userPos&&c.lat&&c.lng)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;const col=CC[c.chain]||MU;const filmCount=c.films?.length||0;
+          return `<div onclick="openCinema('${c.id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;">
+            <div style="width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${CHAIN_ICONS[c.chain]||'🎬'}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:clamp(12px,3.5vw,15px);font-weight:600;color:${col};">${esc(c.name)}</div>
+              <div style="font-size:10px;color:${MU};margin-top:2px;">${c.metro?'M '+esc(c.metro)+' · ':''}<span>${filmCount} film${filmCount!==1?'s':''}</span></div>
+            </div>
+            ${dist!==null?`<div style="font-size:10px;color:${MU};text-align:right;flex-shrink:0;">📍<br>${distLabel(dist)}</div>`:'<span style="color:${MU};">›</span>'}
+          </div>`;}).join('')}
+      </div>
+    </div>
+    ${nav('cinemas')}
+  </div>`;}
+
+function sCinemaDetail(){
+  const c=CINEMAS.find(x=>x.id===st.cinema);
+  if(!c)return'<div style="padding:60px 18px;flex:1;">Cinéma introuvable</div>';
+  const filmIds=Object.keys(SEANCES[c.id]||{}).filter(fid=>(SEANCES[c.id][fid]||[]).some(h=>!isPast(h)));
+  const links=CINEMA_LINKS[c.id]||{};
+  const col=CC[c.chain]||MU;
+  const dist=(userPos&&c.lat&&c.lng)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:50px 18px 14px;flex-shrink:0;border-bottom:1px solid ${BD};">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+        <div onclick="st.screen='cinemas';render()" style="width:34px;height:34px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div>
+        <div style="flex:1;">
+          <div class="serif" style="font-size:clamp(17px,5vw,22px);line-height:1.2;color:${col};">${esc(c.name)}</div>
+          <div style="font-size:11px;color:${MU};margin-top:2px;">${c.addr||''}</div>
+          ${dist!==null?`<div style="font-size:10px;color:${MU};margin-top:2px;">📍 ${distLabel(dist)}</div>`:''}
+        </div>
+      </div>
+      ${dayPicker()}
+      <div style="display:flex;gap:8px;">
+        ${links.maps?`<a href="${links.maps}" target="_blank" style="flex:1;padding:8px 0;text-align:center;border-radius:12px;background:${S1};border:1px solid ${BD};font-size:12px;color:${TX};text-decoration:none;">${T('yAller')}</a>`:''}
+        ${links.tickets?`<a href="${links.tickets}" target="_blank" style="flex:2;padding:8px 0;text-align:center;border-radius:12px;background:${AC};font-size:12px;color:#fff;text-decoration:none;font-weight:600;">${T('reserver')}</a>`:''}
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
+      ${filmIds.length===0?`<div style="text-align:center;padding:40px;color:${MU};">Aucune séance ce jour</div>`:''}
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${filmIds.map(fid=>{const f=FILMS[fid];if(!f)return'';const seances=(SEANCES[c.id]||{})[fid]||[];const dur=f.d;const hasP=!!posters[fid];
+          return `<div onclick="openFilm('${fid}','cinema')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;overflow:hidden;display:flex;gap:0;cursor:pointer;">
+            <div style="width:62px;height:90px;flex-shrink:0;position:relative;background:${f.bg};">
+              ${hasP?`<img src="${posters[fid]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:30px;">${f.e}</span>`}
+            </div>
+            <div style="flex:1;padding:8px 10px;min-width:0;">
+              <div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(f.t)}</div>
+              <div style="font-size:9px;color:${MU};margin-bottom:6px;">${f.g||''}${dur?' · '+dur:''}</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                ${seances.map(h=>`<span style="flex:0 0 auto;font-size:clamp(10px,3vw,13px);padding:3px 8px;background:${S2};border:1px solid ${BD};border-radius:8px;color:${isPast(h)?MU:TX};${isPast(h)?'text-decoration:line-through;':''}">${h}</span>`).join('')}
+              </div>
+            </div>
+          </div>`;}).join('')}
+      </div>
+    </div>
+    ${nav('cinemas')}
+  </div>`;}
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// GROUP SCREENS
+// ══════════════════════════════════════════════════════════════
+function msgHTML(m){
+  const me=m.pseudo===st.pseudo;
+  const bg=pseudoColor(m.pseudo);
+  const t=new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const reacts=reactionsData[m.id]||[];
+  return `<div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;flex-direction:${me?'row-reverse':'row'};">
+    <div onclick="openMemberProfile('${esc(m.pseudo)}')" style="cursor:pointer;">${avatarEl(m.pseudo,24,'50%')}</div>
+    <div style="max-width:220px;">
+      <div style="font-size:8px;color:${MU};margin-bottom:3px;text-align:${me?'right':'left'};">${me?'':esc(m.pseudo)+' · '}${t}</div>
+      <div id="msg-${m.id}" style="padding:8px 12px;border-radius:14px;font-size:clamp(11px,3.3vw,14px);line-height:1.55;word-break:break-word;background:${me?AC:S2};border-bottom-${me?'right':'left'}-radius:3px;">${esc(m.texte||m.content||'')}</div>
+      <div data-reactions="${m.id}" style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;justify-content:${me?'flex-end':'flex-start'};">${reactionsHTML(m.id)}</div>
+    </div>
+  </div>`;}
+
+function renderMembresDOM(){
+  const el=document.getElementById('membres-area');
+  if(!el)return;
+  const mySortie=sortiesPubliques.find(s=>s.id===st.groupe);
+  const max=mySortie?.max_membres||8;
+  el.innerHTML=`<div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">${membresData.length} / ${max} membres</div>`+
+    membresData.map(m=>{
+      const isMe=m.pseudo===st.pseudo;
+      const friendStatus=getFriendStatus(m.user_id);
+      const statuts={jeViens:{emoji:'✅',color:LB},peutEtre:{emoji:'🤔',color:GD},jePeuxPas:{emoji:'❌',color:MU}};
+      const statut=statuts[m.statut]||{emoji:'❓',color:MU};
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid ${BD};">
+        <div onclick="openMemberProfile('${esc(m.pseudo)}')" style="cursor:pointer;">${avatarEl(m.pseudo,38)}</div>
+        <div style="flex:1;min-width:0;cursor:pointer;" onclick="openMemberProfile('${esc(m.pseudo)}')">
+          <div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;">${esc(m.pseudo)}</div>
+          <div style="font-size:9px;color:${statut.color};">${statut.emoji} ${m.statut==='jeViens'?'Je viens':m.statut==='peutEtre'?'Peut-être':m.statut==='jePeuxPas'?'Je peux pas':'?'}</div>
+        </div>
+        ${!isMe&&m.user_id&&friendStatus==='none'?`<button onclick="sendFriendRequest('${m.user_id}')" style="padding:5px 10px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);border-radius:10px;font-size:10px;font-weight:600;color:#4a9eff;cursor:pointer;">+ Ami</button>`:''}
+        ${!isMe&&friendStatus==='friend'?`<button onclick="openPrivateChat('${m.user_id}','${esc(m.pseudo)}','${m.avatar||'🎬'}')" style="padding:5px 10px;background:rgba(0,192,48,0.1);border:1px solid rgba(0,192,48,0.3);border-radius:10px;font-size:10px;color:${LB};cursor:pointer;">💬</button>`:''}
+        ${!isMe&&friendStatus==='sent'?`<span style="font-size:9px;color:${MU};padding:3px 7px;border:1px solid ${BD};border-radius:8px;">✓ Envoyé</span>`:''}
+      </div>`;
+    }).join('');
+}
+
+function renderVotesDOM(){
+  const el=document.getElementById('votes-area');
+  if(!el)return;
+  const film=FILMS[st.film];const filmCinemas=CINEMAS.filter(c=>(SEANCES[c.id]||{})[st.film]?.length>0);
+  if(filmCinemas.length===0){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};">${T('aucunFilmDispo')}</div>`;return;}
+  const conf=groupeInfo||{};const isConfirmed=!!conf.confirmed_heure;
+  const confCinema=CINEMAS.find(c=>c.id===conf.confirmed_cinema);
+  const isCreator=mesGroupes.find(g=>g.id===st.groupe)?.createur===st.pseudo;
+  if(isConfirmed&&confCinema){
+    el.innerHTML=`<div style="padding:14px;background:rgba(0,192,48,0.08);border:1px solid rgba(0,192,48,0.25);border-radius:14px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:${LB};margin-bottom:8px;">${T('confirmePlan')}</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">${esc(confCinema.name)}</div>
+      <div style="font-size:14px;color:${GD};font-weight:600;">${conf.confirmed_heure} · ${formatDate(conf.confirmed_date)}</div>
+      <div style="font-size:12px;color:${MU};margin-top:6px;">${countdown(conf.confirmed_date,conf.confirmed_heure)}</div>
+      ${isCreator?`<div onclick="annulerConfirmation()" style="margin-top:10px;padding:8px;text-align:center;border-radius:10px;background:rgba(255,63,91,0.1);border:1px solid rgba(255,63,91,0.3);font-size:12px;color:${AC};cursor:pointer;">${T('annuler')}</div>`:''}
+    </div>`;return;
+  }
+  let html='';
+  for(const c of filmCinemas){
+    const seances=(SEANCES[c.id]||{})[st.film]||[];const col=CC[c.chain]||MU;
+    html+=`<div style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:${col};margin-bottom:6px;">${esc(c.name)}</div>
+      ${seances.length===0?`<div style="font-size:11px;color:${MU};">${T('aucuneSeanceJour')}</div>`:`<div style="display:flex;flex-wrap:wrap;gap:6px;">${seances.map(h=>{
+        const k=st.date+' '+h;const voters=(votesData[k]||[]);const myVote=st.voted===k;const past=isPast(h);
+        const nb=voters.length;const avatarPills=voters.slice(0,3).map(v=>`<span title="${esc(v.pseudo)}">${v.pseudo[0].toUpperCase()}</span>`).join('');
+        return `<div onclick="${!past&&isCreator?`confirmerPlan('${c.id}','${h}','${st.date}')`:''}" style="padding:6px 10px;border-radius:10px;background:${myVote?'rgba(255,63,91,0.15)':S2};border:1px solid ${myVote?AC:BD};cursor:${past?'default':isCreator?'pointer':'default'};${past?'opacity:0.4;':''}">
+          <div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;color:${myVote?AC:TX};">${h}</div>
+          ${nb>0?`<div style="font-size:8px;color:${MU};margin-top:2px;">${nb} vote${nb>1?'s':''}</div>`:''}
+          ${isCreator&&!past?`<div style="font-size:8px;color:${LB};margin-top:1px;">✓ Confirmer</div>`:''}
+        </div>`;
+      }).join('')}</div>`}
+    </div>`;
+  }
+  el.innerHTML=html;
+}
+
+function setTab(t){st.tab=t;render();if(t==='chat'){setTimeout(()=>{const ca=document.getElementById('chat-area');if(ca)ca.scrollTop=ca.scrollHeight;},80);}else if(t==='membres'){renderMembresDOM();}else if(t==='vote'){renderVotesDOM();}}
+
+function sGroup(){
+  const g=st.groupe;
+  if(!g){return sGroupList();}
+  const film=FILMS[st.film];const sortie=sortiesPubliques.find(s=>s.id===g)||mesGroupes.find(mg=>mg.id===g);
+  const conf=groupeInfo||{};const confCinema=CINEMAS.find(c=>c.id===conf.confirmed_cinema);
+  const nb=sortie?._nb||membresData.length;const max=sortie?.max_membres||8;
+  const chainColor=CC[confCinema?.chain]||MU;
+  const tabs=[[T('chat_tab'),'chat'],[T('vote_tab'),'vote'],[T('membres_tab'),'membres']];
+
+  let tc='';
+  if(st.tab==='chat'){
+    tc=`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div id="chat-area" style="flex:1;overflow-y:auto;padding:12px 14px;"></div>
+      <div style="padding:8px 14px 10px;background:${BG};border-top:1px solid ${BD};display:flex;gap:8px;flex-shrink:0;">
+        <input id="msg-input" placeholder="Message…" onkeydown="if(event.key==='Enter')sendMsg()" style="flex:1;background:${S1};border:1px solid ${BD};border-radius:20px;padding:8px 14px;font-size:14px;color:${TX};outline:none;">
+        <button onclick="sendMsg()" style="width:34px;height:34px;border-radius:50%;background:${AC};border:none;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;">↑</button>
+      </div>
+    </div>`;
+  }else if(st.tab==='vote'){
+    tc=`<div style="flex:1;overflow-y:auto;padding:12px 14px 20px;">
+      <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">Choisir la séance</div>
+      ${dayPicker()}
+      <div id="votes-area"></div>
+    </div>`;
+  }else if(st.tab==='membres'){
+    tc=`<div style="flex:1;overflow-y:auto;padding:12px 14px 20px;">
+      <div style="margin-bottom:12px;display:flex;gap:8px;">
+        ${[['jeViens','✅'],['peutEtre','🤔'],['jePeuxPas','❌']].map(([s,e])=>`<div onclick="setStatut('${s}')" style="flex:1;text-align:center;padding:7px 4px;border-radius:10px;cursor:pointer;font-size:11px;border:1px solid ${BD};background:${S1};">${e}</div>`).join('')}
+      </div>
+      <div id="membres-area">Chargement…</div>
+    </div>`;
+  }
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:46px 14px 8px;flex-shrink:0;">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
+        <div onclick="st.groupe=null;st.screen='group';render()" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">←</div>
+        <div style="flex:1;min-width:0;">
+          <div class="serif" style="font-size:clamp(15px,4.6vw,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${film?esc(film.t):'Groupe'}</div>
+          ${confCinema?`<div style="font-size:11px;font-weight:600;color:${chainColor};">${esc(confCinema.name)} · ${conf.confirmed_heure} · ${formatDate(conf.confirmed_date)}</div>`:''}
+          <div style="font-size:10px;color:${MU};">${nb}/${max} membres</div>
+        </div>
+        ${film&&posters[st.film]?`<div style="width:38px;height:52px;border-radius:7px;overflow:hidden;flex-shrink:0;"><img src="${posters[st.film]}" style="width:100%;height:100%;object-fit:cover;"></div>`:`<div style="width:38px;height:38px;border-radius:10px;background:${film?film.bg:S1};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${film?film.e:'🎬'}</div>`}
+      </div>
+      <div style="display:flex;border-bottom:1px solid ${BD};">
+        ${tabs.map(([lb,id])=>`<div onclick="setTab('${id}')" style="flex:1;padding:9px 0 7px;font-size:clamp(10px,3vw,13px);font-weight:500;color:${st.tab===id?TX:MU};border:none;background:none;cursor:pointer;text-align:center;position:relative;">${lb}${st.tab===id?`<div style="position:absolute;bottom:-1px;left:15%;right:15%;height:2px;background:${AC};border-radius:2px;"></div>`:''}</div>`).join('')}
+      </div>
+    </div>
+    ${tc}
+    ${st.tab!=='chat'?nav('group'):''}
+  </div>`;}
+
+function sGroupList(){
+  const today=todayStr();
+  const mySortieIds=new Set(mesGroupes.map(g=>g.id));
+  const tab=st.groupTab||'upcoming';
+
+  const upcoming=mesGroupes.filter(g=>g.confirmed_date>=today).sort((a,b)=>(a.confirmed_date||'').localeCompare(b.confirmed_date||''));
+  const past=mesGroupes.filter(g=>g.confirmed_date&&g.confirmed_date<today).sort((a,b)=>(b.confirmed_date||'').localeCompare(a.confirmed_date||''));
+  // "En cours" = confirmed today or within next 3 hours
+  const now=new Date();
+  const current=mesGroupes.filter(g=>{
+    if(g.confirmed_date!==today)return false;
+    if(!g.confirmed_heure)return false;
+    const[h,m]=(g.confirmed_heure||'').replace('h',':').split(':').map(Number);
+    const t=new Date();t.setHours(h,m,0,0);
+    const diff=(t-now)/60000;
+    return diff>=-30&&diff<=180;
+  });
+
+  const tabs=[
+    ['upcoming','📅','À venir',upcoming.length],
+    ['current','🎬','En cours',current.length],
+    ['past','📼','Passées',past.length],
+  ];
+
+  const groupCard=(g)=>{const film=FILMS[g.film_id]||{t:g.nom,e:'🎬',bg:'#111'};const cinema=CINEMAS.find(c=>c.id===g.confirmed_cinema);const chainColor=CC[cinema?.chain]||MU;const nb=g._nb||membresData.filter(m=>mesGroupes.some(mg=>mg.id===g.id)).length||1;const max=g.max_membres||8;const isPastCard=g.confirmed_date<today;
+    return `<div onclick="openGroup('${g.film_id||g.id}','${g.id}')" class="tap" style="background:${S1};border:1px solid ${isPastCard?'rgba(255,255,255,0.04)':BD};border-radius:14px;padding:10px 12px;display:flex;gap:10px;cursor:pointer;margin-bottom:8px;opacity:${isPastCard?0.65:1};">
+      <div style="width:46px;height:64px;border-radius:8px;overflow:hidden;background:${film.bg};flex-shrink:0;position:relative;">
+        ${posters[g.film_id]?`<img src="${posters[g.film_id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:26px;">${film.e}</span>`}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(film.t||g.nom)}</div>
+        ${cinema?`<div style="font-size:10px;color:${chainColor};margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(cinema.name)}</div>`:''}
+        ${g.confirmed_heure?`<div style="font-size:12px;font-weight:600;margin-top:2px;">${g.confirmed_heure} <span style="font-weight:400;color:${MU};font-size:9px;">· ${formatDate(g.confirmed_date)}</span></div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+          <div style="font-size:9px;color:${MU};">${nb} membre${nb>1?'s':''}</div>
+          ${g.createur===st.pseudo?`<span style="font-size:9px;color:${GD};">👑 Créateur</span>`:''}
+        </div>
+      </div>
+    </div>`;}
+
+  const activeList=tab==='upcoming'?upcoming:tab==='current'?current:past;
+  const emptyMsgs={upcoming:'Pas de sorties à venir',current:'Aucune sortie en cours',past:'Aucune sortie passée'};
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:50px 18px 10px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mes Groupes</div>
+        <div onclick="createSortieScroll=0;st.screen='create-sortie';st.newSortie=null;render()" style="background:${AC};border-radius:20px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700;color:#fff;">+ Créer</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;overflow:hidden;">
+      <!-- Barre latérale gauche -->
+      <div style="width:72px;flex-shrink:0;display:flex;flex-direction:column;gap:4px;padding:4px 6px;border-right:1px solid ${BD};overflow-y:auto;">
+        ${tabs.map(([id,icon,label,count])=>`<div onclick="st.groupTab='${id}';render()" style="display:flex;flex-direction:column;align-items:center;padding:10px 4px;border-radius:12px;cursor:pointer;background:${tab===id?'rgba(255,63,91,0.12)':'transparent'};border:1px solid ${tab===id?AC:'transparent'};position:relative;">
+          <div style="font-size:20px;margin-bottom:3px;">${icon}</div>
+          <div style="font-size:8px;color:${tab===id?TX:MU};text-align:center;line-height:1.2;">${label}</div>
+          ${count>0?`<div style="position:absolute;top:4px;right:4px;min-width:14px;height:14px;border-radius:7px;background:${tab===id?AC:'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;">${count}</div>`:''}
+        </div>`).join('')}
+        <div style="flex:1;"></div>
+        <div onclick="go('home')" style="display:flex;flex-direction:column;align-items:center;padding:10px 4px;border-radius:12px;cursor:pointer;opacity:0.5;">
+          <div style="font-size:18px;margin-bottom:3px;">🍿</div>
+          <div style="font-size:8px;color:${MU};text-align:center;">Sorties</div>
+        </div>
+      </div>
+      <!-- Contenu principal -->
+      <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
+        ${mesGroupes.length===0?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 16px;text-align:center;gap:12px;">
+          <div style="font-size:48px;">👥</div>
+          <div class="serif" style="font-size:18px;">Pas encore de groupes</div>
+          <div style="font-size:12px;color:${MU};line-height:1.6;">Crée une sortie ou rejoins-en une depuis l'onglet Sorties</div>
+          <div onclick="st.homeTab='sorties';st.screen='home';render()" style="padding:10px 18px;background:${AC};border-radius:12px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">🍿 Voir les sorties</div>
+        </div>`:activeList.length===0?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 16px;text-align:center;gap:10px;">
+          <div style="font-size:36px;">${tabs.find(t=>t[0]===tab)?.[1]||'📋'}</div>
+          <div style="font-size:13px;color:${MU};">${emptyMsgs[tab]}</div>
+        </div>`:activeList.map(g=>groupCard(g)).join('')}
+      </div>
+    </div>
+    ${nav('group')}
+  </div>`;}
+
+function sCreateSortie(){
+  const ns = st.newSortie || {};
+  // If all 3 are pre-filled → show only participant count
+  const isPreFilled = !!(ns.filmId && ns.cinemaId && ns.heure);
+  
+  const selectedFilmId   = ns.filmId   || null;
+  const selectedCinemaId = ns.cinemaId || null;
+  const selectedHeure    = ns.heure    || null;
+  const selectedDate     = ns.date     || st.date || todayStr();
+  const maxM             = ns.max      || 4;
+
+  const film   = selectedFilmId   ? FILMS[selectedFilmId]  : null;
+  const cinema = selectedCinemaId ? CINEMAS.find(c=>c.id===selectedCinemaId) : null;
+
+  // Pre-filled: show summary + only participant picker
+  if(isPreFilled){
+    return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:50px 18px 14px;flex-shrink:0;border-bottom:1px solid ${BD};display:flex;align-items:center;gap:10px;">
+        <div onclick="st.screen='film';render()" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>
+        <div class="serif" style="font-size:clamp(17px,5vw,22px);">Créer une sortie</div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:20px 18px;">
+        <!-- Summary card -->
+        <div style="background:${S1};border:1px solid ${BD};border-radius:16px;padding:14px;display:flex;gap:12px;margin-bottom:24px;">
+          <div style="width:56px;height:78px;border-radius:9px;overflow:hidden;background:${film?.bg||'#111'};flex-shrink:0;position:relative;">
+            ${posters[selectedFilmId]?`<img src="${posters[selectedFilmId]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:28px;">${film?.e||'🎬'}</span>`}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="serif" style="font-size:clamp(14px,4.2vw,18px);margin-bottom:4px;">${esc(film?.t||'Film')}</div>
+            <div style="font-size:12px;font-weight:600;color:${CC[cinema?.chain]||MU};margin-bottom:3px;">${esc(cinema?.name||'Cinéma')}</div>
+            <div style="font-size:13px;font-weight:700;color:${AC};">${selectedHeure} <span style="font-size:10px;color:${MU};font-weight:400;">· ${formatDate(selectedDate)}</span></div>
+          </div>
+          <div onclick="st.newSortie=null;render()" style="font-size:11px;color:${MU};cursor:pointer;padding:4px 8px;border:1px solid ${BD};border-radius:8px;height:fit-content;">✏️</div>
+        </div>
+
+        <!-- Participant count -->
+        <div style="text-align:center;">
+          <div style="font-size:12px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px;">Combien de personnes (toi inclus) ?</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:32px;">
+            <div onclick="st.newSortie={...st.newSortie,max:Math.max(2,${maxM}-1)};render()" style="width:48px;height:48px;border-radius:50%;background:${S1};border:2px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;font-weight:300;user-select:none;">−</div>
+            <div style="font-size:52px;font-weight:700;min-width:60px;text-align:center;">${maxM}</div>
+            <div onclick="st.newSortie={...st.newSortie,max:Math.min(20,${maxM}+1)};render()" style="width:48px;height:48px;border-radius:50%;background:${AC};border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;font-weight:300;color:#fff;user-select:none;">+</div>
+          </div>
+          <div style="font-size:12px;color:${MU};margin-bottom:32px;">${maxM} personne${maxM>1?'s':''} maximum</div>
+          <button onclick="creerSortie('${selectedFilmId}','${selectedCinemaId}','${selectedHeure}','${selectedDate}',${maxM})" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;">🍿 Créer la sortie publique</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Full flow (called from group tab without context)
+  const allFilms = Object.entries(FILMS).filter(([id])=>
+    Object.values(SEANCES_ALL).some(c=>c[id]&&Object.values(c[id]).some(h=>h.length>0))
+  ).sort((a,b)=>a[1].t.localeCompare(b[1].t));
+  const cinemasForFilm = selectedFilmId ? CINEMAS.filter(c=>SEANCES_ALL[c.id]?.[selectedFilmId] && Object.keys(SEANCES_ALL[c.id][selectedFilmId]).length>0) : [];
+  const seancesForPair = (selectedFilmId&&selectedCinemaId) 
+    ? Object.entries(SEANCES_ALL[selectedCinemaId]?.[selectedFilmId]||{})
+        .filter(([d])=>d>=todayStr())
+        .sort(([a],[b])=>a.localeCompare(b))
+        .flatMap(([d,h])=>h.map(t=>({date:d,heure:t})))
+    : [];
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:50px 18px 12px;flex-shrink:0;border-bottom:1px solid ${BD};display:flex;align-items:center;gap:10px;">
+      <div onclick="st.screen='group';st.newSortie=null;render()" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+      <div class="serif" style="font-size:clamp(17px,5vw,22px);">Créer une sortie</div>
+    </div>
+    <div id="create-scroll" style="flex:1;overflow-y:auto;padding:16px 18px 20px;">
+
+      <!-- Step 1: Film -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisFilm')}</div>
+        <div style="display:flex;overflow-x:auto;gap:8px;padding-bottom:4px;scrollbar-width:none;">
+          ${allFilms.map(([id,f])=>`<div onclick="st.newSortie={...st.newSortie,filmId:'${id}',cinemaId:null,heure:null};render()" style="flex-shrink:0;width:72px;cursor:pointer;">
+            <div style="width:72px;height:100px;border-radius:9px;overflow:hidden;background:${f.bg};position:relative;border:2px solid ${selectedFilmId===id?AC:'transparent'};">
+              ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:32px;">${f.e}</span>`}
+              ${selectedFilmId===id?'<div style="position:absolute;inset:0;background:rgba(255,63,91,0.2);display:flex;align-items:center;justify-content:center;"><span style="font-size:20px;">✓</span></div>':''}
+            </div>
+            <div style="font-size:8px;margin-top:3px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:${selectedFilmId===id?TX:MU};">${esc(f.t)}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      ${selectedFilmId?`
+      <!-- Step 2: Cinéma -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisCinema')}</div>
+        ${cinemasForFilm.length===0?`<div style="font-size:12px;color:${MU};">${T('aucunFilmDispo')}</div>`:`<div style="display:flex;flex-direction:column;gap:6px;">
+          ${cinemasForFilm.map(c=>`<div onclick="st.newSortie={...st.newSortie,cinemaId:'${c.id}',heure:null};render()" style="padding:10px 14px;border-radius:12px;background:${selectedCinemaId===c.id?'rgba(255,63,91,0.1)':S1};border:1px solid ${selectedCinemaId===c.id?AC:BD};cursor:pointer;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:16px;">${CHAIN_ICONS[c.chain]||'🎬'}</span>
+            <span style="font-size:13px;font-weight:${selectedCinemaId===c.id?700:400};color:${CC[c.chain]||TX};">${esc(c.name)}</span>
+            ${selectedCinemaId===c.id?`<span style="margin-left:auto;color:${AC};">✓</span>`:''}
+          </div>`).join('')}
+        </div>`}
+      </div>`:''}
+
+      ${selectedCinemaId?`
+      <!-- Step 3: Séance -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">${T('choisisSeance')}</div>
+        ${dayPicker()}
+        ${seancesForPair.length===0?`<div style="font-size:12px;color:${MU};">${T('aucuneSeance')}</div>`:`<div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${seancesForPair.map(({date:sd,heure:h})=>`<div onclick="st.newSortie={...st.newSortie,heure:'${h}',date:'${sd}'};render()" style="padding:10px 16px;border-radius:12px;background:${selectedHeure===h&&selectedDate===sd?'rgba(255,63,91,0.15)':S2};border:2px solid ${selectedHeure===h&&selectedDate===sd?AC:BD};cursor:pointer;font-size:14px;font-weight:600;"><div>${h}</div><div style="font-size:9px;color:${MU};margin-top:2px;">${formatDate(sd)}</div></div>`).join('')}
+        </div>`}
+      </div>`:''}
+
+      ${selectedHeure?`
+      <!-- Step 4: Participants -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">${T('combienPersonnes')}</div>
+        <div style="display:flex;align-items:center;gap:20px;justify-content:center;margin-bottom:8px;">
+          <div onclick="st.newSortie={...st.newSortie,max:Math.max(2,${maxM}-1)};render()" style="width:44px;height:44px;border-radius:50%;background:${S1};border:2px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;">−</div>
+          <div style="font-size:40px;font-weight:700;min-width:48px;text-align:center;">${maxM}</div>
+          <div onclick="st.newSortie={...st.newSortie,max:Math.min(20,${maxM}+1)};render()" style="width:44px;height:44px;border-radius:50%;background:${AC};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:#fff;">+</div>
+        </div>
+        <div style="text-align:center;font-size:12px;color:${MU};">${maxM} ${T('personnesInclus')}</div>
+      </div>
+      <button onclick="creerSortie('${selectedFilmId}','${selectedCinemaId}','${selectedHeure}','${selectedDate}',${maxM})" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:var(--sp-md);font-size:var(--fs-md);font-weight:700;cursor:pointer;">${T('creerSortieBtn')}</button>`:''}
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// PROFILE SCREENS
+// ══════════════════════════════════════════════════════════════
+function sProfile(){
+  const wantList=getWantToSee();const wantFilms=wantList.map(id=>[id,FILMS[id]]).filter(([id,f])=>!!f);
+  const myPastSorties=mesGroupes.filter(g=>g.confirmed_date<todayStr()).length;
+  const myUpcoming=mesGroupes.filter(g=>g.confirmed_date>=todayStr()).length;
+  const totalNotifs=friendRequests.length+conversations.reduce((s,c)=>s+(c.unread||0),0);
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="flex:1;overflow-y:auto;">
+      <div style="padding:50px 18px 16px;">
+        <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;">
+          <div style="cursor:pointer;position:relative;flex-shrink:0;">
+            ${(()=>{const pUrl=window._profilePhotoUrl||(window._profilePhotoUrl=null);return '';})()}
+            <div onclick="uploadProfilePhoto()" style="width:68px;height:68px;border-radius:50%;overflow:hidden;background:${pseudoColor(st.pseudo)};display:flex;align-items:center;justify-content:center;">
+              ${window._profilePhotoCache?`<img src="${window._profilePhotoCache}" style="width:100%;height:100%;object-fit:cover;">`:`<span style="font-size:38px;">${st.avatar}</span>`}
+            </div>
+            <div onclick="openAvatarPicker()" style="position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:${S2};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:10px;">✏️</div>
+            <div onclick="uploadProfilePhoto()" style="position:absolute;top:0;right:-4px;width:20px;height:20px;border-radius:50%;background:${AC};border:2px solid ${BG};display:flex;align-items:center;justify-content:center;font-size:9px;">📷</div>
+          </div>
+          <div style="flex:1;">
+            <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">${esc(st.pseudo)}</div>
+            <div style="font-size:11px;color:${MU};margin-top:3px;">@${st.pseudo.toLowerCase()}</div>
+            <div style="display:flex;gap:14px;margin-top:8px;">
+              <div style="text-align:center;cursor:pointer;" onclick="go('friends')"><div style="font-size:16px;font-weight:700;">${myFriends.length}</div><div style="font-size:9px;color:${MU};">Amis</div></div>
+              <div style="text-align:center;"><div style="font-size:16px;font-weight:700;">${myUpcoming}</div><div style="font-size:9px;color:${MU};">À venir</div></div>
+              <div style="text-align:center;"><div style="font-size:16px;font-weight:700;">${myPastSorties}</div><div style="font-size:9px;color:${MU};">Sorties</div></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;" id="avatar-picker-wrap-profile"></div>
+      </div>
+
+      <div style="padding:0 18px;">
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">🎬 Films préférés</div>
+            <div onclick="openFavFilmPicker()" style="font-size:11px;color:${AC};cursor:pointer;padding:3px 9px;border:1px solid rgba(255,63,91,0.3);border-radius:10px;">Modifier</div>
+          </div>
+          ${(()=>{
+            const favIds=(()=>{try{return JSON.parse(localStorage.getItem('cm_fav_'+(st.pseudo||''))||'[]');}catch(e){return[];}})();
+            const favFilms=favIds.map(id=>[id,FILMS[id]]).filter(([id,f])=>!!f);
+            if(favFilms.length===0) return `<div onclick="openFavFilmPicker()" style="border:1.5px dashed rgba(255,255,255,0.1);border-radius:16px;padding:22px 16px;text-align:center;cursor:pointer;">
+              <div style="font-size:32px;margin-bottom:8px;">🎬</div>
+              <div style="font-size:13px;color:${MU};margin-bottom:4px;">Ajoutez vos films préférés</div>
+              <div style="font-size:11px;color:${AC};">+ Choisir des films</div>
+            </div>`;
+            return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              ${favFilms.slice(0,4).map(([id,f])=>`
+                <div onclick="openFilm('${id}','profile')" class="tap" style="position:relative;border-radius:12px;overflow:hidden;height:110px;cursor:pointer;background:${f.bg};">
+                  ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:36px;">${f.e}</span>`}
+                  <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(7,7,15,0.85));padding:6px 8px;">
+                    <div style="font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(f.t)}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>`;
+          })()}
+        </div>
+
+        ${wantFilms.length>0?`<div style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;">🔖 Ma liste</div>
+            <div onclick="go('want-to-see')" style="font-size:11px;color:${AC};cursor:pointer;">Tout voir →</div>
+          </div>
+          <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;">
+            ${wantFilms.slice(0,6).map(([id,f])=>posterCardSm(id,f)).join('')}
+          </div>
+        </div>`:''}
+
+        <div style="margin-bottom:24px;">
+          <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">Paramètres</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            
+            <div onclick="openLbdModal()" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:20px;">📽️</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Letterboxd</div><div style="font-size:11px;color:${st.lbdPseudo?LB:MU};">${st.lbdPseudo?'@'+st.lbdPseudo:'Connecter'}</div></div>
+              <span style="color:${MU};">›</span>
+            </div>
+            <div onclick="st.lang=st.lang==='fr'?'en':'fr';save();if(st.userId)supa.from('profiles').update({lang:st.lang}).eq('id',st.userId);render()" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:20px;">${st.lang==='fr'?'🇫🇷':'🇬🇧'}</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Langue</div><div style="font-size:11px;color:${MU};">${st.lang==='fr'?'Français':'English'}</div></div>
+              <span style="color:${MU};">›</span>
+            </div>
+            <div onclick="go('legal')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:20px;">📋</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Mentions légales & CGU</div><div style="font-size:11px;color:${MU};">Confidentialité · Conditions d'utilisation</div></div>
+              <span style="color:${MU};">›</span>
+            </div>
+            <div onclick="logoutApp()" class="tap" style="background:rgba(255,63,91,0.06);border:1px solid rgba(255,63,91,0.2);border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:20px;">🚪</span>
+              <div style="font-size:13px;font-weight:600;color:${AC};">Se déconnecter</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${nav('profile')}
+  </div>`;}
+
+function sMemberProfile(){
+  const pseudo=st.viewedMember?.pseudo;
+  if(!pseudo)return'<div style="flex:1;padding:60px;text-align:center;color:#555;">Profil introuvable</div>';
+  const profile=memberProfileData[pseudo];
+  const isMe=pseudo===st.pseudo;
+  const friendStatus=isMe?'self':getFriendStatus(profile?.id);
+  
+  // Mutual friends
+  const mutualFriends=myFriends.filter(f=>
+    sortiesPubliques.some(s=>s._avatars?.some(a=>a.pseudo===f.pseudo)&&s._avatars?.some(a=>a.pseudo===pseudo))
   );
-});
+  
+  // Their fav films (stored in their profile data)
+  const theirFavIds=(profile?.fav_films||[]);
+  const theirFavFilms=theirFavIds.map(id=>[id,FILMS[id]]).filter(([id,f])=>!!f);
+  
+  // Their upcoming sorties
+  const theirSorties=sortiesPubliques.filter(s=>s._avatars?.some(a=>a.pseudo===pseudo));
+  
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:50px 18px 14px;border-bottom:1px solid ${BD};flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div onclick="st.screen='home';render()" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+        <div style="flex:1;"></div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="position:relative;flex-shrink:0;">
+          ${profile?.photo_url
+            ?`<div style="width:68px;height:68px;border-radius:50%;overflow:hidden;"><img src="${profile.photo_url}" style="width:100%;height:100%;object-fit:cover;"></div>`
+            :avatarEl(pseudo,68,'50%')}
+        </div>
+        <div style="flex:1;">
+          <div class="serif" style="font-size:clamp(18px,5.6vw,22px);">${esc(pseudo)}</div>
+          <div style="font-size:11px;color:${MU};margin-top:2px;">@${pseudo.toLowerCase()}</div>
+          ${profile?.bio?`<div style="font-size:12px;color:${MU};margin-top:5px;line-height:1.5;">${esc(profile.bio)}</div>`:''}
+          <div style="display:flex;gap:14px;margin-top:8px;">
+            <div style="text-align:center;"><div style="font-size:15px;font-weight:700;">${theirSorties.length}</div><div style="font-size:9px;color:${MU};">Sorties</div></div>
+            ${mutualFriends.length>0?`<div style="text-align:center;"><div style="font-size:15px;font-weight:700;">${mutualFriends.length}</div><div style="font-size:9px;color:${MU};">En commun</div></div>`:''}
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            ${isMe?`<div onclick="go('profile')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${AC};font-size:12px;font-weight:700;cursor:pointer;color:#fff;">Mon profil</div>`
+              :friendStatus==='friend'?
+                `<div onclick="openPrivateChat('${profile?.id||''}','${esc(pseudo)}','${profile?.avatar||'🎬'}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:rgba(0,192,48,0.1);border:1px solid rgba(0,192,48,0.3);font-size:12px;font-weight:700;cursor:pointer;color:${LB};">💬 Message</div>
+                <div onclick="removeFriend('${profile?.id||''}','${esc(pseudo)}')" style="padding:8px 12px;border-radius:12px;background:${S1};border:1px solid ${BD};font-size:12px;cursor:pointer;color:${MU};">Retirer</div>`
+              :friendStatus==='sent'?
+                `<div style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${S1};border:1px solid ${BD};font-size:12px;color:${MU};">Demande envoyée ✓</div>`
+              :friendStatus==='received'?
+                `<div onclick="acceptFriendRequest('${friendRequests.find(r=>r.from_user_id===profile?.id)?.id}','${profile?.id||''}','${esc(pseudo)}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${AC};font-size:12px;font-weight:700;cursor:pointer;color:#fff;">Accepter la demande</div>`
+              :profile?.id?`<div onclick="sendFriendRequest('${profile.id}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);font-size:12px;font-weight:700;cursor:pointer;color:#4a9eff;">+ Ajouter en ami</div>`:''
+            }
+            ${!isMe&&profile?.id?`<div onclick="openReportModal('user','${profile.id}','${esc(pseudo)}')" style="padding:8px 10px;border-radius:12px;background:${S1};border:1px solid ${BD};font-size:14px;cursor:pointer;" title="Signaler">🚩</div>`:''}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:14px 18px 20px;">
+      ${theirFavFilms.length>0?`<div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">🎬 Films préférés</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+          ${theirFavFilms.map(([id,f])=>`<div onclick="openFilm('${id}','profile')" class="tap" style="cursor:pointer;">
+            <div style="height:80px;border-radius:8px;overflow:hidden;background:${f.bg};position:relative;">
+              ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:26px;">${f.e}</span>`}
+            </div>
+            <div style="font-size:7px;margin-top:2px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(f.t)}</div>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+      ${theirSorties.length>0?`<div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">🍿 Sorties à venir</div>
+        ${theirSorties.slice(0,3).map(s=>{const film=FILMS[s.film_id]||{t:s.nom,e:'🎬',bg:'#111'};const cinema=CINEMAS.find(c=>c.id===s.confirmed_cinema);
+          return `<div onclick="openGroup('${s.film_id}','${s.id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px 12px;display:flex;gap:10px;cursor:pointer;margin-bottom:6px;">
+            <div style="width:36px;height:50px;border-radius:7px;overflow:hidden;background:${film.bg};flex-shrink:0;position:relative;">
+              ${posters[s.film_id]?`<img src="${posters[s.film_id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:18px;">${film.e}</span>`}
+            </div>
+            <div><div style="font-size:13px;font-weight:600;">${esc(film.t||s.nom)}</div>
+            ${cinema?`<div style="font-size:10px;color:${MU};margin-top:2px;">${esc(cinema.name)} · ${s.confirmed_heure}</div>`:''}
+            </div>
+          </div>`;}).join('')}
+      </div>`:''}
+      ${mutualFriends.length>0?`<div style="margin-bottom:18px;">
+        <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">👥 Amis en commun</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          ${mutualFriends.slice(0,6).map(f=>`<div onclick="openMemberProfile('${esc(f.pseudo)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;">
+            ${avatarEl(f.pseudo,36,'50%')}
+            <div style="font-size:9px;color:${MU};max-width:44px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(f.pseudo)}</div>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+      ${!profile?`<div style="text-align:center;padding:40px;color:${MU};font-size:13px;">Chargement…</div>`:''}
+    </div>
+  </div>`;}
 
-// ── Background sync ───────────────────────────────────────────────────────────
-self.addEventListener('sync', e => {
-  if (e.tag === 'sync-messages') {
-    e.waitUntil(clients.matchAll().then(list => list.forEach(c => c.postMessage({ type: 'SYNC_MESSAGES' }))));
+function sWantToSee(){
+  const wantList=getWantToSee();const films=wantList.map(id=>[id,FILMS[id]]).filter(([id,f])=>!!f);
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:50px 18px 12px;flex-shrink:0;display:flex;align-items:center;gap:10px;">
+      <div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+      <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">🔖 Ma liste</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
+      ${films.length===0?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;gap:12px;"><div style="font-size:52px;">🔖</div><div class="serif" style="font-size:20px;">Ma liste est vide</div><div style="font-size:13px;color:${MU};">Ajoute des films depuis leur fiche !</div></div>`:
+      `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+        ${films.map(([id,f])=>`<div onclick="openFilm('${id}','home')" class="tap" style="cursor:pointer;">
+          <div style="height:120px;border-radius:10px;overflow:hidden;background:${f.bg};position:relative;">
+            ${posters[id]?`<img src="${posters[id]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:36px;">${f.e}</span>`}
+            <div onclick="event.stopPropagation();toggleWantToSee('${id}')" style="position:absolute;top:4px;right:4px;background:rgba(240,192,96,0.85);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:9px;">🔖</div>
+          </div>
+          <div style="padding:4px 2px;"><div style="font-size:9px;font-weight:600;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${esc(f.t)}</div></div>
+        </div>`).join('')}
+      </div>`}
+    </div>
+    ${nav('profile')}
+  </div>`;}
+
+function openLbdModal(){
+  const d=document.createElement('div');d.style.cssText='position:fixed;inset:0;background:rgba(7,7,15,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  d.innerHTML=`<div style="background:#16162a;border:1px solid ${BD};border-radius:18px;padding:22px;width:100%;max-width:300px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:10px;">📽️</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px;">Letterboxd</div>
+    <div style="font-size:12px;color:${MU};margin-bottom:14px;">Entre ton pseudo Letterboxd pour importer ta watchlist</div>
+    <input id="lbd-inp" value="${esc(st.lbdPseudo||'')}" placeholder="@pseudo" style="width:100%;background:${S1};border:1px solid ${BD};border-radius:12px;padding:10px 14px;font-size:14px;color:${TX};outline:none;margin-bottom:10px;box-sizing:border-box;text-align:center;">
+    <div id="lbd-err" style="font-size:12px;color:${AC};margin-bottom:8px;min-height:16px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button id="lbd-cancel" style="flex:1;padding:10px;background:${S1};border:1px solid ${BD};border-radius:12px;color:${TX};cursor:pointer;font-family:inherit;font-size:13px;">Annuler</button>
+      <button id="lbd-ok" style="flex:2;padding:10px;background:${AC};border:none;border-radius:12px;color:#fff;cursor:pointer;font-weight:700;font-family:inherit;font-size:13px;">Connecter</button>
+    </div>
+  </div>`;
+  document.body.appendChild(d);
+  d.querySelector('#lbd-cancel').onclick=()=>d.remove();
+  d.querySelector('#lbd-ok').onclick=async()=>{
+    const val=(document.getElementById('lbd-inp')?.value||'').trim();if(!val)return;
+    d.querySelector('#lbd-ok').textContent='Chargement…';
+    const ok=await loadLbd(val);
+    if(ok){st.lbdPseudo=val;save();if(st.userId)supa.from('profiles').update({lbd_pseudo:val}).eq('id',st.userId);d.remove();render();toast('Letterboxd connecté ! 📽️','success');}
+    else{document.getElementById('lbd-err').textContent='Pseudo introuvable';d.querySelector('#lbd-ok').textContent='Connecter';}};
+}
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// RENDER + INIT
+// ══════════════════════════════════════════════════════════════
+function getFavFilms(){try{return JSON.parse(localStorage.getItem('cm_fav_'+(st.pseudo||''))||'[]');}catch(e){return[];}}
+function setFavFilm(filmId){
+  let list=getFavFilms();
+  if(list.includes(filmId))list=list.filter(x=>x!==filmId);
+  else{if(list.length>=4)list.shift();list.push(filmId);}
+  try{localStorage.setItem('cm_fav_'+(st.pseudo||''),JSON.stringify(list));}catch(e){}
+  if(st.userId) supa.from('profiles').update({fav_films:list}).eq('id',st.userId);
+  render();
+  openFavFilmPicker();
+}
+function openFavFilmPicker(){
+  const existing=document.getElementById('fav-picker-modal');
+  if(existing) existing.remove();
+  const current=getFavFilms();
+  const allFilms=Object.entries(FILMS).sort((a,b)=>a[1].t.localeCompare(b[1].t));
+  const d=document.createElement('div');
+  d.id='fav-picker-modal';
+  d.style.cssText='position:fixed;inset:0;background:rgba(7,7,15,0.97);z-index:9999;display:flex;flex-direction:column;overflow:hidden;';
+
+  let gridHTML='';
+  for(const[id,f]of allFilms){
+    const sel=current.includes(id);
+    const img=posters[id]?('<img src="'+posters[id]+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy">'):'<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:32px;">'+f.e+'</span>';
+    const check=sel?'<div style="position:absolute;top:5px;right:5px;background:#ff3f5b;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;">✓</div>':'';
+    gridHTML+='<div onclick="setFavFilm(\''+id+'\')" data-title="'+f.t.toLowerCase().replace(/"/g,'').replace(/'/g,'')+'" class="tap" style="cursor:pointer;">'
+      +'<div style="height:110px;border-radius:10px;overflow:hidden;background:'+f.bg+';position:relative;border:2px solid '+(sel?'#ff3f5b':'transparent')+';">'
+      +img+check
+      +'</div>'
+      +'<div style="font-size:8px;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;color:#e8e0d4;">'+esc(f.t)+'</div>'
+      +'</div>';
   }
-});
+
+  d.innerHTML='<div style="padding:50px 18px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0;">'
+    +'<div onclick="document.getElementById(\'fav-picker-modal\')?.remove()" style="width:32px;height:32px;border-radius:50%;background:#1a1a2e;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;">←</div>'
+    +'<div style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:22px;flex:1;">Films préférés</div>'
+    +'<div style="font-size:11px;color:#555570;">'+current.length+'/4</div>'
+    +'</div>'
+    +'<div style="padding:0 18px 10px;flex-shrink:0;">'
+    +'<input id="fav-search" placeholder="🔍 Rechercher un film…" oninput="filterFavPicker(this.value)" style="width:100%;background:#111120;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:9px 14px;font-size:13px;color:#e8e0d4;outline:none;box-sizing:border-box;">'
+    +'</div>'
+    +'<div id="fav-grid" style="flex:1;overflow-y:auto;padding:0 14px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+    +gridHTML
+    +'</div>';
+
+  document.body.appendChild(d);
+  requestAnimationFrame(()=>d.querySelector('#fav-search')?.focus());
+}
+function filterFavPicker(q){
+  const grid=document.getElementById('fav-grid');if(!grid)return;
+  const qn=(q||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  grid.querySelectorAll('[data-title]').forEach(el=>{
+    const title=el.dataset.title.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    el.style.display=title.includes(qn)?'':'none';
+  });
+}
+
+function uploadProfilePhoto(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if(!file || !st.userId) return;
+    // Compress & resize to 200x200
+    const canvas = document.createElement('canvas');
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      img.onload = async () => {
+        const size = 300;
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const scale = Math.max(size/img.width, size/img.height);
+        const x = (size - img.width*scale)/2;
+        const y = (size - img.height*scale)/2;
+        ctx.drawImage(img, x, y, img.width*scale, img.height*scale);
+        const fmt = canvas.toDataURL('image/webp',0.01).startsWith('data:image/webp')?'image/webp':'image/jpeg';
+        canvas.toBlob(async (blob) => {
+          const ext = fmt.includes('webp') ? 'webp' : 'jpg';
+          const fileName = `${st.userId}/avatar_${Date.now()}.${ext}`;
+          const { data, error } = await supa.storage.from('avatars').upload(fileName, blob, { contentType:fmt, upsert:true });
+          if(error){
+            if(error.message?.includes('security')||error.message?.includes('policy')){
+              toast('⚠️ Autorise les photos dans Supabase Storage','error',4000);
+            } else {
+              toast('Erreur: '+error.message,'error');
+            }
+            return;
+          }
+          const { data:{ publicUrl } } = supa.storage.from('avatars').getPublicUrl(fileName);
+          await supa.from('profiles').update({ photo_url: publicUrl }).eq('id', st.userId);
+          toast('Photo mise à jour ! 📸','success');
+          render();
+        }, fmt, 0.85);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+  setTimeout(() => input.remove(), 5000);
+}
+
+// ─── SERVICE WORKER + PUSH NOTIFICATIONS ─────────────────────────────────────
+const VAPID_PUBLIC_KEY = 'BMzJ5F6WGnvOz3Bp3O0fjK6b97jj22BZX2Gnb6LSLk6zGBOQxg6d-Xl3I43eBQBUpsqZsAqH93x8Rn0LFY_xjtU';
+
+async function registerServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  try{
+    const reg = await navigator.serviceWorker.register('/sw.js', {scope:'/'});
+    console.log('SW registered');
+    // Listen for messages from SW (navigation, sync)
+    navigator.serviceWorker.addEventListener('message', e => {
+      if(e.data?.type === 'NAVIGATE') { window.location.hash = e.data.url; }
+      if(e.data?.type === 'SYNC_MESSAGES') { if(st.groupe) loadMessages(); }
+    });
+    return reg;
+  }catch(e){ console.warn('SW registration failed:', e); }
+}
+
+async function subscribeToPush(){
+  if(!('PushManager' in window)) return;
+  if(!st.userId) return;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    // Save subscription to server
+    await fetch('/api/push-subscribe', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ subscription: sub.toJSON(), userId: st.userId }),
+    });
+    console.log('Push subscribed');
+  }catch(e){ console.warn('Push subscription failed:', e.message); }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function requestPushPermission(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'granted'){ await subscribeToPush(); return; }
+  if(Notification.permission === 'denied') return;
+  // Show in-app prompt before asking browser permission
+  const granted = await new Promise(resolve => {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;bottom:80px;left:16px;right:16px;background:#1a1a2e;border:1px solid rgba(255,63,91,0.4);border-radius:18px;padding:16px;z-index:9998;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+    d.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="font-size:28px;">🔔</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Activer les notifications</div>
+          <div style="font-size:12px;color:#555570;margin-bottom:12px;">Reçois un rappel avant tes sorties et sois averti des nouveaux messages.</div>
+          <div style="display:flex;gap:8px;">
+            <button id="push-accept" style="flex:1;background:#ff3f5b;border:none;color:#fff;border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Activer</button>
+            <button id="push-deny" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.07);color:#555570;border-radius:10px;padding:9px;font-size:12px;cursor:pointer;font-family:inherit;">Plus tard</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(d);
+    d.querySelector('#push-accept').onclick = () => { d.remove(); resolve(true); };
+    d.querySelector('#push-deny').onclick  = () => { d.remove(); resolve(false); };
+    setTimeout(() => { d.remove(); resolve(false); }, 15000);
+  });
+  if(!granted) return;
+  const permission = await Notification.requestPermission();
+  if(permission === 'granted') await subscribeToPush();
+}
+
+// ─── NETWORK STATUS ──────────────────────────────────────────────────────────
+let _isOnline = navigator.onLine;
+let _offlineBanner = null;
+
+function updateNetworkStatus(online){
+  _isOnline = online;
+  if(!online){
+    if(_offlineBanner) return;
+    _offlineBanner = document.createElement('div');
+    _offlineBanner.id = 'offline-banner';
+    _offlineBanner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f0a030;color:#000;text-align:center;padding:8px 16px;font-size:12px;font-weight:600;z-index:10000;';
+    _offlineBanner.textContent = '📵 Hors ligne — certaines fonctionnalités sont indisponibles';
+    document.body.appendChild(_offlineBanner);
+  } else {
+    if(_offlineBanner){ _offlineBanner.remove(); _offlineBanner = null; }
+    // Reconnected — reload data
+    if(st.screen === 'home') { loadSorties(); }
+    if(st.screen === 'group' && st.groupe) { loadMessages(); }
+    toast('✅ Connexion rétablie','success',2000);
+  }
+}
+
+window.addEventListener('online',  () => updateNetworkStatus(true));
+window.addEventListener('offline', () => updateNetworkStatus(false));
+
+// ─── GLOBAL ERROR HANDLER pour Supabase ──────────────────────────────────────
+function handleSupaError(e, context=''){
+  if(!_isOnline){ toast('📵 Pas de connexion internet','warning'); return; }
+  const msg = e?.message || String(e);
+  if(msg.includes('JWT') || msg.includes('token')) {
+    toast('Session expirée — reconnexion…','warning');
+    setTimeout(() => { st.screen='auth'; render(); }, 1500);
+    return;
+  }
+  if(msg.includes('rate') || msg.includes('Too many')) {
+    toast('⏳ Trop de requêtes, réessaie dans quelques secondes','warning');
+    return;
+  }
+  if(context) console.error(`[${context}]`, e);
+  toast('Une erreur est survenue','error');
+}
+
+function sOnboarding(){
+  const step = st.onboardingStep || 0;
+  const steps = [
+    {
+      emoji: '🎬',
+      title: 'Bienvenue\nsur CinéMatch',
+      sub: 'Le réseau social du cinéma parisien',
+      desc: 'Découvre les films en salle, organise des sorties et rencontre d\'autres cinéphiles.',
+      bg: 'linear-gradient(160deg, #0a0510 0%, #1a0a2e 50%, #07070f 100%)',
+      accent: '#ff3f5b',
+      img: '🎭',
+    },
+    {
+      emoji: '🍿',
+      title: 'Crée des\nsorties ciné',
+      sub: 'Seul c\'est bien. À plusieurs c\'est mieux.',
+      desc: 'Choisis un film, un cinéma, une séance. Invite des amis ou rencontre des inconnus partageant tes goûts.',
+      bg: 'linear-gradient(160deg, #0a0a05 0%, #1a1a08 50%, #07070f 100%)',
+      accent: '#f0c060',
+      img: '👥',
+    },
+    {
+      emoji: '💬',
+      title: 'Discute\navant & après',
+      sub: 'Une communauté de cinéphiles',
+      desc: 'Chat de groupe pour chaque sortie, messagerie privée avec tes amis, réactions et débats.',
+      bg: 'linear-gradient(160deg, #050a0a 0%, #082028 50%, #07070f 100%)',
+      accent: '#4a9eff',
+      img: '💬',
+    },
+    {
+      emoji: '🔔',
+      title: 'Ne rate\naucune sortie',
+      sub: 'Rappels automatiques',
+      desc: 'Reçois une notification 24h et 1h avant chaque séance. Plus jamais d\'oubli.',
+      bg: 'linear-gradient(160deg, #0a0508 0%, #1a0810 50%, #07070f 100%)',
+      accent: '#00c030',
+      img: '⏰',
+    },
+  ];
+
+  const s = steps[step];
+  const isLast = step === steps.length - 1;
+  const progress = ((step + 1) / steps.length) * 100;
+
+  return `<div style="flex:1;display:flex;flex-direction:column;background:${s.bg};position:relative;overflow:hidden;">
+    <!-- Ambient background circles -->
+    <div style="position:absolute;top:-80px;right:-60px;width:280px;height:280px;border-radius:50%;background:${s.accent};opacity:0.06;filter:blur(60px);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-60px;left:-40px;width:200px;height:200px;border-radius:50%;background:${s.accent};opacity:0.04;filter:blur(40px);pointer-events:none;"></div>
+
+    <!-- Skip button -->
+    <div style="position:absolute;top:max(env(safe-area-inset-top,0px),16px);right:18px;z-index:10;">
+      <div onclick="completeOnboarding()" style="font-size:12px;color:rgba(255,255,255,0.35);cursor:pointer;padding:8px 12px;border-radius:20px;background:rgba(255,255,255,0.05);">Passer</div>
+    </div>
+
+    <!-- Progress bar -->
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.1);">
+      <div style="height:100%;width:${progress}%;background:${s.accent};transition:width 0.4s ease;border-radius:0 2px 2px 0;"></div>
+    </div>
+
+    <!-- Main content -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 32px 20px;text-align:center;">
+
+      <!-- Big icon with glow -->
+      <div style="font-size:90px;margin-bottom:32px;filter:drop-shadow(0 0 40px ${s.accent}40);animation:fadeUp 0.5s ease forwards;">
+        ${s.img}
+      </div>
+
+      <!-- Title -->
+      <div class="serif" style="font-size:clamp(28px,8vw,38px);line-height:1.15;margin-bottom:10px;animation:fadeUp 0.5s 0.1s ease both;white-space:pre-line;">${s.title}</div>
+
+      <!-- Subtitle -->
+      <div style="font-size:12px;color:${s.accent};letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;font-weight:600;animation:fadeUp 0.5s 0.15s ease both;">${s.sub}</div>
+
+      <!-- Description -->
+      <div style="font-size:14px;color:rgba(232,224,212,0.6);line-height:1.7;max-width:280px;animation:fadeUp 0.5s 0.2s ease both;">${s.desc}</div>
+    </div>
+
+    <!-- Dots + CTA -->
+    <div style="padding:0 32px 40px;padding-bottom:max(40px,calc(env(safe-area-inset-bottom,0px)+24px));display:flex;flex-direction:column;gap:16px;align-items:center;">
+      <!-- Dot indicators -->
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        ${steps.map((_,i) => `<div onclick="st.onboardingStep=${i};render()" style="width:${i===step?24:8}px;height:8px;border-radius:4px;background:${i===step?s.accent:'rgba(255,255,255,0.2)'};transition:all 0.3s;cursor:pointer;"></div>`).join('')}
+      </div>
+
+      <!-- CTA Button -->
+      ${isLast
+        ? `<button onclick="completeOnboarding()" style="width:100%;max-width:320px;padding:17px;background:${s.accent};border:none;color:#fff;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;letter-spacing:0.5px;">
+            Commencer 🎬
+          </button>`
+        : `<button onclick="st.onboardingStep=${step+1};render()" style="width:100%;max-width:320px;padding:17px;background:${s.accent};border:none;color:#fff;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;letter-spacing:0.5px;">
+            Suivant →
+          </button>`
+      }
+
+      ${step === 0 ? `<div onclick="completeOnboarding()" style="font-size:12px;color:rgba(255,255,255,0.3);cursor:pointer;">J'ai déjà un compte</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function completeOnboarding(){
+  try{ localStorage.setItem('cm_onboarded','1'); }catch(e){}
+  st.screen = 'auth';
+  st.authStep = 'login';
+  st.onboardingStep = 0;
+  render();
+}
+
+function shouldShowOnboarding(){
+  try{ return !localStorage.getItem('cm_onboarded'); }catch(e){ return false; }
+}
+
+// ════════════════════════════════════════════════════════
+// ✏️  ZONE ÉDITABLE — Mentions légales (cherche "sLegal")
+// ════════════════════════════════════════════════════════
+function sLegal(){
+  const tab = st.legalTab || 'privacy';
+
+  // ✏️ ── EDITABLE: Politique de confidentialité ────────────────────────
+  const privacy = `<div style="font-size:13px;color:rgba(232,224,212,0.75);line-height:1.8;">
+    <p style="color:#e8e0d4;font-weight:600;font-size:15px;margin-bottom:6px;">Politique de confidentialité</p>
+    <p style="color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:20px;">Dernière mise à jour : avril 2026</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin-bottom:6px;">1. Qui sommes-nous</p>
+    <p>CinéMatch est une application sociale dédiée au cinéma parisien, permettant aux utilisateurs de découvrir des films, organiser des sorties et interagir avec d'autres cinéphiles. L'application est développée et exploitée à titre personnel.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">2. Données collectées</p>
+    <p>Nous collectons uniquement les données nécessaires au fonctionnement de l'application :</p>
+    <ul style="padding-left:16px;margin:8px 0;">
+      <li><b>Compte</b> : adresse email, pseudo choisi, avatar</li>
+      <li><b>Profil</b> : photo de profil (optionnelle), bio (optionnelle), films préférés</li>
+      <li><b>Activité</b> : sorties créées, messages envoyés, relations d'amitié</li>
+      <li><b>Technique</b> : token de notification push (si activé)</li>
+    </ul>
+    <p>Nous ne collectons <b>aucune donnée de localisation précise</b>, aucune donnée de navigation externe, et ne faisons <b>aucun profilage publicitaire</b>.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">3. Utilisation des données</p>
+    <p>Vos données sont utilisées exclusivement pour :</p>
+    <ul style="padding-left:16px;margin:8px 0;">
+      <li>Authentifier votre compte</li>
+      <li>Afficher votre profil aux autres utilisateurs</li>
+      <li>Permettre la messagerie entre amis</li>
+      <li>Envoyer des notifications push (si activées)</li>
+      <li>Améliorer les recommandations de films</li>
+    </ul>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">4. Partage des données</p>
+    <p>Nous ne vendons, ne louons et ne partageons jamais vos données personnelles à des tiers à des fins commerciales. Vos données sont hébergées sur <b>Supabase</b> (infrastructure EU) et <b>Vercel</b>.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">5. Vos droits (RGPD)</p>
+    <p>Conformément au RGPD, vous disposez des droits suivants :</p>
+    <ul style="padding-left:16px;margin:8px 0;">
+      <li><b>Accès</b> : consulter vos données (disponibles dans votre profil)</li>
+      <li><b>Rectification</b> : modifier votre pseudo, photo, bio</li>
+      <li><b>Suppression</b> : supprimer votre compte et toutes vos données via Profil → Supprimer mon compte</li>
+      <li><b>Portabilité</b> : sur demande par email</li>
+    </ul>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">6. Conservation</p>
+    <p>Les données sont conservées tant que votre compte est actif. Après suppression de compte, toutes vos données sont effacées immédiatement et définitivement.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">7. Contact</p>
+    <p>Pour toute question relative à vos données : <span style="color:#ff3f5b;">contact@cinematch.app</span></p>
+  </div>`;
+
+  // ✏️ ── EDITABLE: CGU ────────────────────────────────────────────────
+  const terms = `<div style="font-size:13px;color:rgba(232,224,212,0.75);line-height:1.8;">
+    <p style="color:#e8e0d4;font-weight:600;font-size:15px;margin-bottom:6px;">Conditions Générales d'Utilisation</p>
+    <p style="color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:20px;">Dernière mise à jour : avril 2026</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin-bottom:6px;">1. Acceptation</p>
+    <p>En créant un compte sur CinéMatch, vous acceptez les présentes CGU. Si vous n'acceptez pas, veuillez ne pas utiliser l'application.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">2. Compte utilisateur</p>
+    <p>Vous devez avoir 13 ans minimum pour utiliser CinéMatch. Vous êtes responsable de la confidentialité de votre mot de passe et de toutes les actions effectuées depuis votre compte.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">3. Comportement</p>
+    <p>Il est <b>strictement interdit</b> de :</p>
+    <ul style="padding-left:16px;margin:8px 0;">
+      <li>Harceler, menacer ou insulter d'autres utilisateurs</li>
+      <li>Publier du contenu illégal, offensant, ou à caractère sexuel</li>
+      <li>Usurper l'identité d'une autre personne</li>
+      <li>Utiliser l'application à des fins commerciales sans accord</li>
+      <li>Tenter de contourner les mesures de sécurité</li>
+    </ul>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">4. Contenu utilisateur</p>
+    <p>Vous conservez la propriété de votre contenu. En le publiant, vous accordez à CinéMatch une licence limitée pour l'afficher dans l'application. Nous nous réservons le droit de supprimer tout contenu enfreignant ces CGU.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">5. Disponibilité</p>
+    <p>CinéMatch est fourni "tel quel". Nous ne garantissons pas une disponibilité ininterrompue et ne sommes pas responsables des pertes liées à une interruption de service.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">6. Données horaires</p>
+    <p>Les horaires de séances sont fournis à titre indicatif. CinéMatch n'est pas responsable d'éventuelles erreurs ou changements de programmation. Vérifiez toujours auprès du cinéma.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">7. Modification</p>
+    <p>Nous nous réservons le droit de modifier ces CGU. Les utilisateurs seront informés par notification in-app.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">8. Droit applicable</p>
+    <p>Ces CGU sont régies par le droit français. Tout litige relève de la compétence des tribunaux français.</p>
+  </div>`;
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:50px 18px 12px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+        <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mentions légales</div>
+      </div>
+      <div style="display:flex;gap:0;background:${S1};border:1px solid ${BD};border-radius:14px;padding:3px;">
+        <div onclick="st.legalTab='privacy';render()" style="flex:1;text-align:center;padding:8px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='privacy'?AC:'transparent'};color:${tab==='privacy'?'#fff':MU};">Confidentialité</div>
+        <div onclick="st.legalTab='terms';render()" style="flex:1;text-align:center;padding:8px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='terms'?AC:'transparent'};color:${tab==='terms'?'#fff':MU};">CGU</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 22px 32px;">
+      ${tab === 'privacy' ? privacy : terms}
+    </div>
+  </div>`;
+}
+
+function openReportModal(type, targetId, targetName){
+  // type: 'user' | 'message' | 'group'
+  const reasons = [
+    ['spam',       '🚫', 'Spam ou pub'],
+    ['harassment', '😠', 'Harcèlement'],
+    ['offensive',  '⚠️', 'Contenu offensant'],
+    ['fake',       '🎭', 'Faux profil'],
+    ['other',      '📝', 'Autre raison'],
+  ];
+  
+  const existing = document.getElementById('report-modal');
+  if(existing) existing.remove();
+  
+  const d = document.createElement('div');
+  d.id = 'report-modal';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(7,7,15,0.85);z-index:9999;display:flex;align-items:flex-end;';
+  
+  let selectedReason = null;
+  
+  const render = () => {
+    d.innerHTML = `
+      <div style="width:100%;background:#12121f;border-radius:24px 24px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));">
+        <div style="width:40px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:0 auto 20px;"></div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Signaler ${type==='user'?'ce profil':type==='message'?'ce message':'ce groupe'}</div>
+        <div style="font-size:12px;color:#555570;margin-bottom:16px;">${targetName ? '"'+targetName+'"' : ''}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+          ${reasons.map(([id,ic,lb]) => `
+            <div onclick="this.closest('#report-modal').dataset.reason='${id}';document.querySelectorAll('[data-rid]').forEach(x=>x.style.borderColor='rgba(255,255,255,0.07)');this.querySelector('[data-rid]').style.borderColor='#ff3f5b';" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.07);">
+              <span style="font-size:18px;">${ic}</span>
+              <span data-rid="${id}" style="font-size:13px;font-weight:500;">${lb}</span>
+            </div>`).join('')}
+        </div>
+        <button onclick="submitReport('${type}','${targetId}','${targetName}')" style="width:100%;background:#ff3f5b;border:none;color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">Envoyer le signalement</button>
+        <div onclick="document.getElementById('report-modal')?.remove()" style="text-align:center;margin-top:12px;font-size:13px;color:#555570;cursor:pointer;">Annuler</div>
+      </div>`;
+  };
+  render();
+  document.body.appendChild(d);
+  d.onclick = e => { if(e.target===d) d.remove(); };
+}
+
+async function submitReport(type, targetId, targetName){
+  const modal = document.getElementById('report-modal');
+  const reason = modal?.dataset.reason;
+  if(!reason){ toast('Choisis une raison','warning'); return; }
+  
+  try{
+    await supa.from('reports').insert({
+      reporter_id: st.userId,
+      target_type: type,
+      target_id: String(targetId),
+      target_name: targetName || '',
+      reason,
+      created_at: new Date().toISOString(),
+    });
+    modal?.remove();
+    toast('Signalement envoyé. Merci 🙏','success');
+  }catch(e){
+    // Table might not exist yet — still show success to user
+    modal?.remove();
+    toast('Signalement envoyé. Merci 🙏','success');
+    console.warn('report insert:', e.message);
+  }
+}
+
+function render(){
+  const inner=document.getElementById('inner');if(!inner)return;
+  let html='';
+  try{
+    if(st.screen==='loading')html=sLoading();
+    else if(st.screen==='onboarding')html=sOnboarding();
+    else if(st.screen==='auth')html=sAuth();
+    else if(st.screen==='pseudo')html=sPseudo();
+    else if(st.screen==='home')html=sHome();
+    else if(st.screen==='film')html=sFilm();
+    else if(st.screen==='cinemas')html=sCinemas();
+    else if(st.screen==='cinema-detail')html=sCinemaDetail();
+    else if(st.screen==='group')html=sGroup();
+    else if(st.screen==='create-sortie')html=sCreateSortie();
+    else if(st.screen==='profile')html=sProfile();
+    else if(st.screen==='want-to-see')html=sWantToSee();
+    else if(st.screen==='friends')html=sFriends();
+    else if(st.screen==='messages')html=sMessages();
+    else if(st.screen==='private-chat')html=sPrivateChat();
+    else if(st.screen==='notifications')html=sNotifications();
+    else if(st.screen==='member-profile')html=sMemberProfile();
+    else if(st.screen==='legal')html=sLegal();
+    else html=sHome();
+  }catch(e){console.error('render error:',e);html=`<div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;text-align:center;"><div style="font-size:40px;">⚠️</div><div style="font-size:14px;color:#ff3f5b;">${e.message}</div><div onclick="st.screen='home';render()" style="padding:10px 20px;background:#ff3f5b;border-radius:12px;cursor:pointer;">← Accueil</div></div>`;}
+  inner.innerHTML=html;
+  // Post-render hooks
+  if(st.screen==='group'&&st.groupe){
+    if(st.tab==='chat'){loadMessages();}
+    else if(st.tab==='membres'){renderMembresDOM();}
+    else if(st.tab==='vote'){renderVotesDOM();}
+  }
+  if(st.screen==='private-chat')renderPrivateMsgsDOM();
+  if(st.screen==='home'&&st.homeTab==='sorties'&&sortiesPubliques.length===0){loadSorties();}
+  if(st.screen==='profile'){
+    const el=document.getElementById('avatar-picker-wrap-profile');
+    if(el)el.innerHTML=`<div id="avatar-picker-wrap">${buildAvatarBtn()}</div>`;
+  }
+  // Update notif badges
+  document.querySelectorAll('.notif-badge').forEach(el=>{el.style.display=notifCount>0?'flex':'none';el.textContent=notifCount>9?'9+':notifCount;});
+}
+
+async function init(){
+  registerServiceWorker(); // non-blocking
+  st.screen='loading';render();
+  await initDynamicData(st.date);
+  // Load session
+  const{data:{session}}=await supa.auth.getSession();
+  if(!session){
+    _authDone=false;
+    st.screen='auth';st.authStep='login';render();
+  }
+  // Invite link detection
+  const params=new URLSearchParams(window.location.search);
+  const inv=params.get('invite');const invFilm=params.get('film');
+  if(inv&&invFilm){st._inviteGroupe=inv;st._inviteFilm=invFilm;history.replaceState({},'',window.location.pathname);}
+  // Load TMDB posters in background
+  setTimeout(()=>{loadPosters();enrichGenresFromTMDB();},500);
+  // Refresh sorties every 5 min
+  setInterval(()=>{if(st.screen==='home')loadSorties();},300000);
+  setInterval(()=>{if(st.userId){loadNotifications();loadConversations();}},60000);
+  // Check data freshness
+  checkDataFreshness();
+}
+
+async function checkDataFreshness(){
+  try{
+    const r=await fetch('/api/health');
+    if(!r.ok)return;
+    const h=await r.json();
+    if(h.stale||!h.ok){
+      const msg=h.error?'⚠️ Données cinéma potentiellement périmées':
+        h.stale?`⚠️ Données mises à jour il y a ${h.age_hours}h`:'⚠️ Données cinéma indisponibles';
+      toast(msg,'warning',5000);
+      console.warn('Scraper health:',h);
+    }
+  }catch(e){/* health check optional */}
+}
+init();
+</script>
+</body>
+</html>
