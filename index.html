@@ -2,17 +2,43 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>CinéMatch</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
+  <title>CinéMatch — Sorties ciné à Paris</title>
+  <meta name="description" content="Découvre les films en salle à Paris, organise des sorties avec tes amis et rencontre des cinéphiles."/>
+
+  <!-- PWA Manifest -->
   <link rel="manifest" href="/manifest.json"/>
+
+  <!-- Theme -->
   <meta name="theme-color" content="#07070f"/>
+  <meta name="background-color" content="#07070f"/>
+  <meta name="color-scheme" content="dark"/>
+
+  <!-- iOS PWA -->
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="CinéMatch"/>
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png"/>
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png"/>
+  <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-120.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png"/>
+
+  <!-- iOS Splash Screens (generated via generate-icons.html) -->
+  <link rel="apple-touch-startup-image" media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)" href="/splash/splash-1170x2532.png"/>
+  <link rel="apple-touch-startup-image" media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3)" href="/splash/splash-1125x2436.png"/>
+  <link rel="apple-touch-startup-image" media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:2)" href="/splash/splash-828x1792.png"/>
+  <link rel="apple-touch-startup-image" media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2)" href="/splash/splash-750x1334.png"/>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="CinéMatch"/>
+  <meta property="og:description" content="Le réseau social du cinéma parisien"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:image" content="/icons/icon-512.png"/>
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png"/>
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -2210,7 +2236,7 @@ function sLegal(){
     <p style="color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:20px;">Dernière mise à jour : avril 2026</p>
 
     <p style="font-weight:600;color:#e8e0d4;margin-bottom:6px;">1. Qui sommes-nous</p>
-    <p>CinéMatch est une application sociale dédiée aux fans de cinéma, permettant aux utilisateurs de découvrir des films, organiser des sorties et interagir avec d'autres cinéphiles. L'application est développée et exploitée à titre personnel.</p>
+    <p>CinéMatch est une application sociale dédiée au cinéma parisien, permettant aux utilisateurs de découvrir des films, organiser des sorties et interagir avec d'autres cinéphiles. L'application est développée et exploitée à titre personnel.</p>
 
     <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">2. Données collectées</p>
     <p>Nous collectons uniquement les données nécessaires au fonctionnement de l'application :</p>
