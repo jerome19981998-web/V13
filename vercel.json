@@ -1,50 +1,31 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/:path*.js" }
+    { "source": "/api/:path*", "destination": "/api/:path*.js" },
+    { "source": "/((?!api|icons|sw.js|manifest.json|favicon.ico|favicon.svg).*)", "destination": "/index.html" }
   ],
-  "routes": [
+  "headers": [
     {
-      "src": "/sw\\.js",
-      "dest": "/sw.js",
-      "headers": { "Cache-Control": "no-cache, no-store, must-revalidate" }
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Content-Type", "value": "application/javascript" }
+      ]
     },
     {
-      "src": "/manifest\\.json",
-      "dest": "/manifest.json",
-      "headers": { "Content-Type": "application/manifest+json; charset=utf-8" }
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
     },
     {
-      "src": "/icons/(.+)",
-      "dest": "/icons/$1"
-    },
-    {
-      "src": "/favicon\\.ico",
-      "dest": "/favicon.ico"
-    },
-    {
-      "src": "/favicon\\.svg",
-      "dest": "/favicon.svg"
-    },
-    {
-      "src": "/api/(.+)",
-      "dest": "/api/$1.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
     }
   ],
   "crons": [
     { "path": "/api/push-reminders", "schedule": "0 8 * * *" }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-      ]
-    }
   ]
 }
