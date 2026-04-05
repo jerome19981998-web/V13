@@ -1,6 +1,6 @@
 // Vercel Serverless Function — proxy TMDB API
 // Token stays server-side, never exposed to the browser
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS: only allow requests from your own domain
   const allowedOrigins = [
     'https://cinematch.vercel.app',
