@@ -2198,15 +2198,19 @@ function shouldShowOnboarding(){
   try{ return !localStorage.getItem('cm_onboarded'); }catch(e){ return false; }
 }
 
+// ════════════════════════════════════════════════════════
+// ✏️  ZONE ÉDITABLE — Mentions légales (cherche "sLegal")
+// ════════════════════════════════════════════════════════
 function sLegal(){
   const tab = st.legalTab || 'privacy';
 
+  // ✏️ ── EDITABLE: Politique de confidentialité ────────────────────────
   const privacy = `<div style="font-size:13px;color:rgba(232,224,212,0.75);line-height:1.8;">
     <p style="color:#e8e0d4;font-weight:600;font-size:15px;margin-bottom:6px;">Politique de confidentialité</p>
     <p style="color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:20px;">Dernière mise à jour : avril 2026</p>
 
     <p style="font-weight:600;color:#e8e0d4;margin-bottom:6px;">1. Qui sommes-nous</p>
-    <p>CinéMatch est une application sociale dédiée au cinéma parisien, permettant aux utilisateurs de découvrir des films, organiser des sorties et interagir avec d'autres cinéphiles. L'application est développée et exploitée à titre personnel.</p>
+    <p>CinéMatch est une application sociale dédiée aux fans de cinéma, permettant aux utilisateurs de découvrir des films, organiser des sorties et interagir avec d'autres cinéphiles. L'application est développée et exploitée à titre personnel.</p>
 
     <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">2. Données collectées</p>
     <p>Nous collectons uniquement les données nécessaires au fonctionnement de l'application :</p>
@@ -2247,6 +2251,7 @@ function sLegal(){
     <p>Pour toute question relative à vos données : <span style="color:#ff3f5b;">contact@cinematch.app</span></p>
   </div>`;
 
+  // ✏️ ── EDITABLE: CGU ────────────────────────────────────────────────
   const terms = `<div style="font-size:13px;color:rgba(232,224,212,0.75);line-height:1.8;">
     <p style="color:#e8e0d4;font-weight:600;font-size:15px;margin-bottom:6px;">Conditions Générales d'Utilisation</p>
     <p style="color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:20px;">Dernière mise à jour : avril 2026</p>
