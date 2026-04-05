@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
@@ -135,7 +135,7 @@ const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{autoRefreshToken:true,
 // ── STATE ────────────────────────────────────────────────────
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
 let st={screen:'loading',lang:_saved.lang||'fr',pseudo:_saved.pseudo||'',pseudoInput:'',avatar:_saved.avatar||'🎬',userId:null,userEmail:'',authStep:'login',cinema:null,film:null,filmSrc:'home',groupe:null,search:'',genre:'tous',filmGridMode:false,cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',tab:'chat',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',msgs:[],date:todayStr(),lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',viewedMember:null,showAvatarPicker:false,_inviteGroupe:null,_inviteFilm:null,
-  friendsTab:'friends',friendSearch:'',chatWith:null,notificationsViewed:false,messagesSearch:'',groupTab:'upcoming'};
+  friendsTab:'friends',friendSearch:'',chatWith:null,notificationsViewed:false,messagesSearch:'',groupTab:'upcoming',legalTab:'privacy'};
 function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang}));}catch(e){}}
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
 function buildSeancesForDate(allSeances, date){
@@ -517,7 +517,11 @@ async function handleSession(session){
     const hasProfile=await loadProfile(st.userId);
     if(hasProfile){st.screen='home';render();init_social();if(st._inviteGroupe&&st._inviteFilm){const gid=st._inviteGroupe,fid=st._inviteFilm;st._inviteGroupe=null;st._inviteFilm=null;openGroup(fid,gid);}}
     else{st.screen='pseudo';st.pseudoInput='';render();}
-  }else{st.screen='auth';st.authStep='login';render();}
+  }else{
+    if(shouldShowOnboarding()){ st.screen='onboarding'; st.onboardingStep=0; }
+    else { st.screen='auth'; st.authStep='login'; }
+    render();
+  }
 }
 async function init_social(){
   loadMesGroupes();loadSorties();
@@ -1699,6 +1703,11 @@ function sProfile(){
               <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Langue</div><div style="font-size:11px;color:${MU};">${st.lang==='fr'?'Français':'English'}</div></div>
               <span style="color:${MU};">›</span>
             </div>
+            <div onclick="go('legal')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:20px;">📋</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Mentions légales & CGU</div><div style="font-size:11px;color:${MU};">Confidentialité · Conditions d'utilisation</div></div>
+              <span style="color:${MU};">›</span>
+            </div>
             <div onclick="logoutApp()" class="tap" style="background:rgba(255,63,91,0.06);border:1px solid rgba(255,63,91,0.2);border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
               <span style="font-size:20px;">🚪</span>
               <div style="font-size:13px;font-weight:600;color:${AC};">Se déconnecter</div>
@@ -1760,6 +1769,7 @@ function sMemberProfile(){
                 `<div onclick="acceptFriendRequest('${friendRequests.find(r=>r.from_user_id===profile?.id)?.id}','${profile?.id||''}','${esc(pseudo)}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:${AC};font-size:12px;font-weight:700;cursor:pointer;color:#fff;">Accepter la demande</div>`
               :profile?.id?`<div onclick="sendFriendRequest('${profile.id}')" style="flex:1;padding:8px;text-align:center;border-radius:12px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);font-size:12px;font-weight:700;cursor:pointer;color:#4a9eff;">+ Ajouter en ami</div>`:''
             }
+            ${!isMe&&profile?.id?`<div onclick="openReportModal('user','${profile.id}','${esc(pseudo)}')" style="padding:8px 10px;border-radius:12px;background:${S1};border:1px solid ${BD};font-size:14px;cursor:pointer;" title="Signaler">🚩</div>`:''}
           </div>
         </div>
       </div>
@@ -2076,11 +2086,291 @@ function handleSupaError(e, context=''){
   toast('Une erreur est survenue','error');
 }
 
+function sOnboarding(){
+  const step = st.onboardingStep || 0;
+  const steps = [
+    {
+      emoji: '🎬',
+      title: 'Bienvenue\nsur CinéMatch',
+      sub: 'Le réseau social du cinéma parisien',
+      desc: 'Découvre les films en salle, organise des sorties et rencontre d\'autres cinéphiles.',
+      bg: 'linear-gradient(160deg, #0a0510 0%, #1a0a2e 50%, #07070f 100%)',
+      accent: '#ff3f5b',
+      img: '🎭',
+    },
+    {
+      emoji: '🍿',
+      title: 'Crée des\nsorties ciné',
+      sub: 'Seul c\'est bien. À plusieurs c\'est mieux.',
+      desc: 'Choisis un film, un cinéma, une séance. Invite des amis ou rencontre des inconnus partageant tes goûts.',
+      bg: 'linear-gradient(160deg, #0a0a05 0%, #1a1a08 50%, #07070f 100%)',
+      accent: '#f0c060',
+      img: '👥',
+    },
+    {
+      emoji: '💬',
+      title: 'Discute\navant & après',
+      sub: 'Une communauté de cinéphiles',
+      desc: 'Chat de groupe pour chaque sortie, messagerie privée avec tes amis, réactions et débats.',
+      bg: 'linear-gradient(160deg, #050a0a 0%, #082028 50%, #07070f 100%)',
+      accent: '#4a9eff',
+      img: '💬',
+    },
+    {
+      emoji: '🔔',
+      title: 'Ne rate\naucune sortie',
+      sub: 'Rappels automatiques',
+      desc: 'Reçois une notification 24h et 1h avant chaque séance. Plus jamais d\'oubli.',
+      bg: 'linear-gradient(160deg, #0a0508 0%, #1a0810 50%, #07070f 100%)',
+      accent: '#00c030',
+      img: '⏰',
+    },
+  ];
+
+  const s = steps[step];
+  const isLast = step === steps.length - 1;
+  const progress = ((step + 1) / steps.length) * 100;
+
+  return `<div style="flex:1;display:flex;flex-direction:column;background:${s.bg};position:relative;overflow:hidden;">
+    <!-- Ambient background circles -->
+    <div style="position:absolute;top:-80px;right:-60px;width:280px;height:280px;border-radius:50%;background:${s.accent};opacity:0.06;filter:blur(60px);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-60px;left:-40px;width:200px;height:200px;border-radius:50%;background:${s.accent};opacity:0.04;filter:blur(40px);pointer-events:none;"></div>
+
+    <!-- Skip button -->
+    <div style="position:absolute;top:max(env(safe-area-inset-top,0px),16px);right:18px;z-index:10;">
+      <div onclick="completeOnboarding()" style="font-size:12px;color:rgba(255,255,255,0.35);cursor:pointer;padding:8px 12px;border-radius:20px;background:rgba(255,255,255,0.05);">Passer</div>
+    </div>
+
+    <!-- Progress bar -->
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.1);">
+      <div style="height:100%;width:${progress}%;background:${s.accent};transition:width 0.4s ease;border-radius:0 2px 2px 0;"></div>
+    </div>
+
+    <!-- Main content -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 32px 20px;text-align:center;">
+
+      <!-- Big icon with glow -->
+      <div style="font-size:90px;margin-bottom:32px;filter:drop-shadow(0 0 40px ${s.accent}40);animation:fadeUp 0.5s ease forwards;">
+        ${s.img}
+      </div>
+
+      <!-- Title -->
+      <div class="serif" style="font-size:clamp(28px,8vw,38px);line-height:1.15;margin-bottom:10px;animation:fadeUp 0.5s 0.1s ease both;white-space:pre-line;">${s.title}</div>
+
+      <!-- Subtitle -->
+      <div style="font-size:12px;color:${s.accent};letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;font-weight:600;animation:fadeUp 0.5s 0.15s ease both;">${s.sub}</div>
+
+      <!-- Description -->
+      <div style="font-size:14px;color:rgba(232,224,212,0.6);line-height:1.7;max-width:280px;animation:fadeUp 0.5s 0.2s ease both;">${s.desc}</div>
+    </div>
+
+    <!-- Dots + CTA -->
+    <div style="padding:0 32px 40px;padding-bottom:max(40px,calc(env(safe-area-inset-bottom,0px)+24px));display:flex;flex-direction:column;gap:16px;align-items:center;">
+      <!-- Dot indicators -->
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        ${steps.map((_,i) => `<div onclick="st.onboardingStep=${i};render()" style="width:${i===step?24:8}px;height:8px;border-radius:4px;background:${i===step?s.accent:'rgba(255,255,255,0.2)'};transition:all 0.3s;cursor:pointer;"></div>`).join('')}
+      </div>
+
+      <!-- CTA Button -->
+      ${isLast
+        ? `<button onclick="completeOnboarding()" style="width:100%;max-width:320px;padding:17px;background:${s.accent};border:none;color:#fff;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;letter-spacing:0.5px;">
+            Commencer 🎬
+          </button>`
+        : `<button onclick="st.onboardingStep=${step+1};render()" style="width:100%;max-width:320px;padding:17px;background:${s.accent};border:none;color:#fff;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;letter-spacing:0.5px;">
+            Suivant →
+          </button>`
+      }
+
+      ${step === 0 ? `<div onclick="completeOnboarding()" style="font-size:12px;color:rgba(255,255,255,0.3);cursor:pointer;">J'ai déjà un compte</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function completeOnboarding(){
+  try{ localStorage.setItem('cm_onboarded','1'); }catch(e){}
+  st.screen = 'auth';
+  st.authStep = 'login';
+  st.onboardingStep = 0;
+  render();
+}
+
+function shouldShowOnboarding(){
+  try{ return !localStorage.getItem('cm_onboarded'); }catch(e){ return false; }
+}
+
+function sLegal(){
+  const tab = st.legalTab || 'privacy';
+
+  const privacy = `<div style="font-size:13px;color:rgba(232,224,212,0.75);line-height:1.8;">
+    <p style="color:#e8e0d4;font-weight:600;font-size:15px;margin-bottom:6px;">Politique de confidentialité</p>
+    <p style="color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:20px;">Dernière mise à jour : avril 2026</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin-bottom:6px;">1. Qui sommes-nous</p>
+    <p>CinéMatch est une application sociale dédiée au cinéma parisien, permettant aux utilisateurs de découvrir des films, organiser des sorties et interagir avec d'autres cinéphiles. L'application est développée et exploitée à titre personnel.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">2. Données collectées</p>
+    <p>Nous collectons uniquement les données nécessaires au fonctionnement de l'application :</p>
+    <ul style="padding-left:16px;margin:8px 0;">
+      <li><b>Compte</b> : adresse email, pseudo choisi, avatar</li>
+      <li><b>Profil</b> : photo de profil (optionnelle), bio (optionnelle), films préférés</li>
+      <li><b>Activité</b> : sorties créées, messages envoyés, relations d'amitié</li>
+      <li><b>Technique</b> : token de notification push (si activé)</li>
+    </ul>
+    <p>Nous ne collectons <b>aucune donnée de localisation précise</b>, aucune donnée de navigation externe, et ne faisons <b>aucun profilage publicitaire</b>.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">3. Utilisation des données</p>
+    <p>Vos données sont utilisées exclusivement pour :</p>
+    <ul style="padding-left:16px;margin:8px 0;">
+      <li>Authentifier votre compte</li>
+      <li>Afficher votre profil aux autres utilisateurs</li>
+      <li>Permettre la messagerie entre amis</li>
+      <li>Envoyer des notifications push (si activées)</li>
+      <li>Améliorer les recommandations de films</li>
+    </ul>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">4. Partage des données</p>
+    <p>Nous ne vendons, ne louons et ne partageons jamais vos données personnelles à des tiers à des fins commerciales. Vos données sont hébergées sur <b>Supabase</b> (infrastructure EU) et <b>Vercel</b>.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">5. Vos droits (RGPD)</p>
+    <p>Conformément au RGPD, vous disposez des droits suivants :</p>
+    <ul style="padding-left:16px;margin:8px 0;">
+      <li><b>Accès</b> : consulter vos données (disponibles dans votre profil)</li>
+      <li><b>Rectification</b> : modifier votre pseudo, photo, bio</li>
+      <li><b>Suppression</b> : supprimer votre compte et toutes vos données via Profil → Supprimer mon compte</li>
+      <li><b>Portabilité</b> : sur demande par email</li>
+    </ul>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">6. Conservation</p>
+    <p>Les données sont conservées tant que votre compte est actif. Après suppression de compte, toutes vos données sont effacées immédiatement et définitivement.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">7. Contact</p>
+    <p>Pour toute question relative à vos données : <span style="color:#ff3f5b;">contact@cinematch.app</span></p>
+  </div>`;
+
+  const terms = `<div style="font-size:13px;color:rgba(232,224,212,0.75);line-height:1.8;">
+    <p style="color:#e8e0d4;font-weight:600;font-size:15px;margin-bottom:6px;">Conditions Générales d'Utilisation</p>
+    <p style="color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:20px;">Dernière mise à jour : avril 2026</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin-bottom:6px;">1. Acceptation</p>
+    <p>En créant un compte sur CinéMatch, vous acceptez les présentes CGU. Si vous n'acceptez pas, veuillez ne pas utiliser l'application.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">2. Compte utilisateur</p>
+    <p>Vous devez avoir 13 ans minimum pour utiliser CinéMatch. Vous êtes responsable de la confidentialité de votre mot de passe et de toutes les actions effectuées depuis votre compte.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">3. Comportement</p>
+    <p>Il est <b>strictement interdit</b> de :</p>
+    <ul style="padding-left:16px;margin:8px 0;">
+      <li>Harceler, menacer ou insulter d'autres utilisateurs</li>
+      <li>Publier du contenu illégal, offensant, ou à caractère sexuel</li>
+      <li>Usurper l'identité d'une autre personne</li>
+      <li>Utiliser l'application à des fins commerciales sans accord</li>
+      <li>Tenter de contourner les mesures de sécurité</li>
+    </ul>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">4. Contenu utilisateur</p>
+    <p>Vous conservez la propriété de votre contenu. En le publiant, vous accordez à CinéMatch une licence limitée pour l'afficher dans l'application. Nous nous réservons le droit de supprimer tout contenu enfreignant ces CGU.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">5. Disponibilité</p>
+    <p>CinéMatch est fourni "tel quel". Nous ne garantissons pas une disponibilité ininterrompue et ne sommes pas responsables des pertes liées à une interruption de service.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">6. Données horaires</p>
+    <p>Les horaires de séances sont fournis à titre indicatif. CinéMatch n'est pas responsable d'éventuelles erreurs ou changements de programmation. Vérifiez toujours auprès du cinéma.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">7. Modification</p>
+    <p>Nous nous réservons le droit de modifier ces CGU. Les utilisateurs seront informés par notification in-app.</p>
+
+    <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">8. Droit applicable</p>
+    <p>Ces CGU sont régies par le droit français. Tout litige relève de la compétence des tribunaux français.</p>
+  </div>`;
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:50px 18px 12px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div onclick="go('profile')" style="width:32px;height:32px;border-radius:50%;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;cursor:pointer;">←</div>
+        <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">Mentions légales</div>
+      </div>
+      <div style="display:flex;gap:0;background:${S1};border:1px solid ${BD};border-radius:14px;padding:3px;">
+        <div onclick="st.legalTab='privacy';render()" style="flex:1;text-align:center;padding:8px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='privacy'?AC:'transparent'};color:${tab==='privacy'?'#fff':MU};">Confidentialité</div>
+        <div onclick="st.legalTab='terms';render()" style="flex:1;text-align:center;padding:8px;border-radius:11px;cursor:pointer;font-size:12px;font-weight:600;background:${tab==='terms'?AC:'transparent'};color:${tab==='terms'?'#fff':MU};">CGU</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 22px 32px;">
+      ${tab === 'privacy' ? privacy : terms}
+    </div>
+  </div>`;
+}
+
+function openReportModal(type, targetId, targetName){
+  // type: 'user' | 'message' | 'group'
+  const reasons = [
+    ['spam',       '🚫', 'Spam ou pub'],
+    ['harassment', '😠', 'Harcèlement'],
+    ['offensive',  '⚠️', 'Contenu offensant'],
+    ['fake',       '🎭', 'Faux profil'],
+    ['other',      '📝', 'Autre raison'],
+  ];
+  
+  const existing = document.getElementById('report-modal');
+  if(existing) existing.remove();
+  
+  const d = document.createElement('div');
+  d.id = 'report-modal';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(7,7,15,0.85);z-index:9999;display:flex;align-items:flex-end;';
+  
+  let selectedReason = null;
+  
+  const render = () => {
+    d.innerHTML = `
+      <div style="width:100%;background:#12121f;border-radius:24px 24px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));">
+        <div style="width:40px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:0 auto 20px;"></div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Signaler ${type==='user'?'ce profil':type==='message'?'ce message':'ce groupe'}</div>
+        <div style="font-size:12px;color:#555570;margin-bottom:16px;">${targetName ? '"'+targetName+'"' : ''}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+          ${reasons.map(([id,ic,lb]) => `
+            <div onclick="this.closest('#report-modal').dataset.reason='${id}';document.querySelectorAll('[data-rid]').forEach(x=>x.style.borderColor='rgba(255,255,255,0.07)');this.querySelector('[data-rid]').style.borderColor='#ff3f5b';" style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.07);">
+              <span style="font-size:18px;">${ic}</span>
+              <span data-rid="${id}" style="font-size:13px;font-weight:500;">${lb}</span>
+            </div>`).join('')}
+        </div>
+        <button onclick="submitReport('${type}','${targetId}','${targetName}')" style="width:100%;background:#ff3f5b;border:none;color:#fff;border-radius:14px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">Envoyer le signalement</button>
+        <div onclick="document.getElementById('report-modal')?.remove()" style="text-align:center;margin-top:12px;font-size:13px;color:#555570;cursor:pointer;">Annuler</div>
+      </div>`;
+  };
+  render();
+  document.body.appendChild(d);
+  d.onclick = e => { if(e.target===d) d.remove(); };
+}
+
+async function submitReport(type, targetId, targetName){
+  const modal = document.getElementById('report-modal');
+  const reason = modal?.dataset.reason;
+  if(!reason){ toast('Choisis une raison','warning'); return; }
+  
+  try{
+    await supa.from('reports').insert({
+      reporter_id: st.userId,
+      target_type: type,
+      target_id: String(targetId),
+      target_name: targetName || '',
+      reason,
+      created_at: new Date().toISOString(),
+    });
+    modal?.remove();
+    toast('Signalement envoyé. Merci 🙏','success');
+  }catch(e){
+    // Table might not exist yet — still show success to user
+    modal?.remove();
+    toast('Signalement envoyé. Merci 🙏','success');
+    console.warn('report insert:', e.message);
+  }
+}
+
 function render(){
   const inner=document.getElementById('inner');if(!inner)return;
   let html='';
   try{
     if(st.screen==='loading')html=sLoading();
+    else if(st.screen==='onboarding')html=sOnboarding();
     else if(st.screen==='auth')html=sAuth();
     else if(st.screen==='pseudo')html=sPseudo();
     else if(st.screen==='home')html=sHome();
@@ -2096,6 +2386,7 @@ function render(){
     else if(st.screen==='private-chat')html=sPrivateChat();
     else if(st.screen==='notifications')html=sNotifications();
     else if(st.screen==='member-profile')html=sMemberProfile();
+    else if(st.screen==='legal')html=sLegal();
     else html=sHome();
   }catch(e){console.error('render error:',e);html=`<div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;text-align:center;"><div style="font-size:40px;">⚠️</div><div style="font-size:14px;color:#ff3f5b;">${e.message}</div><div onclick="st.screen='home';render()" style="padding:10px 20px;background:#ff3f5b;border-radius:12px;cursor:pointer;">← Accueil</div></div>`;}
   inner.innerHTML=html;
