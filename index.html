@@ -1191,19 +1191,21 @@ function openMemberProfile(pseudo){st.viewedMember={pseudo};st.screen='member-pr
 
 let memberProfileData={};
 async function loadMemberProfile(pseudo){
-  const[{data},{data:friends},{data:sorties}]=await Promise.all([
-    supa.from('profiles').select('id,pseudo,avatar,bio,fav_genres,fav_films,photo_url').eq('pseudo',pseudo).single(),
-    supa.from('friend_requests').select('id',{count:'exact'}).or(`from_user_id.eq.${pseudo},to_user_id.eq.${pseudo}`).eq('status','accepted'),
-    supa.from('groupes').select('id',{count:'exact'}).contains('membres',[pseudo]),
+  // Step 1: get profile
+  const{data}=await supa.from('profiles').select('id,pseudo,avatar,bio,fav_genres,fav_films,photo_url').eq('pseudo',pseudo).single();
+  if(!data) return;
+  const userId = data.id;
+  // Step 2: get counts with proper IDs
+  const[{data:friends},{data:sorties}]=await Promise.all([
+    supa.from('friend_requests').select('id').or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`).eq('status','accepted'),
+    supa.from('groupe_membres').select('groupe').eq('user_id',userId),
   ]);
-  if(data){
-    memberProfileData[pseudo]={
-      ...data,
-      friendsCount: friends?.length || 0,
-      sortiesCount: sorties?.length || 0,
-    };
-    render();
-  }
+  memberProfileData[pseudo]={
+    ...data,
+    friendsCount: friends?.length || 0,
+    sortiesCount: sorties?.length || 0,
+  };
+  render();
 }
 
 async function loadBlockedUsers(){
@@ -2119,11 +2121,12 @@ const VAPID_PUBLIC_KEY = 'BMzJ5F6WGnvOz3Bp3O0fjK6b97jj22BZX2Gnb6LSLk6zGBOQxg6d-X
 async function registerServiceWorker(){
   if(!('serviceWorker' in navigator)) return;
   try{
-    // Vérifier que sw.js existe avant d'enregistrer
-    const check = await fetch('/sw.js', {method:'HEAD'});
+    // Vérifier que sw.js est bien du JS avant d'enregistrer
+    const check = await fetch('/sw.js');
     const ct = check.headers.get('content-type') || '';
-    if(!check.ok || ct.includes('html')){
-      console.info('sw.js non disponible — notifications push désactivées');
+    const text = await check.text();
+    if(!check.ok || ct.includes('html') || text.trim().startsWith('<')){
+      console.info('sw.js non disponible — mode offline désactivé');
       return;
     }
     const reg = await navigator.serviceWorker.register('/sw.js', {scope:'/'});
