@@ -1300,7 +1300,7 @@ function sFilm(){
 // CINEMAS SCREEN
 // ══════════════════════════════════════════════════════════════
 function sCinemas(){
-  const chains=[['tous','Tous'],['ugc','UGC'],['pathe','Pathé'],['gaumont','Gaumont']];
+  const chains=[['tous','Tous'],['ugc','UGC'],['pathe','Pathé']];
   const filtered=st.cinFilter==='tous'?CINEMAS:CINEMAS.filter(c=>c.chain===st.cinFilter);
   const sorted=[...filtered].sort((a,b)=>{if(userPos&&a.lat&&b.lat){return getDistance(userPos.lat,userPos.lng,a.lat,a.lng)-getDistance(userPos.lat,userPos.lng,b.lat,b.lng);}return 0;});
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
