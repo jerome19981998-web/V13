@@ -127,25 +127,47 @@ function parseAllocineInternal(data) {
 
 // ─── FETCH SÉANCES POUR 1 CINÉMA × 1 DATE ────────────────────────────────────
 async function fetchShowtimes(acId, dateISO) {
-  // URL découverte par interception Puppeteer
-  const url = `https://www.allocine.fr/_/showtimes/theater-${acId}/d-${dateISO}/`;
-  const { status, data, raw } = await fetchJSON(url);
+  const baseUrl = `https://www.allocine.fr/_/showtimes/theater-${acId}/d-${dateISO}/`;
+  let allSeances = [];
+  let page = 1;
+  const MAX_PAGES = 5; // max 5 pages = 75 films par cinema par jour
 
-  if (status === 200 && data) {
-    const parsed = parseAllocineInternal(data);
-    if (parsed.length > 0) return { seances: parsed, source: 'api' };
-    // API a répondu mais parse a échoué — debug
-    console.log(`    [debug] results count: ${data.results?.length || 0}, first keys: ${JSON.stringify(Object.keys(data.results?.[0] || {}))}`);
-    if (data.results?.length > 0) {
-      const first = data.results[0];
-      console.log(`    [debug] movie: ${first.movie?.title}, showtimes type: ${typeof first.showtimes}, isArray: ${Array.isArray(first.showtimes)}, length: ${Array.isArray(first.showtimes)?first.showtimes.length: JSON.stringify(first.showtimes)?.slice(0,100)}`);
+  while(page <= MAX_PAGES) {
+    const url = page === 1 ? baseUrl : `${baseUrl}?page=${page}`;
+    const { status, data, raw } = await fetchJSON(url);
+
+    if (status !== 200 || !data) {
+      if (page === 1) {
+        console.log(`    ⚠ HTTP ${status} pour ${url.slice(0, 60)}`);
+        if (raw) console.log(`    raw: ${raw.slice(0, 100)}`);
+        return { seances: [], source: 'error' };
+      }
+      break; // no more pages
     }
-    return { seances: [], source: 'api_empty' };
+
+    if (!data.results?.length) {
+      if (page === 1) {
+        // debug only on first page
+        console.log(`    [debug] results count: 0, first keys: []`);
+      }
+      break;
+    }
+
+    const parsed = parseAllocineInternal(data);
+    allSeances = [...allSeances, ...parsed];
+
+    // If less than 15 results → last page
+    if (data.results.length < 15) break;
+
+    page++;
+    if (page <= MAX_PAGES) await sleep(300); // polite delay between pages
   }
 
-  console.log(`    ⚠ HTTP ${status} pour ${url.slice(0, 60)}`);
-  if (raw) console.log(`    raw: ${raw.slice(0, 100)}`);
-  return { seances: [], source: 'error' };
+  if (allSeances.length > 0) {
+    if (page > 2) console.log(`    📄 ${page-1} pages → ${allSeances.length} films`);
+    return { seances: allSeances, source: 'api' };
+  }
+  return { seances: [], source: 'api_empty' };
 }
 
 // ─── SCRAPE 1 CINEMA ─────────────────────────────────────────────────────────
