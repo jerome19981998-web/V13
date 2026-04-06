@@ -88,6 +88,7 @@ function applyScale(){
 }
 applyScale();window.addEventListener('resize',applyScale);
 </script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 <div class="phone">
@@ -378,7 +379,8 @@ async function creerSortie(filmId,cinemaId,heure,date,maxM){
   const{data,error}=await supa.from('groupes').insert({film_id:filmId,nom:film?.t||filmId,createur:st.pseudo,user_id:st.userId,is_public:true,max_membres:maxM||8,confirmed_cinema:cinemaId,confirmed_heure:heure,confirmed_date:date}).select('id').single();
   if(error){toast('Erreur création','error');return;}
   await supa.from('groupe_membres').upsert({groupe:data.id,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});
-  toast('Sortie créée ! 🎉','success');st.newSortie=null;await loadSorties();await loadMesGroupes();openGroup(filmId,data.id);
+  toast('Sortie créée ! 🎉','success');
+  track('sortie_created', {film:filmId, cinema:cinemaId});st.newSortie=null;await loadSorties();await loadMesGroupes();openGroup(filmId,data.id);
 }
 
 async function rejoindreSortie(groupId,filmId){
@@ -422,7 +424,7 @@ async function sendFriendRequest(toUserId){
   const{error}=await supa.from('friend_requests').insert({from_user_id:st.userId,to_user_id:toUserId,status:'pending'});
   if(!error){
     try{await supa.from('notifs').insert({user_id:toUserId,type:'friend_request',data:{pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId}});}catch(e){}
-    toast('Demande envoyée ! 👋','success');await loadFriends();render();
+    toast('Demande envoyée ! 👋','success');track('friend_request_sent');await loadFriends();render();
   }else if(error.code==='23505'){toast('Demande déjà envoyée','info');}
   else toast('Erreur : '+error.message,'error');
 }
@@ -495,7 +497,7 @@ async function sendPrivateMessage(){
   if(!rateLimit('pm_'+st.userId,10,10000))return;
   const tmp={id:'tmp-'+Date.now(),sender_id:st.userId,receiver_id:st.chatWith.userId,content,created_at:new Date().toISOString()};
   currentPrivateMsgs.push(tmp);renderPrivateMsgsDOM();
-  const{data,error}=await supa.from('private_messages').insert({sender_id:st.userId,receiver_id:st.chatWith.userId,content}).select('id').single();
+  const{data,error}=await track('private_message_sent');supa.from('private_messages').insert({sender_id:st.userId,receiver_id:st.chatWith.userId,content}).select('id').single();
   if(!error){const idx=currentPrivateMsgs.findIndex(m=>m.id===tmp.id);if(idx>=0)currentPrivateMsgs[idx].id=data.id;}
   try{await supa.from('notifs').insert({user_id:st.chatWith.userId,type:'private_message',data:{from_pseudo:st.pseudo,from_avatar:st.avatar,preview:content.slice(0,50)}});}catch(e){}
 }
@@ -2075,8 +2077,8 @@ async function requestPushPermission(){
     setTimeout(() => { d.remove(); resolve(false); }, 15000);
   });
   if(!granted) return;
-  const permission = await Notification.requestPermission();
-  if(permission === 'granted') await subscribeToPush();
+  track('push_permission_requested');const permission = await Notification.requestPermission();
+  if(permission === 'granted'){track('push_permission_granted');await subscribeToPush();}
 }
 
 // ─── NETWORK STATUS ──────────────────────────────────────────────────────────
@@ -2405,7 +2407,24 @@ async function submitReport(type, targetId, targetName){
   }
 }
 
+// ─── ANALYTICS ────────────────────────────────────────────────────────────────
+function track(event, props={}) {
+  try {
+    // Vercel Analytics custom events
+    if(window.va) window.va('event', { name: event, ...props });
+    // Also log to console in dev
+    if(location.hostname === 'localhost') console.log('[analytics]', event, props);
+  } catch(e) {}
+}
+
 function render(){
+  const html_wrap = document.getElementById('app');
+  if(!html_wrap) return;
+  // Track page views
+  if(st.screen && st.screen !== window._lastTrackedScreen) {
+    window._lastTrackedScreen = st.screen;
+    track('page_view', {screen: st.screen});
+  }
   const inner=document.getElementById('inner');if(!inner)return;
   let html='';
   try{
