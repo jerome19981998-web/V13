@@ -38,9 +38,7 @@
   <meta property="og:type" content="website"/>
   <meta property="og:image" content="/icons/icon-512.png"/>
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" 
-  onerror="var s=document.createElement('script');s.src='https://unpkg.com/@supabase/supabase-js@2';s.onload=window.__supaLoaded;document.head.appendChild(s);"
-  onload="window.__supaLoaded&&window.__supaLoaded()"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -161,17 +159,8 @@ const _s1=atob('ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lK
 const SUPA_KEY=_s1+_s2+_s3;
 const SUPA_URL='https://alwfbminhdwinxcozjlj.supabase.co';
 try{const lockKeys=Object.keys(localStorage).filter(k=>k.includes('lock:sb-'));lockKeys.forEach(k=>localStorage.removeItem(k));}catch(e){}
-let supa; // initialized when supabase CDN loads
-window.__supaLoaded = function() {
-  if(supa) return;
-  supa = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
-    auth:{autoRefreshToken:true, persistSession:true, detectSessionInUrl:true}
-  });
-  // Clear any stale auth locks
-  try{const lk=Object.keys(localStorage).filter(k=>k.includes('lock:sb-'));lk.forEach(k=>localStorage.removeItem(k));}catch(e){}
-};
-// Try to init immediately if supabase already loaded (cached)
-if(typeof window.supabase !== 'undefined') window.__supaLoaded();
+try{const lk=Object.keys(localStorage).filter(k=>k.includes('lock:sb-'));lk.forEach(k=>localStorage.removeItem(k));}catch(e){}
+const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
 
 // ── STATE ────────────────────────────────────────────────────
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
@@ -2490,16 +2479,7 @@ function render(){
 async function init(){
   registerServiceWorker(); // non-blocking
   st.screen='loading';render();
-  // Wait for supa to be initialized (CDN might take a moment)
-  let attempts = 0;
-  while(!supa && attempts < 25){
-    await new Promise(r => setTimeout(r, 200));
-    attempts++;
-  }
-  if(!supa){
-    document.getElementById('app').innerHTML = '<div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:32px;text-align:center;"><div style="font-size:48px;">📵</div><div style="font-size:16px;font-weight:700;">Erreur de connexion</div><div style="font-size:13px;color:#555570;">Vérifie ta connexion internet et recharge la page.</div><button onclick="location.reload()" style="margin-top:16px;background:#ff3f5b;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Recharger</button></div>';
-    return;
-  }
+
   await initDynamicData(st.date);
   // Load session
   const{data:{session}}=await supa.auth.getSession();
