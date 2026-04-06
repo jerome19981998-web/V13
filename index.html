@@ -91,15 +91,8 @@ function applyScale(){
 applyScale();window.addEventListener('resize',applyScale);
 </script>
   <script>
-    // Vercel Analytics — chargement dynamique silencieux
+    // Vercel Analytics — activer dans Vercel Dashboard > Analytics > Enable
     window.va = window.va || function(){(window.vaq=window.vaq||[]).push(arguments);};
-    (function(){
-      var s = document.createElement('script');
-      s.src = '/_vercel/insights/script.js';
-      s.defer = true;
-      s.onerror = function(){}; // silencieux si pas activé
-      document.head.appendChild(s);
-    })();
   </script>
 </head>
 <body>
