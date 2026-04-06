@@ -639,7 +639,9 @@ async function registerWithPassword(){
 }
 async function sendResetEmail(){const email=(document.getElementById('forgotEmail')?.value||'').trim();if(!email){showAuthErr('Email invalide');return;}const{error}=await supa.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'?reset=1'});if(!error){st.authStep='sent';render();}else showAuthErr(error.message);}
 async function signInWithGoogle(){const{error}=await supa.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});if(error)alert('Erreur Google : '+error.message);}
-async function signInWithApple(){const{error}=await supa.auth.signInWithOAuth({provider:'apple',options:{redirectTo:window.location.origin}});if(error)alert('Erreur Apple : '+error.message);}
+async function signInWithApple(){
+  toast('🍎 Connexion Apple bientôt disponible — utilise Google ou email','warning',4000);
+}
 
 function openAvatarPicker(){st.showAvatarPicker=true;const wrap=document.getElementById('avatar-picker-wrap');if(wrap)wrap.innerHTML=buildPickerGrid();}
 
