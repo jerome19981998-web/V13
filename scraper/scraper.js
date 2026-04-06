@@ -16,6 +16,7 @@ const CINEMAS = {
   'ugc-maillot':          { name:'UGC Maillot',                chain:'ugc',    acId:'C0076', lat:48.8790, lng:2.2835, addr:'74 av de la Grande Armée, 75017',metro:'Argentine' },
   'ugc-opera':            { name:'UGC Opéra',                  chain:'ugc',    acId:'C0089', lat:48.8703, lng:2.3340, addr:'32 bd des Italiens, 75009',     metro:'Opéra' },
   'pathe-parnasse':       { name:'Pathé Parnasse Premium',     chain:'pathe',  acId:'C0158', lat:48.8527, lng:2.3403, addr:'99 bd du Montparnasse, 75006',  metro:'Vavin' },
+  'ugc-danton':           { name:'UGC Danton',                  chain:'ugc',    acId:'C0103', lat:48.8527, lng:2.3403, addr:'99 bd du Montparnasse, 75006',  metro:'Vavin' },
   'ugc-montparnasse':     { name:'UGC Montparnasse',           chain:'ugc',    acId:'C0083', lat:48.8418, lng:2.3230, addr:'13 rue du Commandant Mouchotte',metro:'Montparnasse' },
   'ugc-lyon':             { name:'UGC Lyon-Bastille',          chain:'ugc',    acId:'C0161', lat:48.8531, lng:2.3696, addr:'18 rue du Faubourg St-Antoine', metro:'Bastille' },
   'pathe-beaugrenelle':   { name:'Pathé Beaugrenelle',         chain:'pathe',  acId:'C0012', lat:48.8463, lng:2.2885, addr:'12 rue Linois, 75015',          metro:'Charles Michels' },
@@ -31,8 +32,6 @@ const CINEMAS = {
   'pathe-levallois':    { name:'Pathé Levallois',          chain:'pathe',  acId:'W9230', lat:48.8930, lng:2.2870, addr:'9 rue Jules Oudin, 92300',           metro:'Anatole France' },
   'pathe-quai-ivry':   { name:"Pathé Quai d'Ivry IMAX",  chain:'pathe',  acId:'B0258', lat:48.8149, lng:2.3860, addr:'1 rue du Castel, 94200',              metro:'Ivry' },
   'pathe-saint-denis':  { name:'Pathé Saint-Denis',        chain:'pathe',  acId:'B0242', lat:48.9296, lng:2.3602, addr:'2 pl du 8 Mai 1945, 93210',          metro:'Saint-Denis' },
-  'gaumont-opera':        { name:'Gaumont Opéra',              chain:'gaumont',acId:'C0026', lat:48.8716, lng:2.3329, addr:'31 bd des Italiens, 75002',      metro:'Opéra' },
-  'gaumont-aquaboulevard':{ name:'Gaumont Aquaboulevard',      chain:'gaumont',acId:'C0015', lat:48.8322, lng:2.2760, addr:'17 rue Linois, 75015',           metro:'Balard' },
 };
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -254,6 +253,16 @@ async function pushToSupabase(allData) {
     else console.error(`  ❌ batch ${i}: ${sr.status} — ${sr.body.slice(0,100)}`);
   }
   console.log(`  séances: ${ins}/${rows.length}`);
+
+  // Write health status so the app can detect stale data
+  await supaReq('scraper_health', 'POST', [{
+    ran_at: new Date().toISOString(),
+    success: true,
+    films_count: filmRows.length,
+    seances_count: rows.length,
+    error_msg: null,
+  }]);
+  console.log('  ✓ Health status enregistré');
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
@@ -294,4 +303,17 @@ async function main() {
   console.log('\n✅ Terminé.');
 }
 
-main().catch(e => { console.error('❌ Fatal:', e); process.exit(1); });
+main().catch(async e => {
+  console.error('❌ Fatal:', e);
+  // Report failure to Supabase so app can show warning
+  try {
+    await supaReq('scraper_health', 'POST', [{
+      ran_at: new Date().toISOString(),
+      success: false,
+      films_count: 0,
+      seances_count: 0,
+      error_msg: e.message?.slice(0, 500) || String(e),
+    }]);
+  } catch(_) {}
+  process.exit(1);
+});
