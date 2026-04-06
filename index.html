@@ -2485,7 +2485,11 @@ async function init(){
   const{data:{session}}=await supa.auth.getSession();
   if(!session){
     _authDone=false;
-    st.screen='auth';st.authStep='login';render();
+    if(shouldShowOnboarding()){ st.screen='onboarding'; st.onboardingStep=0; }
+    else { st.screen='auth'; st.authStep='login'; }
+    render();
+  } else {
+    await handleSession(session);
   }
   // Invite link detection
   const params=new URLSearchParams(window.location.search);
