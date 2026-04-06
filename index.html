@@ -638,9 +638,11 @@ async function registerWithPassword(){
   finally{if(btn){btn.disabled=false;btn.textContent='Créer mon compte →';}}
 }
 async function sendResetEmail(){const email=(document.getElementById('forgotEmail')?.value||'').trim();if(!email){showAuthErr('Email invalide');return;}const{error}=await supa.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'?reset=1'});if(!error){st.authStep='sent';render();}else showAuthErr(error.message);}
-async function signInWithGoogle(){const{error}=await supa.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});if(error)alert('Erreur Google : '+error.message);}
+async function signInWithGoogle(){
+  toast('🔄 Google bientôt dispo — utilise créer un compte','warning',4000);
+}
 async function signInWithApple(){
-  toast('🍎 Connexion Apple bientôt disponible — utilise Google ou email','warning',4000);
+  toast('🔄 Apple bientôt dispo — utilise créer un compte','warning',4000);
 }
 
 function openAvatarPicker(){st.showAvatarPicker=true;const wrap=document.getElementById('avatar-picker-wrap');if(wrap)wrap.innerHTML=buildPickerGrid();}
@@ -2407,7 +2409,7 @@ function sLegal(){
     <p>Les données sont conservées tant que votre compte est actif. Après suppression de compte, toutes vos données sont effacées immédiatement et définitivement.</p>
 
     <p style="font-weight:600;color:#e8e0d4;margin:16px 0 6px;">7. Contact</p>
-    <p>Pour toute question relative à vos données : <span style="color:#ff3f5b;">contact@cinematch.app</span></p>
+    <p>Pour toute question relative à vos données : <span style="color:#ff3f5b;">contact@cinematch-app.com</span></p>
   </div>`;
 
   // ✏️ ── EDITABLE: CGU ────────────────────────────────────────────────
