@@ -2532,6 +2532,123 @@ function track(event, props={}) {
   } catch(e) {}
 }
 
+// ─── BANNIÈRE D'INSTALLATION PWA ─────────────────────────────────────────────
+let _deferredInstallPrompt = null; // Android Chrome
+
+// Capturer l'event beforeinstallprompt (Android)
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  // Afficher la bannière Android après 30s si pas encore installé
+  setTimeout(() => showInstallBanner('android'), 30000);
+});
+
+// Détecter si déjà installé
+function isPWAInstalled(){
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+
+// Détecter iOS
+function isIOS(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+
+// Détecter Android Chrome
+function isAndroidChrome(){
+  return /android/i.test(navigator.userAgent) && /chrome/i.test(navigator.userAgent);
+}
+
+function showInstallBanner(type){
+  // Ne pas afficher si déjà installé
+  if(isPWAInstalled()) return;
+  // Ne pas afficher si déjà vu récemment (7 jours)
+  try{
+    const last = localStorage.getItem('cm_install_dismissed');
+    if(last && Date.now() - parseInt(last) < 7 * 86400000) return;
+  }catch(e){}
+
+  // Supprimer bannière existante
+  document.getElementById('install-banner')?.remove();
+
+  const d = document.createElement('div');
+  d.id = 'install-banner';
+
+  if(type === 'ios'){
+    d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9990;padding:0 16px 16px;padding-bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 12px));background:linear-gradient(transparent,rgba(7,7,15,0.98) 20%);';
+    d.innerHTML = `
+      <div style="background:#1a1a2e;border:1px solid rgba(255,63,91,0.3);border-radius:20px;padding:16px;position:relative;box-shadow:0 -8px 40px rgba(0,0,0,0.5);">
+        <button onclick="dismissInstallBanner()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#555570;font-size:18px;cursor:pointer;line-height:1;">✕</button>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <img src="/icons/icon-192.png" style="width:48px;height:48px;border-radius:12px;" onerror="this.style.display='none'">
+          <div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Installer CinéMatch</div>
+            <div style="font-size:12px;color:#555570;">Pour une meilleure expérience</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:10px;background:rgba(255,255,255,0.04);border-radius:12px;">
+          <div style="font-size:22px;flex-shrink:0;margin-top:2px;">1️⃣</div>
+          <div style="font-size:12px;color:#aaa;line-height:1.5;">Appuie sur <span style="color:#fff;font-weight:600;">Partager</span> <span style="font-size:16px;">⎙</span> en bas de Safari</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:10px;background:rgba(255,255,255,0.04);border-radius:12px;margin-top:6px;">
+          <div style="font-size:22px;flex-shrink:0;margin-top:2px;">2️⃣</div>
+          <div style="font-size:12px;color:#aaa;line-height:1.5;">Puis <span style="color:#fff;font-weight:600;">« Sur l'écran d'accueil »</span> <span style="font-size:16px;">＋</span></div>
+        </div>
+        <div style="text-align:center;margin-top:10px;">
+          <div style="display:inline-block;width:40px;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"></div>
+        </div>
+      </div>`;
+  } else {
+    // Android Chrome - can use native install
+    d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9990;padding:12px 16px;padding-bottom:max(12px,calc(env(safe-area-inset-bottom,0px) + 8px));background:#1a1a2e;border-top:1px solid rgba(255,63,91,0.3);box-shadow:0 -8px 40px rgba(0,0,0,0.5);';
+    d.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img src="/icons/icon-192.png" style="width:44px;height:44px;border-radius:10px;" onerror="this.style.display='none'">
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:13px;">Installer CinéMatch</div>
+          <div style="font-size:11px;color:#555570;">Accès rapide depuis l'écran d'accueil</div>
+        </div>
+        <button onclick="triggerAndroidInstall()" style="background:#ff3f5b;border:none;color:#fff;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Installer</button>
+        <button onclick="dismissInstallBanner()" style="background:none;border:none;color:#555570;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;">✕</button>
+      </div>`;
+  }
+
+  document.body.appendChild(d);
+
+  // Auto-hide after 20s
+  setTimeout(() => { if(d.parentNode) dismissInstallBanner(); }, 20000);
+}
+
+function dismissInstallBanner(){
+  document.getElementById('install-banner')?.remove();
+  try{ localStorage.setItem('cm_install_dismissed', Date.now().toString()); }catch(e){}
+}
+
+async function triggerAndroidInstall(){
+  if(!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  _deferredInstallPrompt = null;
+  dismissInstallBanner();
+  if(outcome === 'accepted') toast('CinéMatch installé ! 🎬','success');
+}
+
+// App installed event
+window.addEventListener('appinstalled', () => {
+  dismissInstallBanner();
+  _deferredInstallPrompt = null;
+  toast('CinéMatch installé ! 🎬','success');
+});
+
+function checkAndShowInstallBanner(){
+  if(isPWAInstalled()) return; // already installed
+  if(isIOS()){
+    // iOS: show after 15s on first visit
+    setTimeout(() => showInstallBanner('ios'), 15000);
+  }
+  // Android: handled by beforeinstallprompt event
+}
+
 function render(){
   const inner=document.getElementById('inner');
   if(!inner) return;
@@ -2605,6 +2722,8 @@ async function init(){
   setInterval(()=>{if(st.userId){loadNotifications();loadConversations();}},60000);
   // Check data freshness
   checkDataFreshness();
+  // Show install banner to non-installed users
+  setTimeout(checkAndShowInstallBanner, 3000);
 }
 
 async function checkDataFreshness(){
