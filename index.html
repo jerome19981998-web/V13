@@ -2121,16 +2121,8 @@ const VAPID_PUBLIC_KEY = 'BMzJ5F6WGnvOz3Bp3O0fjK6b97jj22BZX2Gnb6LSLk6zGBOQxg6d-X
 async function registerServiceWorker(){
   if(!('serviceWorker' in navigator)) return;
   try{
-    // Vérifier que sw.js est bien du JS avant d'enregistrer
-    const check = await fetch('/sw.js');
-    const ct = check.headers.get('content-type') || '';
-    const text = await check.text();
-    if(!check.ok || ct.includes('html') || text.trim().startsWith('<')){
-      console.info('sw.js non disponible — mode offline désactivé');
-      return;
-    }
     const reg = await navigator.serviceWorker.register('/sw.js', {scope:'/'});
-    console.log('SW registered');
+    console.log('SW registered ✓');
     navigator.serviceWorker.addEventListener('message', e => {
       if(e.data?.type === 'NAVIGATE') { window.location.hash = e.data.url; }
       if(e.data?.type === 'SYNC_MESSAGES') { if(st.groupe) loadMessages(); }
