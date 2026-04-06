@@ -89,10 +89,16 @@ function applyScale(){
 applyScale();window.addEventListener('resize',applyScale);
 </script>
   <script>
-    // Vercel Analytics — charge silencieusement si activé dans le dashboard
+    // Vercel Analytics — chargement dynamique silencieux
     window.va = window.va || function(){(window.vaq=window.vaq||[]).push(arguments);};
+    (function(){
+      var s = document.createElement('script');
+      s.src = '/_vercel/insights/script.js';
+      s.defer = true;
+      s.onerror = function(){}; // silencieux si pas activé
+      document.head.appendChild(s);
+    })();
   </script>
-  <script defer src="/_vercel/insights/script.js" onerror="void(0)"></script>
 </head>
 <body>
 <div class="phone">
@@ -2012,6 +2018,13 @@ const VAPID_PUBLIC_KEY = 'BMzJ5F6WGnvOz3Bp3O0fjK6b97jj22BZX2Gnb6LSLk6zGBOQxg6d-X
 async function registerServiceWorker(){
   if(!('serviceWorker' in navigator)) return;
   try{
+    // Vérifier que sw.js existe avant d'enregistrer
+    const check = await fetch('/sw.js', {method:'HEAD'});
+    const ct = check.headers.get('content-type') || '';
+    if(!check.ok || ct.includes('html')){
+      console.info('sw.js non disponible — notifications push désactivées');
+      return;
+    }
     const reg = await navigator.serviceWorker.register('/sw.js', {scope:'/'});
     console.log('SW registered');
     navigator.serviceWorker.addEventListener('message', e => {
@@ -2019,7 +2032,7 @@ async function registerServiceWorker(){
       if(e.data?.type === 'SYNC_MESSAGES') { if(st.groupe) loadMessages(); }
     });
     return reg;
-  }catch(e){ console.warn('SW registration failed:', e); }
+  }catch(e){ console.info('SW non disponible:', e.message); }
 }
 
 async function subscribeToPush(){
