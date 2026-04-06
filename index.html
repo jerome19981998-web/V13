@@ -88,7 +88,11 @@ function applyScale(){
 }
 applyScale();window.addEventListener('resize',applyScale);
 </script>
-  <script defer src="/_vercel/insights/script.js"></script>
+  <script>
+    // Vercel Analytics — charge silencieusement si activé dans le dashboard
+    window.va = window.va || function(){(window.vaq=window.vaq||[]).push(arguments);};
+  </script>
+  <script defer src="/_vercel/insights/script.js" onerror="void(0)"></script>
 </head>
 <body>
 <div class="phone">
