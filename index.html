@@ -2429,14 +2429,13 @@ function track(event, props={}) {
 }
 
 function render(){
-  const html_wrap = document.getElementById('app');
-  if(!html_wrap) return;
+  const inner=document.getElementById('inner');
+  if(!inner) return;
   // Track page views
   if(st.screen && st.screen !== window._lastTrackedScreen) {
     window._lastTrackedScreen = st.screen;
     track('page_view', {screen: st.screen});
   }
-  const inner=document.getElementById('inner');if(!inner)return;
   let html='';
   try{
     if(st.screen==='loading')html=sLoading();
