@@ -239,7 +239,7 @@ function navGo(sc){
   if(sc==='messages'){go('messages');loadConversations();return;}
   if(sc==='cinemas'){st.screen='cinemas';render();return;}
   if(sc==='home'){st.homeTab='sorties';st.screen='home';render();return;}
-  if(sc==='group'){st.groupe=null;st.screen='group';render();return;}
+  if(sc==='group'){st.groupe=null;window._allSubKey=null;st.screen='group';render();return;}
   go(sc);
 }
 function go(sc){st.screen=sc;render();}
@@ -353,6 +353,9 @@ async function setStatut(s){if(!st.groupe||!st.pseudo)return;await supa.from('gr
 async function rejoindreGroupe(){const g=st.groupe||'general';await supa.from('groupe_membres').upsert({groupe:g,pseudo:st.pseudo,avatar:st.avatar,user_id:st.userId},{onConflict:'groupe,pseudo'});await loadMembres();}
 
 function subscribeAll(){
+  const key = st.groupe + '-' + st.userId;
+  if(window._allSubKey === key) return;
+  window._allSubKey = key;
   if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
   if(votesChannel){supa.removeChannel(votesChannel);votesChannel=null;}
   const g=st.groupe||'general';
@@ -529,6 +532,8 @@ async function markNotifsRead(){
 }
 
 function subscribeNotifs(){
+  if(window._notifSubId === st.userId) return; // already subscribed for this user
+  window._notifSubId = st.userId;
   supa.channel('notifs-'+st.userId).on('postgres_changes',{event:'INSERT',schema:'public',table:'notifs',filter:`user_id=eq.${st.userId}`},p=>{notifsList.unshift(p.new);notifCount++;document.querySelectorAll('.notif-badge').forEach(el=>{el.style.display='flex';el.textContent=notifCount>9?'9+':notifCount;});}).subscribe();
 }
 
@@ -565,7 +570,11 @@ supa.auth.onAuthStateChange((event,session)=>{
   else if(event==='SIGNED_OUT'&&_explicitLogout){_explicitLogout=false;_authDone=false;st.userId=null;st.screen='auth';st.authStep='login';render();}
 });
 setTimeout(()=>{if(st.screen==='loading'){st.screen='auth';st.authStep='login';render();}},4000);
-async function logoutApp(){if(!confirm(T('deconnexion')+' ?'))return;_explicitLogout=true;await supa.auth.signOut();try{localStorage.removeItem('cm2');}catch(e){}st.pseudo='';st.userId=null;st.screen='auth';st.authStep='login';render();}
+async function logoutApp(){if(!confirm(T('deconnexion')+' ?'))return;_explicitLogout=true;
+  // Clean up realtime subscriptions
+  try{ await supa.removeAllChannels(); }catch(e){}
+  window._notifSubId = null;
+  await supa.auth.signOut();try{localStorage.removeItem('cm2');}catch(e){}st.pseudo='';st.userId=null;st.screen='auth';st.authStep='login';render();}
 async function deleteAccount(){const confirmEl=document.createElement('div');confirmEl.style.cssText='position:fixed;inset:0;background:rgba(7,7,15,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';confirmEl.innerHTML=`<div style="background:#1a1a2e;border:1px solid rgba(255,63,91,0.4);border-radius:18px;padding:24px;max-width:290px;text-align:center;"><div style="font-size:40px;margin-bottom:12px;">⚠️</div><div style="font-size:16px;font-weight:700;margin-bottom:8px;">Supprimer mon compte ?</div><div style="font-size:12px;color:#555570;margin-bottom:18px;">Cette action est irréversible.</div><div style="display:flex;gap:10px;"><button id="del-cancel" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px;font-size:14px;color:#e8e0d4;cursor:pointer;font-family:inherit;">Annuler</button><button id="del-ok" style="flex:1;background:rgba(255,63,91,0.2);border:1px solid rgba(255,63,91,0.5);border-radius:12px;padding:11px;font-size:14px;color:#ff3f5b;cursor:pointer;font-weight:700;font-family:inherit;">Supprimer</button></div></div>`;document.body.appendChild(confirmEl);const ok=await new Promise(res=>{confirmEl.querySelector('#del-ok').onclick=()=>{confirmEl.remove();res(true);};confirmEl.querySelector('#del-cancel').onclick=()=>{confirmEl.remove();res(false);};});if(!ok)return;if(!st.userId)return;try{await Promise.all([supa.from('groupe_membres').delete().eq('user_id',st.userId),supa.from('votes').delete().eq('user_id',st.userId),supa.from('messages').delete().eq('user_id',st.userId),supa.from('groupes').delete().eq('user_id',st.userId),supa.from('friend_requests').delete().or(`from_user_id.eq.${st.userId},to_user_id.eq.${st.userId}`),supa.from('private_messages').delete().or(`sender_id.eq.${st.userId},receiver_id.eq.${st.userId}`),supa.from('notifs').delete().eq('user_id',st.userId),supa.from('profiles').delete().eq('id',st.userId)]);await supa.rpc('delete_user');_explicitLogout=true;await supa.auth.signOut();try{localStorage.removeItem('cm2');}catch(e){}st.screen='auth';st.authStep='login';render();}catch(e){alert('Erreur : '+e.message);}}
 </script>
 
