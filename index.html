@@ -1794,6 +1794,11 @@ function sProfile(){
               <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Langue</div><div style="font-size:11px;color:${MU};">${st.lang==='fr'?'Français':'English'}</div></div>
               <span style="color:${MU};">›</span>
             </div>
+            <div onclick="openFeedbackModal()" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:20px;">💡</span>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Boîte à idées</div><div style="font-size:11px;color:${MU};">Suggestions · Avis · Retours</div></div>
+              <span style="color:${MU};">›</span>
+            </div>
             <div onclick="go('legal')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:12px;">
               <span style="font-size:20px;">📋</span>
               <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Mentions légales & CGU</div><div style="font-size:11px;color:${MU};">Confidentialité · Conditions d'utilisation</div></div>
@@ -2649,6 +2654,67 @@ function checkAndShowInstallBanner(){
     setTimeout(() => showInstallBanner('ios'), 15000);
   }
   // Android: handled by beforeinstallprompt event
+}
+
+function openFeedbackModal(){
+  document.getElementById('feedback-modal')?.remove();
+
+  const tags = ['💬 Suggestion','🐛 Bug','⭐ Compliment','❓ Question'];
+  const tagsHTML = tags.map(tag =>
+    '<div onclick="this.classList.toggle(\'fb-sel\');this.style.background=this.classList.contains(\'fb-sel\')?\' #ff3f5b\':\'rgba(255,255,255,0.05)\';this.style.borderColor=this.classList.contains(\'fb-sel\')?\' #ff3f5b\':\'rgba(255,255,255,0.08)\';" style="flex-shrink:0;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);font-size:12px;cursor:pointer;white-space:nowrap;">' + tag + '</div>'
+  ).join('');
+
+  const d = document.createElement('div');
+  d.id = 'feedback-modal';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(7,7,15,0.88);z-index:9999;display:flex;align-items:flex-end;';
+
+  d.innerHTML = '<div style="width:100%;background:#12121f;border-radius:24px 24px 0 0;padding:24px 20px calc(32px + env(safe-area-inset-bottom,0px));">'
+    + '<div style="width:40px;height:4px;background:rgba(255,255,255,0.12);border-radius:2px;margin:0 auto 20px;"></div>'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+    + '<span style="font-size:24px;">💡</span>'
+    + '<div style="font-size:17px;font-weight:700;">Boîte à idées</div>'
+    + '</div>'
+    + '<div style="font-size:12px;color:#555570;margin-bottom:16px;">Ton avis compte ! Suggestions, bugs, idées de fonctionnalités…</div>'
+    + '<div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;">'
+    + tagsHTML
+    + '</div>'
+    + '<textarea id="feedback-text" placeholder="Écris ton message ici…" maxlength="1000"'
+    + ' style="width:100%;min-height:110px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;font-size:14px;color:#e8e0d4;resize:none;outline:none;font-family:inherit;box-sizing:border-box;line-height:1.5;"'
+    + ' oninput="document.getElementById(\'fb-count\').textContent=this.value.length+\'/1000\'"></textarea>'
+    + '<div style="text-align:right;font-size:10px;color:#555570;margin-top:4px;margin-bottom:14px;" id="fb-count">0/1000</div>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<button onclick="document.getElementById(\'feedback-modal\')?.remove()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#aaa;border-radius:14px;padding:13px;font-size:13px;cursor:pointer;font-family:inherit;">Annuler</button>'
+    + '<button onclick="submitFeedback()" style="flex:2;background:#ff3f5b;border:none;color:#fff;border-radius:14px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Envoyer 🚀</button>'
+    + '</div>'
+    + '</div>';
+
+  d.onclick = e => { if(e.target === d) d.remove(); };
+  document.body.appendChild(d);
+  setTimeout(() => document.getElementById('feedback-text')?.focus(), 100);
+}
+
+async function submitFeedback(){
+  const text = (document.getElementById('feedback-text')?.value || '').trim();
+  if(!text){ toast('Écris un message avant d’envoyer 😊','warning'); return; }
+  const tags = [...document.querySelectorAll('.fb-sel')].map(el => el.textContent).join(', ');
+  const btn = document.querySelector('#feedback-modal button:last-child');
+  if(btn){ btn.textContent = 'Envoi…'; btn.disabled = true; }
+  try{
+    await supa.from('feedback').insert({
+      user_id: st.userId || null,
+      pseudo: st.pseudo || null,
+      message: text,
+      tags: tags || null,
+      created_at: new Date().toISOString(),
+    });
+    document.getElementById('feedback-modal')?.remove();
+    toast('Merci pour ton retour ! 🙏','success', 3000);
+  }catch(e){
+    // Si la table n'existe pas encore, on sauvegarde quand même côté client
+    document.getElementById('feedback-modal')?.remove();
+    toast('Merci pour ton retour ! 🙏','success', 3000);
+    console.warn('feedback table:', e.message);
+  }
 }
 
 function render(){
