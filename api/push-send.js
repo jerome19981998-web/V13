@@ -4,7 +4,7 @@ const webpush = require('web-push');
 // Sends a push notification to one or multiple users
 // Called internally by other API routes (message sent, friend request, etc.)
 
-const VAPID_SUBJECT = 'mailto:contact@cinematch.app';
+const VAPID_SUBJECT = 'mailto:contact@cinematch-app.com';
 
 
 // ── Simplified approach: use web-push npm package ──────────────────────────
