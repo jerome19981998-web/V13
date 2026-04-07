@@ -639,7 +639,15 @@ async function registerWithPassword(){
 }
 async function sendResetEmail(){const email=(document.getElementById('forgotEmail')?.value||'').trim();if(!email){showAuthErr('Email invalide');return;}const{error}=await supa.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'?reset=1'});if(!error){st.authStep='sent';render();}else showAuthErr(error.message);}
 async function signInWithGoogle(){
-  toast('🔄 Google bientôt dispo — utilise créer un compte','warning',4000);
+  try{
+    const{error}=await supa.auth.signInWithOAuth({
+      provider:'google',
+      options:{redirectTo:window.location.origin}
+    });
+    if(error) toast('Erreur Google : '+error.message,'error',4000);
+  }catch(e){
+    toast('Connexion Google indisponible','error',4000);
+  }
 }
 async function signInWithApple(){
   toast('🔄 Apple bientôt dispo — utilise créer un compte','warning',4000);
