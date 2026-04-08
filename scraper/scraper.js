@@ -134,7 +134,7 @@ async function fetchShowtimes(acId, dateISO) {
   const baseUrl = `https://www.allocine.fr/_/showtimes/theater-${acId}/d-${dateISO}/`;
   let allSeances = [];
   let page = 1;
-  const MAX_PAGES = 10; // max 10 pages = 150 films par cinema par jour
+  const MAX_PAGES = 5; // max 5 pages = 75 films par cinema par jour
 
   while(page <= MAX_PAGES) {
     // Try both URL formats for pagination
@@ -175,7 +175,7 @@ async function fetchShowtimes(acId, dateISO) {
     if (page > 1 && newFilms.length === 0) break;
 
     page++;
-    if (page <= MAX_PAGES) await sleep(400); // polite delay between pages
+    if (page <= MAX_PAGES) await sleep(150); // polite delay between pages
   }
 
   if (allSeances.length > 0) {
@@ -189,21 +189,6 @@ async function fetchShowtimes(acId, dateISO) {
 async function scrapeCinema(cinemaId, cinema) {
   console.log(`\n📍 ${cinemaId} (${cinema.acId})`);
   const result = { films:{}, seances:{} };
-
-  // Pre-fetch: try to get all films from AlloCiné HTML page (no date filter)
-  // This gives us the full list without pagination limit
-  try {
-    const htmlUrl = `https://www.allocine.fr/_/showtimes/theater-${cinema.acId}/`;
-    const { status, data } = await fetchJSON(htmlUrl);
-    if (status === 200 && data?.results?.length > 0) {
-      console.log(`  [pre] ${data.results.length} films (no date filter)`);
-      const allFilms = parseAllocineInternal(data);
-      for (const { title, director, duration, genre, synopsis, poster, tmdbNote } of allFilms) {
-        const slug = slugify(title);
-        if (!result.films[slug]) result.films[slug] = { slug, title, director, duration, genre, synopsis, poster, tmdbNote };
-      }
-    }
-  } catch(e) {}
 
   for (let day = 0; day < DAYS; day++) {
     const dateISO = getDateISO(day);
@@ -219,7 +204,7 @@ async function scrapeCinema(cinemaId, cinema) {
       result.seances[slug][dateISO] = [...new Set([...prev, ...heures])].sort();
     }
 
-    await sleep(400);
+    await sleep(150);
   }
 
   const nF = Object.keys(result.films).length;
@@ -249,7 +234,7 @@ async function enrichWithTMDB(films) {
       );
       const t = vd?.results?.find(v => v.type==='Trailer' && v.site==='YouTube') || vd?.results?.find(v => v.site==='YouTube');
       if (t) film.trailerKey = t.key;
-      ok++; await sleep(200);
+      ok++; await sleep(150);
     } catch(e) {}
   }
   console.log(`  ✓ ${ok}/${Object.keys(films).length} enrichis`);
@@ -323,10 +308,15 @@ async function main() {
   console.log(DRY_RUN ? '🔍 DRY-RUN' : '🚀 PRODUCTION'); console.log('─'.repeat(50));
 
   const allData = {};
-  for (const [id, cinema] of Object.entries(CINEMAS)) {
-    try { allData[id] = await scrapeCinema(id, cinema); }
-    catch(e) { console.error(`❌ ${id}: ${e.message}`); allData[id] = {films:{},seances:{}}; }
-    await sleep(500);
+  const cinemaEntries = Object.entries(CINEMAS);
+  const BATCH = 3;
+  for (let i = 0; i < cinemaEntries.length; i += BATCH) {
+    const batch = cinemaEntries.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(async ([id, cinema]) => {
+      try { return [id, await scrapeCinema(id, cinema)]; }
+      catch(e) { console.error(`❌ ${id}: ${e.message}`); return [id, {films:{},seances:{}}]; }
+    }));
+    results.forEach(([id, data]) => { allData[id] = data; });
   }
 
   console.log('\n' + '─'.repeat(50));
