@@ -1366,51 +1366,9 @@ function sCinemas(){
     </div>`;
   };
 
-  // Map view using Leaflet + OpenStreetMap (free, no API key)
-  const mapCinemas = CINEMAS.filter(c=>c.lat&&c.lng);
-  const mapMarkersJson = JSON.stringify(mapCinemas.map(c=>({
-    id:c.id, name:c.name, lat:c.lat, lng:c.lng, chain:c.chain, metro:c.metro||''
-  })));
-  const mapView = `<div style="flex:1;position:relative;overflow:hidden;">
-    <div id="cin-map" style="width:100%;height:100%;"></div>
-    <script>
-    (function initCinMap(){
-      if(document.getElementById('cin-map')._leaflet_id) return;
-      if(!window.L){
-        var s=document.createElement('script');
-        s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        s.onload=initCinMap;
-        document.head.appendChild(s);
-        var css=document.createElement('link');
-        css.rel='stylesheet';
-        css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(css);
-        return;
-      }
-      var map=L.map('cin-map',{zoomControl:true,attributionControl:false}).setView([48.865,2.33],12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-      var cinemas=${mapMarkersJson};
-      cinemas.forEach(function(c){
-        var color=c.chain==='ugc'?'#4a9eff':c.chain==='pathe'?'#e8b84b':'#888';
-        var icon=L.divIcon({
-          className:'',
-          html:'<div style="width:32px;height:32px;border-radius:50%;background:'+color+';border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">📍</div>',
-          iconSize:[32,32],
-          iconAnchor:[16,16],
-          popupAnchor:[0,-18]
-        });
-        L.marker([c.lat,c.lng],{icon:icon})
-          .addTo(map)
-          .bindPopup('<div style=\'font-weight:700;font-size:13px;\'>'+c.name+'</div>'+(c.metro?'<div style=\'font-size:11px;color:#666;margin-top:4px;\'>M '+c.metro+'</div>':'')+'<div onclick=\'window._openCinema(\"'+c.id+'\")\' style=\'margin-top:8px;background:#ff3f5b;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;\'>Voir les séances</div>')
-          .on('click',function(){this.openPopup();});
-      });
-      window._openCinema=function(id){
-        if(window.st){st.cinema=id;st.screen='cinema-detail';if(window.render)render();}
-      };
-      setTimeout(function(){map.invalidateSize();},100);
-    })();
-    </scr`+'ipt>'+\`
-  </div>\`;
+  // Map view - rendered via post-render hook
+  const mapView = '<div style="flex:1;position:relative;overflow:hidden;" id="cin-map-wrap"><div id="cin-map" style="width:100%;height:100%;background:#1a1a2e;display:flex;align-items:center;justify-content:center;"><div style="color:#555570;font-size:13px;">Chargement de la carte…</div></div></div>';
+  window._pendingMapCinemas = CINEMAS.filter(c=>c.lat&&c.lng).map(c=>({id:c.id,name:c.name,lat:c.lat,lng:c.lng,chain:c.chain,metro:c.metro||''}));
 
   const favList = st.favCinemas.length===0
     ? `<div style="text-align:center;padding:40px 20px;color:${MU};">
@@ -2846,6 +2804,48 @@ function toggleFavCinema(cinId){
   render();
 }
 
+function initCinemaMap(){
+  function doInit(){
+    var el = document.getElementById('cin-map');
+    if(!el) return;
+    if(el._leafletMap){ el._leafletMap.invalidateSize(); return; }
+    var cinemas = window._pendingMapCinemas || [];
+    var map = L.map(el, {zoomControl:true, attributionControl:false}).setView([48.865, 2.33], 12);
+    el._leafletMap = map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
+    cinemas.forEach(function(c){
+      var color = c.chain==='ugc' ? '#4a9eff' : c.chain==='pathe' ? '#e8b84b' : '#888';
+      var label = c.chain==='ugc' ? 'U' : c.chain==='pathe' ? 'P' : '🎬';
+      var icon = L.divIcon({
+        className: '',
+        html: '<div style="width:30px;height:30px;border-radius:50%;background:'+color+';border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);">'+label+'</div>',
+        iconSize:[30,30], iconAnchor:[15,15], popupAnchor:[0,-18]
+      });
+      var popup = '<div style="font-weight:700;font-size:13px;color:#111;">'+c.name+'</div>'
+        +(c.metro?'<div style="font-size:11px;color:#666;margin-top:3px;">M '+c.metro+'</div>':'')
+        +'<button onclick="window._openCin(\''+c.id+'\')" style="margin-top:8px;background:#ff3f5b;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;width:100%;">Voir les séances →</button>';
+      L.marker([c.lat,c.lng],{icon:icon}).addTo(map).bindPopup(popup);
+    });
+    window._openCin = function(id){ st.cinema=id; st.screen='cinema-detail'; render(); };
+    setTimeout(function(){ map.invalidateSize(); }, 200);
+  }
+  if(window.L){ doInit(); return; }
+  // Load Leaflet if not already loaded
+  if(!document.getElementById('leaflet-css')){
+    var css=document.createElement('link');
+    css.id='leaflet-css'; css.rel='stylesheet';
+    css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+  }
+  if(!document.getElementById('leaflet-js')){
+    var s=document.createElement('script');
+    s.id='leaflet-js';
+    s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload=doInit;
+    document.head.appendChild(s);
+  }
+}
+
 function render(){
   const inner=document.getElementById('inner');
   if(!inner) return;
@@ -2878,6 +2878,10 @@ function render(){
   }catch(e){console.error('render error:',e);html=`<div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;text-align:center;"><div style="font-size:40px;">⚠️</div><div style="font-size:14px;color:#ff3f5b;">${e.message}</div><div onclick="st.screen='home';render()" style="padding:10px 20px;background:#ff3f5b;border-radius:12px;cursor:pointer;">← Accueil</div></div>`;}
   inner.innerHTML=html;
   // Post-render hooks
+  // Init Leaflet map if cinema map tab is active
+  if(st.screen==='cinemas' && (st.cinTab||'list')==='map'){
+    initCinemaMap();
+  }
   if(st.screen==='group'&&st.groupe){
     if(st.tab==='chat'){loadMessages();}
     else if(st.tab==='membres'){renderMembresDOM();}
