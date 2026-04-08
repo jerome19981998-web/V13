@@ -27,8 +27,7 @@ jobs:
       - name: Run scraper
         working-directory: scraper
         env:
-          SUPA_URL: ${{ secrets.SUPA_URL }}
-          SUPA_KEY: ${{ secrets.SUPA_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPA_KEY }}
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
         run: node scraper.js
