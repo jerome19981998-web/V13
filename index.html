@@ -274,7 +274,15 @@ async function initDynamicData(dateStr){
       const today0=new Date().toISOString().slice(0,10);
       const dateSet=new Set((datesRes.data||[]).map(r=>r.date).filter(d=>d>=today0));
       AVAILABLE_DATES=[...dateSet].sort();
-      if(!dateStr||!AVAILABLE_DATES.includes(dateStr))dateStr=AVAILABLE_DATES[0]||todayStr();
+      if(!dateStr||!AVAILABLE_DATES.includes(dateStr)){
+        // If it's after 21h, default to tomorrow
+        const hour = new Date().getHours();
+        if(hour >= 21 && AVAILABLE_DATES.length > 1){
+          dateStr = AVAILABLE_DATES[1]; // tomorrow
+        } else {
+          dateStr = AVAILABLE_DATES[0]||todayStr();
+        }
+      }
       st.date=dateStr;
       FILMS={};
       for(const f of(filmsRes.data||[])){const[c,bg]=filmPalette(f.id);FILMS[f.id]={e:genreEmoji(f.genre),c,bg,g:(f.genre||'DIVERS').toUpperCase(),t:f.title,d:(()=>{const dur=String(f.duration||'');return dur&&!dur.includes('NaN')&&/^\d+h\d{2}$/.test(dur)?dur:'';})(),dir:f.director||'',s:f.synopsis||'',poster:f.poster_url||null,tmdbNote:f.tmdb_note||null,trailerKey:f.trailer_key||null,lbd:false};}
@@ -283,7 +291,7 @@ async function initDynamicData(dateStr){
     const targetDate=dateStr||st.date;
     // Load ALL available dates seances (not just today) for complete schedule
     const today=new Date().toISOString().slice(0,10);
-    const seancesRes=await supa.from('seances_dyn').select('*').gte('date',today).order('date',{ascending:true});
+    const seancesRes=await supa.from('seances_dyn').select('*').gte('date',today).order('date',{ascending:true}).limit(5000);
     const sm={};
     for(const s of(seancesRes.data||[])){
       if(!sm[s.cinema_id])sm[s.cinema_id]={};
@@ -1343,7 +1351,16 @@ function sCinemas(){
 function sCinemaDetail(){
   const c=CINEMAS.find(x=>x.id===st.cinema);
   if(!c)return'<div style="padding:60px 18px;flex:1;">Cinéma introuvable</div>';
-  const filmIds=Object.keys(SEANCES[c.id]||{}).filter(fid=>(SEANCES[c.id][fid]||[]).some(h=>!isPast(h)));
+  // Show films with any future showtime this week (not just today)
+  const todayDate = st.date||todayStr();
+  const filmIds=Object.keys(SEANCES_ALL[c.id]||{}).filter(fid=>{
+    const dates = SEANCES_ALL[c.id][fid]||{};
+    return Object.entries(dates).some(([date, heures])=>{
+      if(date < todayDate) return false;
+      if(date === todayDate) return heures.some(h=>!isPast(h));
+      return heures.length > 0;
+    });
+  }).sort((a,b)=>(FILMS[a]?.t||'').localeCompare(FILMS[b]?.t||''));
   const links=CINEMA_LINKS[c.id]||{};
   const col=CC[c.chain]||MU;
   const dist=(userPos&&c.lat&&c.lng)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
