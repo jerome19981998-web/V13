@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CinéMatch Scraper v17 — API interne AlloCiné /_/showtimes/ (découverte via interception)
+// CinéLynker Scraper v17 — API interne AlloCiné /_/showtimes/ (découverte via interception)
 'use strict';
 
 const https = require('https');
@@ -133,7 +133,8 @@ async function fetchShowtimes(acId, dateISO) {
   const MAX_PAGES = 5; // max 5 pages = 75 films par cinema par jour
 
   while(page <= MAX_PAGES) {
-    const url = page === 1 ? baseUrl : `${baseUrl}?page=${page}`;
+    // Try both URL formats for pagination
+    const url = page === 1 ? baseUrl : `https://www.allocine.fr/_/showtimes/theater-${acId}/d-${dateISO}/p-${page}/`;
     const { status, data, raw } = await fetchJSON(url);
 
     if (status !== 200 || !data) {
@@ -154,17 +155,27 @@ async function fetchShowtimes(acId, dateISO) {
     }
 
     const parsed = parseAllocineInternal(data);
+    const newFilms = parsed.filter(p => !allSeances.some(a => a.title === p.title));
     allSeances = [...allSeances, ...parsed];
+    
+    if (page > 1) console.log(`    📄 page ${page}: ${data.results.length} résultats, ${newFilms.length} nouveaux films`);
+
+    // Check pagination info from API response
+    const totalResults = data.totalResults || data.total || null;
+    if (totalResults) console.log(`    📊 Total API: ${totalResults} films`);
 
     // If less than 15 results → last page
     if (data.results.length < 15) break;
+    
+    // If no new films on this page → stop (avoid infinite loops)
+    if (page > 1 && newFilms.length === 0) break;
 
     page++;
-    if (page <= MAX_PAGES) await sleep(300); // polite delay between pages
+    if (page <= MAX_PAGES) await sleep(400); // polite delay between pages
   }
 
   if (allSeances.length > 0) {
-    if (page > 2) console.log(`    📄 ${page-1} pages → ${allSeances.length} films`);
+    if (page > 2) console.log(`    📄 ${page-1} pages → ${allSeances.length} films total`);
     return { seances: allSeances, source: 'api' };
   }
   return { seances: [], source: 'api_empty' };
@@ -289,7 +300,7 @@ async function pushToSupabase(allData) {
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log(`🎬 CinéMatch Scraper v17 — ${new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris'})}`);
+  console.log(`🎬 CinéLynker Scraper v17 — ${new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris'})}`);
   console.log(DRY_RUN ? '🔍 DRY-RUN' : '🚀 PRODUCTION'); console.log('─'.repeat(50));
 
   const allData = {};
