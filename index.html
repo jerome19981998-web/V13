@@ -165,7 +165,7 @@ const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{autoRefreshToken:true,
 // ── STATE ────────────────────────────────────────────────────
 const _saved=JSON.parse(localStorage.getItem('cm2')||'{}');
 let st={screen:'loading',lang:_saved.lang||'fr',pseudo:_saved.pseudo||'',pseudoInput:'',avatar:_saved.avatar||'🎬',userId:null,userEmail:'',authStep:'login',cinema:null,film:null,filmSrc:'home',groupe:null,search:'',genre:'tous',filmGridMode:false,cinFilter:'tous',secs:3600,syncing:false,syncLabel:'',tab:'chat',voted:null,homeTab:'sorties',newSortie:null,showSearchHistory:false,sortieFilter:'all',msgs:[],date:todayStr(),lbdPseudo:_saved.lbdPseudo||'',lbdInput:'',viewedMember:null,showAvatarPicker:false,_inviteGroupe:null,_inviteFilm:null,
-  friendsTab:'friends',friendSearch:'',chatWith:null,notificationsViewed:false,messagesSearch:'',groupTab:'upcoming',legalTab:'privacy',blockedUsers:[]};
+  friendsTab:'friends',friendSearch:'',chatWith:null,notificationsViewed:false,messagesSearch:'',groupTab:'upcoming',legalTab:'privacy',blockedUsers:[],cinTab:'list',favCinemas:JSON.parse(localStorage.getItem('cm_fav_cinemas')||'[]')};
 function save(){try{localStorage.setItem('cm2',JSON.stringify({pseudo:st.pseudo,lbdPseudo:st.lbdPseudo,avatar:st.avatar,lang:st.lang}));}catch(e){}}
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
 function buildSeancesForDate(allSeances, date){
@@ -1335,30 +1335,82 @@ function sFilm(){
 // ══════════════════════════════════════════════════════════════
 function sCinemas(){
   const chains=[['tous','Tous'],['ugc','UGC'],['pathe','Pathé']];
+  const tab = st.cinTab||'list';
   const filtered=st.cinFilter==='tous'?CINEMAS:CINEMAS.filter(c=>c.chain===st.cinFilter);
-  const sorted=[...filtered].sort((a,b)=>{if(userPos&&a.lat&&b.lat){return getDistance(userPos.lat,userPos.lng,a.lat,a.lng)-getDistance(userPos.lat,userPos.lng,b.lat,b.lng);}return 0;});
+  const sorted=[...filtered].sort((a,b)=>{
+    // Favorites first
+    const aFav = st.favCinemas.includes(a.id);
+    const bFav = st.favCinemas.includes(b.id);
+    if(tab==='list'){
+      if(aFav!==bFav) return aFav?-1:1;
+    }
+    if(userPos&&a.lat&&b.lat) return getDistance(userPos.lat,userPos.lng,a.lat,a.lng)-getDistance(userPos.lat,userPos.lng,b.lat,b.lng);
+    return a.name.localeCompare(b.name);
+  });
+
+  const cinemaRow = c => {
+    const filmCount=Object.keys(SEANCES_ALL[c.id]||{}).filter(fid=>Object.values(SEANCES_ALL[c.id][fid]||{}).some(h=>h.length>0)).length;
+    const col=CC[c.chain]||MU;
+    const dist=(userPos&&c.lat&&c.lng)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
+    const isFav = st.favCinemas.includes(c.id);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid ${BD};">
+      <div onclick="go('cinema-detail');st.cinema='${c.id}';render();" style="flex:1;display:flex;align-items:center;gap:12px;cursor:pointer;">
+        <div style="width:38px;height:38px;border-radius:10px;background:${S1};border:1px solid ${BD};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${c.icon||'🎬'}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:clamp(11px,3.3vw,13px);font-weight:600;color:${col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</div>
+          <div style="font-size:10px;color:${MU};margin-top:2px;">${c.metro?'M '+esc(c.metro)+' · ':''}<span>${filmCount} film${filmCount!==1?'s':''}</span></div>
+        </div>
+        ${dist!==null?`<div style="font-size:10px;color:${MU};text-align:right;flex-shrink:0;">📍<br>${distLabel(dist)}</div>`:''}
+      </div>
+      <div onclick="toggleFavCinema('${c.id}')" style="padding:6px;cursor:pointer;font-size:20px;flex-shrink:0;opacity:${isFav?'1':'0.3'};" title="${isFav?'Retirer des favoris':'Ajouter aux favoris'}">⭐</div>
+    </div>`;
+  };
+
+  // Map view using OpenStreetMap iframe
+  const mapView = `<div style="flex:1;position:relative;overflow:hidden;">
+    <iframe
+      src="https://www.openstreetmap.org/export/embed.html?bbox=2.2,48.8,2.42,48.92&layer=mapnik&marker=${CINEMAS.filter(c=>c.lat).map(c=>`${c.lat},${c.lng}`).join('|')}"
+      style="width:100%;height:100%;border:none;"
+      loading="lazy"
+    ></iframe>
+    <div style="position:absolute;bottom:12px;left:12px;right:12px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:10px 14px;max-height:180px;overflow-y:auto;">
+      <div style="font-size:10px;color:${MU};margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Cinémas sur la carte</div>
+      ${sorted.map(c=>`<div onclick="go('cinema-detail');st.cinema='${c.id}';render();" style="padding:6px 0;border-bottom:1px solid ${BD};cursor:pointer;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:14px;">${c.icon||'🎬'}</span>
+        <span style="font-size:12px;font-weight:600;">${esc(c.name)}</span>
+        <span style="font-size:10px;color:${MU};margin-left:auto;">${c.metro?'M '+esc(c.metro):''}</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+
+  const favList = st.favCinemas.length===0
+    ? `<div style="text-align:center;padding:40px 20px;color:${MU};">
+        <div style="font-size:40px;margin-bottom:12px;">⭐</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px;">Pas encore de favoris</div>
+        <div style="font-size:12px;">Appuie sur ⭐ à côté d'un cinéma pour l'ajouter</div>
+      </div>`
+    : CINEMAS.filter(c=>st.favCinemas.includes(c.id)).map(cinemaRow).join('');
+
   return `<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
     <div style="padding:50px 18px 0;flex-shrink:0;">
-      <div class="serif" style="font-size:clamp(20px,6.2vw,26px);margin-bottom:12px;">🏛 Cinémas</div>
-      <div style="display:flex;gap:0;background:${S1};border:1px solid ${BD};border-radius:14px;padding:3px;margin-bottom:12px;">
-        ${chains.map(([id,lb])=>`<div onclick="st.cinFilter='${id}';render()" style="flex:1;text-align:center;padding:6px 4px;border-radius:11px;cursor:pointer;font-size:clamp(9px,2.8vw,12px);font-weight:600;background:${st.cinFilter===id?AC:'transparent'};color:${st.cinFilter===id?'#fff':MU};">${lb}</div>`).join('')}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="serif" style="font-size:clamp(20px,6vw,26px);">Cinémas</div>
+        <div style="display:flex;gap:6px;">
+          <div onclick="st.cinTab='list';render()" style="padding:6px 10px;border-radius:10px;background:${tab==='list'?AC:'rgba(255,255,255,0.07)'};font-size:18px;cursor:pointer;" title="Liste">≡</div>
+          <div onclick="st.cinTab='favs';render()" style="padding:6px 10px;border-radius:10px;background:${tab==='favs'?AC:'rgba(255,255,255,0.07)'};font-size:18px;cursor:pointer;" title="Favoris">⭐</div>
+          <div onclick="st.cinTab='map';render()" style="padding:6px 10px;border-radius:10px;background:${tab==='map'?AC:'rgba(255,255,255,0.07)'};font-size:18px;cursor:pointer;" title="Carte">🗺️</div>
+        </div>
       </div>
+      ${tab!=='map'?`<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;">
+        ${chains.map(([v,l])=>`<div onclick="st.cinFilter='${v}';render()" style="flex-shrink:0;padding:5px 14px;border-radius:20px;background:${st.cinFilter===v?AC:'rgba(255,255,255,0.07)'};font-size:12px;font-weight:600;cursor:pointer;">${l}</div>`).join('')}
+      </div>`:''}
     </div>
-    <div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        ${sorted.map(c=>{const dist=(userPos&&c.lat&&c.lng)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;const col=CC[c.chain]||MU;const filmCount=c.films?.length||0;
-          return `<div onclick="openCinema('${c.id}')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;">
-            <div style="width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${CHAIN_ICONS[c.chain]||'🎬'}</div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:clamp(12px,3.5vw,15px);font-weight:600;color:${col};">${esc(c.name)}</div>
-              <div style="font-size:10px;color:${MU};margin-top:2px;">${c.metro?'M '+esc(c.metro)+' · ':''}<span>${filmCount} film${filmCount!==1?'s':''}</span></div>
-            </div>
-            ${dist!==null?`<div style="font-size:10px;color:${MU};text-align:right;flex-shrink:0;">📍<br>${distLabel(dist)}</div>`:'<span style="color:${MU};">›</span>'}
-          </div>`;}).join('')}
-      </div>
-    </div>
+    ${tab==='map'?mapView:`<div style="flex:1;overflow-y:auto;padding:0 18px 20px;">
+      ${tab==='favs'?favList:sorted.map(cinemaRow).join('')}
+    </div>`}
     ${nav('cinemas')}
-  </div>`;}
+  </div>`;
+}
 
 function sCinemaDetail(){
   const c=CINEMAS.find(x=>x.id===st.cinema);
@@ -2755,6 +2807,14 @@ async function submitFeedback(){
     toast('Merci pour ton retour ! 🙏','success', 3000);
     console.warn('feedback table:', e.message);
   }
+}
+
+function toggleFavCinema(cinId){
+  const idx = st.favCinemas.indexOf(cinId);
+  if(idx > -1) st.favCinemas.splice(idx, 1);
+  else st.favCinemas.push(cinId);
+  try{ localStorage.setItem('cm_fav_cinemas', JSON.stringify(st.favCinemas)); }catch(e){}
+  render();
 }
 
 function render(){
