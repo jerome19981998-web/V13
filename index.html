@@ -1398,7 +1398,7 @@ function sCinemaDetail(){
     <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
       ${filmIds.length===0?`<div style="text-align:center;padding:40px;color:${MU};">Aucune séance ce jour</div>`:''}
       <div style="display:flex;flex-direction:column;gap:10px;">
-        ${filmIds.map(fid=>{const f=FILMS[fid];if(!f)return'';const seances=(SEANCES_ALL[c.id]?.[fid]?.[st.date||todayStr()])||[];const dur=f.d;const hasP=!!posters[fid];
+        ${filmIds.map(fid=>{const f=FILMS[fid];if(!f){console.log('[debug film] FILMS missing:', fid);return'';}const seances=(SEANCES_ALL[c.id]?.[fid]?.[st.date||todayStr()])||[];console.log('[debug film]', fid, '- seances for', st.date, ':', seances.length);const dur=f.d;const hasP=!!posters[fid];
           return `<div onclick="openFilm('${fid}','cinema')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;overflow:hidden;display:flex;gap:0;cursor:pointer;">
             <div style="width:62px;height:90px;flex-shrink:0;position:relative;background:${f.bg};">
               ${hasP?`<img src="${posters[fid]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:30px;">${f.e}</span>`}
