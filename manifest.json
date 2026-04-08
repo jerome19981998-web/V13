@@ -1,6 +1,6 @@
 {
-  "name": "CinéMatch",
-  "short_name": "CinéMatch",
+  "name": "CinéLynker",
+  "short_name": "CinéLynker",
   "description": "Le réseau social du cinéma parisien — sorties ciné, amis, séances",
   "start_url": "/",
   "scope": "/",
