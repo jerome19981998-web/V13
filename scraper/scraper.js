@@ -6,7 +6,7 @@ const https = require('https');
 
 const DRY_RUN  = process.env.DRY_RUN === 'true';
 const DAYS     = 7;
-const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPA_KEY || '';
 const TMDB_TOKEN = process.env.TMDB_TOKEN ||
   'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzMzY0M2EwMDRiZGMyYzdlNmIyYTFjOWMzZWI5ZDhlYyIsIm5iZiI6MTc3MzAwMTIzNy42ODYsInN1YiI6IjY5YWRkYTE1MmVmNWMxZmY5NWZjYmNlOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.bRW2UVqu1p89xPusKV5-mzW4ZeRSk8ij811FWOIwoBM';
 
