@@ -1,47 +1,36 @@
-name: 🎬 CinéMatch — Mise à jour séances
+name: Scrape Séances
+
 on:
   schedule:
-    - cron: '0 2,8,14,20 * * *'
+    - cron: '0 7 * * *'   # 8h heure de Paris (UTC+1)
+    - cron: '0 19 * * *'  # 20h heure de Paris (UTC+1)
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Dry-run (affiche sans écrire en base)'
+        description: 'Dry run (no push to Supabase)'
         required: false
         default: 'false'
-        type: boolean
+
 jobs:
   scrape:
-    name: Scraping AlloCiné → Supabase
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: scraper/package.json
-
-      - name: 📦 Installer les dépendances
+      - name: Install dependencies
         working-directory: scraper
         run: npm install
-
-      - name: 🔍 Scraping + mise à jour Supabase
+      - name: Run scraper
         working-directory: scraper
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPA_URL: ${{ secrets.SUPA_URL }}
+          SUPA_KEY: ${{ secrets.SUPA_KEY }}
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
-          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
         run: node scraper.js
-
-      - name: ✅ Résumé
-        if: success()
+      - name: Done
         run: echo "✅ Séances mises à jour — $(date '+%d/%m/%Y %H:%M')"
-
-      - name: ❌ Notification d'échec
-        if: failure()
-        run: echo "❌ Le scraping a échoué — vérifier les logs"
