@@ -1365,7 +1365,9 @@ function sCinemaDetail(){
   if(!c)return'<div style="padding:60px 18px;flex:1;">Cinéma introuvable</div>';
   // Show films with any future showtime this week (not just today)
   const todayDate = st.date||todayStr();
-  const filmIds=Object.keys(SEANCES_ALL[c.id]||{}).filter(fid=>{
+  const allCinemaFilms = Object.keys(SEANCES_ALL[c.id]||{});
+  console.log('[debug cinema]', c.id, '- films in SEANCES_ALL:', allCinemaFilms.length, allCinemaFilms);
+  const filmIds=allCinemaFilms.filter(fid=>{
     const dates = SEANCES_ALL[c.id][fid]||{};
     return Object.entries(dates).some(([date, heures])=>{
       if(date < todayDate) return false;
@@ -1373,6 +1375,7 @@ function sCinemaDetail(){
       return heures.length > 0;
     });
   }).sort((a,b)=>(FILMS[a]?.t||'').localeCompare(FILMS[b]?.t||''));
+  console.log('[debug cinema]', c.id, '- filtered filmIds:', filmIds.length);
   const links=CINEMA_LINKS[c.id]||{};
   const col=CC[c.chain]||MU;
   const dist=(userPos&&c.lat&&c.lng)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
