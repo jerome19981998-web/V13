@@ -291,19 +291,26 @@ async function initDynamicData(dateStr){
     const targetDate=dateStr||st.date;
     // Load ALL available dates seances (not just today) for complete schedule
     const today=new Date().toISOString().slice(0,10);
-    const seancesRes=await supa.from('seances_dyn').select('*').gte('date',today).order('date',{ascending:true}).limit(5000);
+    // Fetch all seances in pages of 1000 (Supabase max)
     const sm={};
-    const seancesData = seancesRes.data||[];
-    console.log('[debug] seances loaded:', seancesData.length, 'rows');
-    for(const s of seancesData){
-      if(!sm[s.cinema_id])sm[s.cinema_id]={};
-      // Store heures per cinema/film/date
-      if(!sm[s.cinema_id][s.film_id])sm[s.cinema_id][s.film_id]={};
-      sm[s.cinema_id][s.film_id][s.date]=s.heures||[];
+    let seancesPage = 0;
+    let seancesTotal = 0;
+    while(true){
+      const res=await supa.from('seances_dyn').select('*')
+        .gte('date',today).order('date',{ascending:true})
+        .range(seancesPage*1000, seancesPage*1000+999);
+      const rows = res.data||[];
+      seancesTotal += rows.length;
+      for(const s of rows){
+        if(!sm[s.cinema_id])sm[s.cinema_id]={};
+        if(!sm[s.cinema_id][s.film_id])sm[s.cinema_id][s.film_id]={};
+        sm[s.cinema_id][s.film_id][s.date]=s.heures||[];
+      }
+      if(rows.length < 1000) break; // last page
+      seancesPage++;
+      if(seancesPage > 9) break; // safety limit: max 10000 rows
     }
-    // Debug: count films per cinema
-    const cinemaFilmCounts = Object.entries(sm).map(([cid, films]) => cid+':'+Object.keys(films).length).join(', ');
-    console.log('[debug] films per cinema:', cinemaFilmCounts);
+    console.log('[debug] seances loaded:', seancesTotal, 'rows in', seancesPage+1, 'page(s)');
     // Flat view for today (backwards compat): SEANCES[cinId][filmId] = heures for selected date
     SEANCES_ALL=sm;
     SEANCES=buildSeancesForDate(sm,targetDate||today);
