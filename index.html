@@ -1366,22 +1366,51 @@ function sCinemas(){
     </div>`;
   };
 
-  // Map view using OpenStreetMap iframe
+  // Map view using Leaflet + OpenStreetMap (free, no API key)
+  const mapCinemas = CINEMAS.filter(c=>c.lat&&c.lng);
+  const mapMarkersJson = JSON.stringify(mapCinemas.map(c=>({
+    id:c.id, name:c.name, lat:c.lat, lng:c.lng, chain:c.chain, metro:c.metro||''
+  })));
   const mapView = `<div style="flex:1;position:relative;overflow:hidden;">
-    <iframe
-      src="https://www.openstreetmap.org/export/embed.html?bbox=2.2,48.8,2.42,48.92&layer=mapnik&marker=${CINEMAS.filter(c=>c.lat).map(c=>`${c.lat},${c.lng}`).join('|')}"
-      style="width:100%;height:100%;border:none;"
-      loading="lazy"
-    ></iframe>
-    <div style="position:absolute;bottom:12px;left:12px;right:12px;background:${S1};border:1px solid ${BD};border-radius:14px;padding:10px 14px;max-height:180px;overflow-y:auto;">
-      <div style="font-size:10px;color:${MU};margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Cinémas sur la carte</div>
-      ${sorted.map(c=>`<div onclick="go('cinema-detail');st.cinema='${c.id}';render();" style="padding:6px 0;border-bottom:1px solid ${BD};cursor:pointer;display:flex;align-items:center;gap:8px;">
-        <span style="font-size:14px;">${c.icon||'🎬'}</span>
-        <span style="font-size:12px;font-weight:600;">${esc(c.name)}</span>
-        <span style="font-size:10px;color:${MU};margin-left:auto;">${c.metro?'M '+esc(c.metro):''}</span>
-      </div>`).join('')}
-    </div>
-  </div>`;
+    <div id="cin-map" style="width:100%;height:100%;"></div>
+    <script>
+    (function initCinMap(){
+      if(document.getElementById('cin-map')._leaflet_id) return;
+      if(!window.L){
+        var s=document.createElement('script');
+        s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        s.onload=initCinMap;
+        document.head.appendChild(s);
+        var css=document.createElement('link');
+        css.rel='stylesheet';
+        css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(css);
+        return;
+      }
+      var map=L.map('cin-map',{zoomControl:true,attributionControl:false}).setView([48.865,2.33],12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+      var cinemas=${mapMarkersJson};
+      cinemas.forEach(function(c){
+        var color=c.chain==='ugc'?'#4a9eff':c.chain==='pathe'?'#e8b84b':'#888';
+        var icon=L.divIcon({
+          className:'',
+          html:'<div style="width:32px;height:32px;border-radius:50%;background:'+color+';border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">📍</div>',
+          iconSize:[32,32],
+          iconAnchor:[16,16],
+          popupAnchor:[0,-18]
+        });
+        L.marker([c.lat,c.lng],{icon:icon})
+          .addTo(map)
+          .bindPopup('<div style=\'font-weight:700;font-size:13px;\'>'+c.name+'</div>'+(c.metro?'<div style=\'font-size:11px;color:#666;margin-top:4px;\'>M '+c.metro+'</div>':'')+'<div onclick=\'window._openCinema(\"'+c.id+'\")\' style=\'margin-top:8px;background:#ff3f5b;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;\'>Voir les séances</div>')
+          .on('click',function(){this.openPopup();});
+      });
+      window._openCinema=function(id){
+        if(window.st){st.cinema=id;st.screen='cinema-detail';if(window.render)render();}
+      };
+      setTimeout(function(){map.invalidateSize();},100);
+    })();
+    </scr`+'ipt>'+\`
+  </div>\`;
 
   const favList = st.favCinemas.length===0
     ? `<div style="text-align:center;padding:40px 20px;color:${MU};">
