@@ -1303,7 +1303,7 @@ function sFilm(){
       <div style="padding:0 18px;">
         <div style="display:flex;gap:8px;margin-bottom:16px;padding-top:12px;">
           <div onclick="toggleWantToSee('${id}')" style="flex:1;padding:10px 0;text-align:center;border-radius:12px;cursor:pointer;background:${wantId?'rgba(240,192,96,0.15)':S1};border:1px solid ${wantId?GD:BD};font-size:12px;font-weight:600;color:${wantId?GD:MU};">${wantId?'🔖 Ma liste':'🔖 Ma liste'}</div>
-          ${cinemasAvec.length?`<div onclick="createSortieScroll=0;st.newSortie=${cinemasAvec.length===1?`{filmId:'${id}',cinemaId:'${cinemasAvec[0].id}',heure:'${((SEANCES[cinemasAvec[0].id]||{})[id]||[]).filter(h=>!isPast(h))[0]||''}',date:'${st.date||todayStr()}'}`:`{filmId:'${id}'}`};st.screen='create-sortie';render()" style="flex:2;padding:10px 0;text-align:center;border-radius:12px;cursor:pointer;background:${AC};font-size:13px;font-weight:700;color:#fff;">🍿 Créer une sortie</div>`:''}
+          ${cinemasAvec.length?`<div onclick="createSortieScroll=0;st.newSortie=${cinemasAvec.length===1?`{filmId:'${id}',cinemaId:'${cinemasAvec[0].id}',heure:'${(SEANCES_ALL[cinemasAvec[0].id]?.[id]?.[st.date||todayStr()]||[]).filter(h=>!isPast(h))[0]||''}',date:'${st.date||todayStr()}'}`:`{filmId:'${id}'}`};st.screen='create-sortie';render()" style="flex:2;padding:10px 0;text-align:center;border-radius:12px;cursor:pointer;background:${AC};font-size:13px;font-weight:700;color:#fff;">🍿 Créer une sortie</div>`:''}
         </div>
         ${friendsFilm.length>0?`<div style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.25);border-radius:14px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
           <div style="display:flex;">${friendsFilm.slice(0,3).map(fr=>`<div style="width:26px;height:26px;border-radius:50%;background:${pseudoColor(fr.pseudo)};display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid ${S1};margin-left:-4px;">${fr.avatar||pseudoInitial(fr.pseudo)}</div>`).join('')}</div>
@@ -1395,7 +1395,7 @@ function sCinemaDetail(){
     <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
       ${filmIds.length===0?`<div style="text-align:center;padding:40px;color:${MU};">Aucune séance ce jour</div>`:''}
       <div style="display:flex;flex-direction:column;gap:10px;">
-        ${filmIds.map(fid=>{const f=FILMS[fid];if(!f)return'';const seances=(SEANCES[c.id]||{})[fid]||[];const dur=f.d;const hasP=!!posters[fid];
+        ${filmIds.map(fid=>{const f=FILMS[fid];if(!f)return'';const seances=(SEANCES_ALL[c.id]?.[fid]?.[st.date||todayStr()])||[];const dur=f.d;const hasP=!!posters[fid];
           return `<div onclick="openFilm('${fid}','cinema')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;overflow:hidden;display:flex;gap:0;cursor:pointer;">
             <div style="width:62px;height:90px;flex-shrink:0;position:relative;background:${f.bg};">
               ${hasP?`<img src="${posters[fid]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:30px;">${f.e}</span>`}
@@ -1459,7 +1459,7 @@ function renderMembresDOM(){
 function renderVotesDOM(){
   const el=document.getElementById('votes-area');
   if(!el)return;
-  const film=FILMS[st.film];const filmCinemas=CINEMAS.filter(c=>(SEANCES[c.id]||{})[st.film]?.length>0);
+  const film=FILMS[st.film];const filmCinemas=CINEMAS.filter(c=>(SEANCES_ALL[c.id]?.[st.film]?.[st.date||todayStr()]||[]).length>0 || Object.values(SEANCES_ALL[c.id]?.[st.film]||{}).some(h=>h.length>0));
   if(filmCinemas.length===0){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};">${T('aucunFilmDispo')}</div>`;return;}
   const conf=groupeInfo||{};const isConfirmed=!!conf.confirmed_heure;
   const confCinema=CINEMAS.find(c=>c.id===conf.confirmed_cinema);
@@ -1475,7 +1475,7 @@ function renderVotesDOM(){
   }
   let html='';
   for(const c of filmCinemas){
-    const seances=(SEANCES[c.id]||{})[st.film]||[];const col=CC[c.chain]||MU;
+    const seances=(SEANCES_ALL[c.id]?.[st.film]?.[st.date||todayStr()])||[];const col=CC[c.chain]||MU;
     html+=`<div style="margin-bottom:16px;">
       <div style="font-size:11px;font-weight:700;color:${col};margin-bottom:6px;">${esc(c.name)}</div>
       ${seances.length===0?`<div style="font-size:11px;color:${MU};">${T('aucuneSeanceJour')}</div>`:`<div style="display:flex;flex-wrap:wrap;gap:6px;">${seances.map(h=>{
