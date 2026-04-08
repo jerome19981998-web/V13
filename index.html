@@ -270,7 +270,7 @@ async function initDynamicData(dateStr){
   const isFirstLoad=!DATA_LOADED;
   try{
     if(isFirstLoad){
-      const[filmsRes,cinemasRes,datesRes]=await Promise.all([supa.from('films_dyn').select('*').limit(200),supa.from('cinemas_dyn').select('*'),supa.from('seances_dyn').select('date').gte('date',new Date().toISOString().slice(0,10)).limit(1000)]);
+      const[filmsRes,cinemasRes,datesRes]=await Promise.all([supa.from('films_dyn').select('*').limit(500),supa.from('cinemas_dyn').select('*'),supa.from('seances_dyn').select('date').gte('date',new Date().toISOString().slice(0,10)).limit(1000)]);
       const today0=new Date().toISOString().slice(0,10);
       const dateSet=new Set((datesRes.data||[]).map(r=>r.date).filter(d=>d>=today0));
       AVAILABLE_DATES=[...dateSet].sort();
@@ -310,7 +310,7 @@ async function initDynamicData(dateStr){
       seancesPage++;
       if(seancesPage > 9) break; // safety limit: max 10000 rows
     }
-    console.log('[debug] seances loaded:', seancesTotal, 'rows in', seancesPage+1, 'page(s)');
+
     // Flat view for today (backwards compat): SEANCES[cinId][filmId] = heures for selected date
     SEANCES_ALL=sm;
     SEANCES=buildSeancesForDate(sm,targetDate||today);
@@ -1365,9 +1365,7 @@ function sCinemaDetail(){
   if(!c)return'<div style="padding:60px 18px;flex:1;">Cinéma introuvable</div>';
   // Show films with any future showtime this week (not just today)
   const todayDate = st.date||todayStr();
-  const allCinemaFilms = Object.keys(SEANCES_ALL[c.id]||{});
-  console.log('[debug cinema]', c.id, '- films in SEANCES_ALL:', allCinemaFilms.length, allCinemaFilms);
-  const filmIds=allCinemaFilms.filter(fid=>{
+  const filmIds=Object.keys(SEANCES_ALL[c.id]||{}).filter(fid=>{
     const dates = SEANCES_ALL[c.id][fid]||{};
     return Object.entries(dates).some(([date, heures])=>{
       if(date < todayDate) return false;
@@ -1375,7 +1373,7 @@ function sCinemaDetail(){
       return heures.length > 0;
     });
   }).sort((a,b)=>(FILMS[a]?.t||'').localeCompare(FILMS[b]?.t||''));
-  console.log('[debug cinema]', c.id, '- filtered filmIds:', filmIds.length);
+
   const links=CINEMA_LINKS[c.id]||{};
   const col=CC[c.chain]||MU;
   const dist=(userPos&&c.lat&&c.lng)?getDistance(userPos.lat,userPos.lng,c.lat,c.lng):null;
@@ -1398,7 +1396,7 @@ function sCinemaDetail(){
     <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
       ${filmIds.length===0?`<div style="text-align:center;padding:40px;color:${MU};">Aucune séance ce jour</div>`:''}
       <div style="display:flex;flex-direction:column;gap:10px;">
-        ${filmIds.map(fid=>{const f=FILMS[fid];if(!f){console.log('[debug film] FILMS missing:', fid);return'';}const seances=(SEANCES_ALL[c.id]?.[fid]?.[st.date||todayStr()])||[];console.log('[debug film]', fid, '- seances for', st.date, ':', seances.length);const dur=f.d;const hasP=!!posters[fid];
+        ${filmIds.map(fid=>{const f=FILMS[fid];if(!f)return'';const seances=(SEANCES_ALL[c.id]?.[fid]?.[st.date||todayStr()])||[];const dur=f.d;const hasP=!!posters[fid];
           return `<div onclick="openFilm('${fid}','cinema')" class="tap" style="background:${S1};border:1px solid ${BD};border-radius:14px;overflow:hidden;display:flex;gap:0;cursor:pointer;">
             <div style="width:62px;height:90px;flex-shrink:0;position:relative;background:${f.bg};">
               ${hasP?`<img src="${posters[fid]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`:`<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);font-size:30px;">${f.e}</span>`}
