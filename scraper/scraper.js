@@ -80,6 +80,10 @@ function fetchJSON(url, headers={}) {
 // Format réel: {"error":false,"results":[{"movie":{...},"showtimes":[{"startsAt":"2026-03-17T14:30:00",...},...]},...]}
 function parseAllocineInternal(data) {
   if (!data || data.error || !Array.isArray(data.results)) return [];
+  // Log total if available
+  if (data.totalResults !== undefined && data.totalResults > data.results.length) {
+    console.log(`    ⚠️  API has ${data.totalResults} total but returning ${data.results.length}`);
+  }
   const results = [];
 
   for (const item of data.results) {
@@ -130,7 +134,7 @@ async function fetchShowtimes(acId, dateISO) {
   const baseUrl = `https://www.allocine.fr/_/showtimes/theater-${acId}/d-${dateISO}/`;
   let allSeances = [];
   let page = 1;
-  const MAX_PAGES = 5; // max 5 pages = 75 films par cinema par jour
+  const MAX_PAGES = 10; // max 10 pages = 150 films par cinema par jour
 
   while(page <= MAX_PAGES) {
     // Try both URL formats for pagination
@@ -185,6 +189,21 @@ async function fetchShowtimes(acId, dateISO) {
 async function scrapeCinema(cinemaId, cinema) {
   console.log(`\n📍 ${cinemaId} (${cinema.acId})`);
   const result = { films:{}, seances:{} };
+
+  // Pre-fetch: try to get all films from AlloCiné HTML page (no date filter)
+  // This gives us the full list without pagination limit
+  try {
+    const htmlUrl = `https://www.allocine.fr/_/showtimes/theater-${cinema.acId}/`;
+    const { status, data } = await fetchJSON(htmlUrl);
+    if (status === 200 && data?.results?.length > 0) {
+      console.log(`  [pre] ${data.results.length} films (no date filter)`);
+      const allFilms = parseAllocineInternal(data);
+      for (const { title, director, duration, genre, synopsis, poster, tmdbNote } of allFilms) {
+        const slug = slugify(title);
+        if (!result.films[slug]) result.films[slug] = { slug, title, director, duration, genre, synopsis, poster, tmdbNote };
+      }
+    }
+  } catch(e) {}
 
   for (let day = 0; day < DAYS; day++) {
     const dateISO = getDateISO(day);
