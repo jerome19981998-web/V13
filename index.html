@@ -2909,24 +2909,25 @@ async function confirmQuickSortie(cinId, filmId, heure, date){
   if(btn){ btn.textContent='⏳ Création...'; btn.disabled=true; }
 
   try{
-    const nom = (film.t||'Film').slice(0,40)+' — '+heure;
     const {data, error} = await supa.from('groupes').insert({
-      nom, film_id:filmId, cinema_id:cinId,
-      date_sortie:date, heure_sortie:heure,
-      max_membres:nb, createur_id:st.userId,
-      description: cinema.name+' · '+formatDate(date)+' · '+heure
-    }).select().single();
+      film_id:filmId, nom:(film.t||'Film').slice(0,40)+' — '+heure,
+      createur:st.pseudo, user_id:st.userId,
+      is_public:true, max_membres:nb,
+      confirmed_cinema:cinId,
+      confirmed_heure:heure,
+      confirmed_date:date
+    }).select('id').single();
     if(error) throw error;
 
     // Auto-join as creator
     await supa.from('groupe_membres').insert({groupe_id:data.id, user_id:st.userId, pseudo:st.pseudo, avatar:st.avatar});
 
     document.getElementById('quick-sortie-modal')?.remove();
-    showToast('🍿 Sortie créée !');
+    toast('🍿 Sortie créée !', 'success');
     st.groupe = data.id; st.screen='group'; st.tab='chat'; render();
     loadMembres(); loadMessages(); loadVotes();
   }catch(e){
-    showToast('❌ Erreur: '+e.message);
+    toast('❌ Erreur: '+e.message, 'error');
     if(btn){ btn.textContent='🍿 Créer la sortie'; btn.disabled=false; }
   }
 }
