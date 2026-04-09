@@ -145,7 +145,7 @@ const PALETTE=[
   ['#0a0a1a','linear-gradient(135deg,#050508,#10101e)'],['#1a1a08','linear-gradient(135deg,#0d0d05,#2a2808)'],
 ];
 function filmPalette(slug){let h=0;for(const c of(slug||''))h=(h*31+c.charCodeAt(0))&0xffff;return PALETTE[h%PALETTE.length];}
-function starsHTML(note,max=5,size=11){if(!note)return'';const n=Math.round((parseFloat(note)/10)*max*2)/2;let html='<span style="letter-spacing:-1px;font-size:'+size+'px;">';for(let i=1;i<=max;i++){if(i<=n)html+='<span style="color:#f0c060;">★</span>';else if(i-0.5<=n)html+='<span style="color:#f0c060;">½</span>';else html+='<span style="color:#2a2a40;">★</span>';}return html+'</span>';}
+function starsHTML(note,max=5,size=11){if(!note)return'';const n=Math.round((parseFloat(note)/10)*max*2)/2;const displayNote=(parseFloat(note)/2).toFixed(1);let html='<span style="letter-spacing:-1px;font-size:'+size+'px;">';for(let i=1;i<=max;i++){if(i<=n)html+='<span style="color:#f0c060;">★</span>';else if(i-0.5<=n)html+='<span style="color:#f0c060;">½</span>';else html+='<span style="color:#2a2a40;">★</span>';}return html+'</span><span style="font-size:'+(size-1)+'px;color:#f0c060;margin-left:2px;">'+displayNote+'</span>';}
 function chip(txt,c=TX,bg='rgba(255,255,255,0.06)',b=BD,sz=10){return `<span style="font-size:${sz}px;padding:2px 7px;border-radius:20px;border:1px solid ${b};background:${bg};color:${c};white-space:nowrap;">${txt}</span>`;}
 
 const LANGS={
