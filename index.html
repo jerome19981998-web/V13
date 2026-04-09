@@ -1108,10 +1108,10 @@ function sHome(){
           </div>`:''}
           <div style="margin-bottom:20px;">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:0 18px;margin-bottom:8px;">
-              <div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🎬 Nouveautés</div>
+              <div style="font-size:clamp(13px,4vw,16px);font-weight:700;">⭐ Mieux notés</div>
               <div style="font-size:11px;color:${MU};cursor:pointer;" onclick="setGenre('tous')">Tous →</div>
             </div>
-            <div class="row-scroll">${[...allFilms].sort(([a],[b])=>{const sA=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[a];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);const sB=Object.values(SEANCES_ALL||{}).reduce((s,c)=>{const d=c[b];return s+(d?Array.isArray(d)?d.length:Object.values(d).reduce((x,h)=>x+h.length,0):0);},0);return sB-sA;}).slice(0,12).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
+            <div class="row-scroll">${[...allFilms].filter(([id])=>ratings[id]?.note).sort(([a],[b])=>parseFloat(ratings[b].note)-parseFloat(ratings[a].note)).slice(0,12).map(([id,f])=>posterCardLg(id,f)).join('')}</div>
           </div>
           ${topFilms.length>0&&ratings[topFilms[0]?.[0]]?`<div style="margin-bottom:20px;">
             <div style="display:flex;align-items:center;padding:0 18px;margin-bottom:8px;"><div style="font-size:clamp(13px,4vw,16px);font-weight:700;">🔥 Populaires</div></div>
