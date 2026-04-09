@@ -100,7 +100,7 @@ function parseAllocineInternal(data) {
       ['Director','DIRECTOR','Réalisateur'].includes(c.role || c.function || c.position)
     )?.person?.fullName || '';
     const poster = movie.poster?.url || movie.poster?.href || null;
-    const tmdbNote = movie.stats?.userRating?.score || null;
+    const tmdbNote = movie.stats?.userRating?.score ? Math.round(movie.stats.userRating.score * 2 * 10) / 10 : null;
 
     // Showtimes: tableau direct ou groupé par version
     let allShowtimes = [];
