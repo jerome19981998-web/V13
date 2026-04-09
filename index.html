@@ -1321,7 +1321,7 @@ function sFilm(){
                 <div style="font-size:10px;color:${MU};">${c.metro?'M '+esc(c.metro):''}</div>
               </div>
               <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
-                ${seances.filter(h=>!isPast(h)).slice(0,4).map(h=>`<span style="font-size:10px;padding:3px 7px;background:${S2};border:1px solid ${BD};border-radius:8px;color:${TX}">${h}</span>`).join('')}
+                ${seances.filter(h=>!isPast(h)).slice(0,4).map(h=>`<span onclick="quickSortie('${c.id}','${id}','${h}','${st.date||todayStr()}')" style="font-size:10px;padding:3px 7px;background:${S2};border:1px solid ${BD};border-radius:8px;color:${TX};cursor:pointer;">${h}</span>`).join('')}
               </div>
             </div>`;}).join('')}
           </div>
@@ -2847,6 +2847,87 @@ function initCinemaMap(){
     s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     s.onload=doInit;
     document.head.appendChild(s);
+  }
+}
+
+function quickSortie(cinId, filmId, heure, date){
+  const cinema = CINEMAS.find(c=>c.id===cinId);
+  const film = FILMS[filmId];
+  if(!cinema||!film) return;
+
+  // Remove existing modal
+  document.getElementById('quick-sortie-modal')?.remove();
+
+  const col = CC[cinema.chain]||MU;
+  const modal = document.createElement('div');
+  modal.id = 'quick-sortie-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;';
+  const sheet = document.createElement('div');
+  sheet.style.cssText = 'background:#12121f;border-radius:20px 20px 0 0;padding:24px 20px 40px;max-height:80vh;overflow-y:auto;';
+  sheet.innerHTML =
+    '<div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 20px;"></div>'+
+    '<div style="font-size:11px;color:'+MU+';text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Créer une sortie rapide</div>'+
+    '<div style="background:#1a1a2e;border-radius:14px;padding:14px;margin-bottom:16px;">'+
+      '<div style="font-weight:700;font-size:15px;margin-bottom:8px;">'+esc(film.t)+'</div>'+
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">'+
+        '<div style="font-size:13px;color:'+col+';font-weight:600;">'+esc(cinema.name)+'</div>'+
+        '<div style="background:'+AC+';color:#fff;padding:3px 10px;border-radius:8px;font-size:14px;font-weight:700;">'+heure+'</div>'+
+        '<div style="font-size:12px;color:'+MU+';">'+formatDate(date)+'</div>'+
+      '</div>'+
+      (cinema.metro?'<div style="font-size:11px;color:'+MU+';margin-top:4px;">M '+esc(cinema.metro)+'</div>':'')+
+    '</div>'+
+    '<div style="margin-bottom:20px;">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:12px;">Combien de places max ?</div>'+
+      '<div style="display:flex;align-items:center;gap:20px;">'+
+        '<button id="qs-minus" style="width:42px;height:42px;border-radius:50%;background:#1a1a2e;border:1px solid #333;color:#fff;font-size:22px;cursor:pointer;font-family:inherit;">−</button>'+
+        '<div id="qs-nb" style="font-size:32px;font-weight:700;min-width:40px;text-align:center;">2</div>'+
+        '<button id="qs-plus" style="width:42px;height:42px;border-radius:50%;background:#1a1a2e;border:1px solid #333;color:#fff;font-size:22px;cursor:pointer;font-family:inherit;">+</button>'+
+        '<div style="font-size:12px;color:'+MU+';">personnes</div>'+
+      '</div>'+
+    '</div>'+
+    '<button id="qs-confirm" style="width:100%;padding:14px;background:'+AC+';border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">🍿 Créer la sortie</button>';
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'flex:1;background:rgba(0,0,0,0.6);';
+  overlay.onclick = ()=>modal.remove();
+  modal.appendChild(overlay);
+  modal.appendChild(sheet);
+  document.body.appendChild(modal);
+
+  sheet.querySelector('#qs-minus').onclick = ()=>{const el=document.getElementById('qs-nb');const v=parseInt(el.textContent);if(v>1)el.textContent=v-1;};
+  sheet.querySelector('#qs-plus').onclick = ()=>{const el=document.getElementById('qs-nb');const v=parseInt(el.textContent);if(v<20)el.textContent=v+1;};
+  sheet.querySelector('#qs-confirm').onclick = ()=>confirmQuickSortie(cinId,filmId,heure,date);
+}
+
+async function confirmQuickSortie(cinId, filmId, heure, date){
+  const nb = parseInt(document.getElementById('qs-nb')?.textContent||'2');
+  const cinema = CINEMAS.find(c=>c.id===cinId);
+  const film = FILMS[filmId];
+  if(!cinema||!film||!st.userId) return;
+
+  const btn = document.querySelector('#quick-sortie-modal button:last-child');
+  if(btn){ btn.textContent='⏳ Création...'; btn.disabled=true; }
+
+  try{
+    const nom = (film.t||'Film').slice(0,40)+' — '+heure;
+    const {data, error} = await supa.from('groupes').insert({
+      nom, film_id:filmId, cinema_id:cinId,
+      date_sortie:date, heure_sortie:heure,
+      max_membres:nb, createur_id:st.userId,
+      description: cinema.name+' · '+formatDate(date)+' · '+heure
+    }).select().single();
+    if(error) throw error;
+
+    // Auto-join as creator
+    await supa.from('groupe_membres').insert({groupe_id:data.id, user_id:st.userId, pseudo:st.pseudo, avatar:st.avatar});
+
+    document.getElementById('quick-sortie-modal')?.remove();
+    showToast('🍿 Sortie créée !');
+    st.groupe = data.id; st.screen='group'; st.tab='chat'; render();
+    loadMembres(); loadMessages(); loadVotes();
+  }catch(e){
+    showToast('❌ Erreur: '+e.message);
+    if(btn){ btn.textContent='🍿 Créer la sortie'; btn.disabled=false; }
   }
 }
 
