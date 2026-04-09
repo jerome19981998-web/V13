@@ -2962,6 +2962,14 @@ function render(){
     else html=sHome();
   }catch(e){console.error('render error:',e);html=`<div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:20px;text-align:center;"><div style="font-size:40px;">⚠️</div><div style="font-size:14px;color:#ff3f5b;">${e.message}</div><div onclick="st.screen='home';render()" style="padding:10px 20px;background:#ff3f5b;border-radius:12px;cursor:pointer;">← Accueil</div></div>`;}
   inner.innerHTML=html;
+  // Auto-advance date if it's in the past
+  if(st.date && st.date < todayStr()){
+    const today = todayStr();
+    const hour = new Date().getHours();
+    if(AVAILABLE_DATES.includes(today)) st.date = today;
+    else if(AVAILABLE_DATES.length > 0) st.date = AVAILABLE_DATES.find(d=>d>=today)||AVAILABLE_DATES[0];
+    SEANCES = buildSeancesForDate(SEANCES_ALL, st.date);
+  }
   // Post-render hooks
   // Init Leaflet map if cinema map tab is active
   if(st.screen==='cinemas' && (st.cinTab||'list')==='map'){
