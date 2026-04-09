@@ -2808,10 +2808,14 @@ function initCinemaMap(){
   function doInit(){
     var el = document.getElementById('cin-map');
     if(!el) return;
-    if(el._leafletMap){ el._leafletMap.invalidateSize(); return; }
+    // Destroy previous instance if element changed
+    if(window._cinMap){
+      try{ window._cinMap.remove(); }catch(e){}
+      window._cinMap = null;
+    }
     var cinemas = window._pendingMapCinemas || [];
     var map = L.map(el, {zoomControl:true, attributionControl:false}).setView([48.865, 2.33], 12);
-    el._leafletMap = map;
+    window._cinMap = map;
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
     cinemas.forEach(function(c){
       var color = c.chain==='ugc' ? '#4a9eff' : c.chain==='pathe' ? '#e8b84b' : '#888';
@@ -2881,6 +2885,10 @@ function render(){
   // Init Leaflet map if cinema map tab is active
   if(st.screen==='cinemas' && (st.cinTab||'list')==='map'){
     initCinemaMap();
+  } else if(window._cinMap) {
+    // Destroy map when leaving map tab to avoid stale instance
+    try{ window._cinMap.remove(); }catch(e){}
+    window._cinMap = null;
   }
   if(st.screen==='group'&&st.groupe){
     if(st.tab==='chat'){loadMessages();}
