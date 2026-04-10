@@ -571,7 +571,13 @@ async function handleSession(session){
     st.userId=session.user.id;st.userEmail=session.user.email||'';
     if(window.location.hash&&window.location.hash.includes('access_token'))history.replaceState({},'',window.location.pathname);
     const hasProfile=await loadProfile(st.userId);
-    if(hasProfile){st.screen='home';render();init_social();if(st._inviteGroupe&&st._inviteFilm){const gid=st._inviteGroupe,fid=st._inviteFilm;st._inviteGroupe=null;st._inviteFilm=null;openGroup(fid,gid);}}
+    if(hasProfile){
+      // Check if profile is complete
+      const incomplete = !window._profilePhotoCache || !st.birthYear || !st.gender;
+      st.screen = incomplete ? 'complete-profile' : 'home';
+      render();
+      if(!incomplete) init_social();
+      else { /* init_social after completing profile */ }if(st._inviteGroupe&&st._inviteFilm){const gid=st._inviteGroupe,fid=st._inviteFilm;st._inviteGroupe=null;st._inviteFilm=null;openGroup(fid,gid);}}
     else{st.screen='pseudo';st.pseudoInput='';render();}
   }else{
     if(shouldShowOnboarding()){ st.screen='onboarding'; st.onboardingStep=0; }
@@ -613,8 +619,32 @@ function sAuth(){
   let body='';
   if(mode==='login'){body=`<div style="font-size:var(--fs-sm);color:${MU};margin-bottom:var(--sp-xl);">${lang==='fr'?'Connecte-toi à ton compte':'Sign in to your account'}</div>${inp('authPseudo','text',lang==='fr'?'Ton pseudo':'Your username','loginWithPassword()')}<div style="position:relative;width:100%;margin-bottom:6px;">${inp('authPass','password',lang==='fr'?'Mot de passe':'Password','loginWithPassword()')}<span onclick="togglePwd('authPass')" style="position:absolute;right:14px;top:14px;cursor:pointer;font-size:17px;opacity:.5;">👁</span></div><div id="auth-err" style="font-size:12px;color:${AC};margin-bottom:10px;min-height:16px;"></div><button onclick="loginWithPassword()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">${lang==='fr'?'Se connecter →':'Sign in →'}</button><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:1px;background:${BD};"></div><div style="font-size:11px;color:${MU};">ou</div><div style="flex:1;height:1px;background:${BD};"></div></div><button onclick="signInWithGoogle()" style="width:100%;background:${S1};border:1px solid ${BD};color:${TX};border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>${lang==='fr'?'Continuer avec Google':'Continue with Google'}</button>
             <button onclick="signInWithApple()" style="width:100%;background:#000;border:1px solid #000;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;"><svg width="18" height="18" viewBox="0 0 814 1000" fill="#fff"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-207.7 135.4-317.7 269-317.7 70.5 0 129.5 46.4 173.1 46.4 42.8 0 109.7-49.1 190.5-49.1zM555.7 60.7c-31.1 34.9-79.1 62.2-142.5 62.2-9 0-18.1-.6-27.1-2.6 3.2-68.1 45.5-136.2 91.7-174.8 25.1-21.2 67.2-39.5 105.3-41.5 3.8 10.3 4.5 20.7 4.5 30.4 0 66.5-41.5 139.2-31.9 125.3z"/></svg>${lang==='fr'?'Continuer avec Apple':'Continue with Apple'}</button><div style="display:flex;justify-content:space-between;margin-top:18px;"><span onclick="st.authStep='register';render()" style="font-size:13px;color:${AC};cursor:pointer;">${lang==='fr'?'Créer un compte':'Create account'}</span><span onclick="st.authStep='forgot';render()" style="font-size:13px;color:${MU};cursor:pointer;">${lang==='fr'?'Mot de passe oublié ?':'Forgot password?'}</span></div>`;}
-  else if(mode==='register'){body=`<div style="font-size:var(--fs-sm);color:${MU};margin-bottom:var(--sp-xl);">${lang==='fr'?'Crée ton compte CinéLynker':'Create your CinéLynker account'}</div>${inp('regPseudo','text',lang==='fr'?'Choisis un pseudo':'Choose a username','registerWithPassword()')}${inp('regEmail','email',lang==='fr'?'ton@email.fr':'your@email.com','registerWithPassword()')}<div style="position:relative;width:100%;margin-bottom:6px;">${inp('regPass','password',lang==='fr'?'Mot de passe (min 6 caractères)':'Password (min 6 chars)','registerWithPassword()')}<span onclick="togglePwd('regPass')" style="position:absolute;right:14px;top:14px;cursor:pointer;font-size:17px;opacity:.5;">👁</span></div><div id="auth-err" style="font-size:12px;color:${AC};margin-bottom:10px;min-height:16px;"></div><button onclick="registerWithPassword()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">${lang==='fr'?'Créer mon compte →':'Create my account →'}</button><span onclick="st.authStep='login';render()" style="font-size:13px;color:${MU};cursor:pointer;">${lang==='fr'?'Déjà un compte ? Se connecter':'Already have an account? Sign in'}</span>`;}
-  else if(mode==='forgot'){body=`${inp('forgotEmail','email',lang==='fr'?'ton@email.fr':'your@email.com','sendResetEmail()')}<div id="auth-err" style="font-size:12px;color:${AC};margin-bottom:10px;min-height:16px;"></div><button onclick="sendResetEmail()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">${lang==='fr'?'Envoyer le lien':'Send reset link'}</button><span onclick="st.authStep='login';render()" style="font-size:13px;color:${MU};cursor:pointer;">← Retour</span>`;}
+  else if(mode==='register'){body=
+    '<div style="font-size:var(--fs-sm);color:'+MU+';margin-bottom:var(--sp-xl);">'+(lang==='fr'?'Crée ton compte CinéLynker':'Create your CinéLynker account')+'</div>'+
+    inp('regPseudo','text',lang==='fr'?'Choisis un pseudo':'Choose a username','registerWithPassword()')+
+    inp('regEmail','email',lang==='fr'?'ton@email.fr':'your@email.com','registerWithPassword()')+
+    '<div style="position:relative;width:100%;margin-bottom:6px;">'+
+      inp('regPass','password',lang==='fr'?'Mot de passe (min 6 caractères)':'Password (min 6 chars)','registerWithPassword()')+
+      '<span onclick="togglePwd(\'regPass\')" style="position:absolute;right:14px;top:14px;cursor:pointer;font-size:17px;opacity:.5;">👁</span>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
+      '<div style="flex:1;">'+
+        '<div style="font-size:10px;color:'+MU+';margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">'+(lang==='fr'?'Année de naissance':'Birth year')+' *</div>'+
+        '<input id="regBirthYear" type="number" placeholder="'+(new Date().getFullYear()-25)+'" min="1940" max="'+(new Date().getFullYear()-13)+'" style="width:100%;background:'+S2+';border:1px solid '+BD+';border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);color:'+TX+';outline:none;box-sizing:border-box;">'+
+      '</div>'+
+      '<div style="flex:1.2;">'+
+        '<div style="font-size:10px;color:'+MU+';margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">'+(lang==='fr'?'Genre':'Gender')+' *</div>'+
+        '<div style="display:flex;gap:4px;">'+
+          '<button id="gender-femme" onclick="selectGender(\'femme\')" style="flex:1;padding:10px 2px;border-radius:10px;border:1px solid '+BD+';background:'+S2+';color:'+MU+';font-size:11px;cursor:pointer;font-family:inherit;">👩 F</button>'+
+          '<button id="gender-homme" onclick="selectGender(\'homme\')" style="flex:1;padding:10px 2px;border-radius:10px;border:1px solid '+BD+';background:'+S2+';color:'+MU+';font-size:11px;cursor:pointer;font-family:inherit;">👨 H</button>'+
+          '<button id="gender-autre" onclick="selectGender(\'autre\')" style="flex:1;padding:10px 2px;border-radius:10px;border:1px solid '+BD+';background:'+S2+';color:'+MU+';font-size:11px;cursor:pointer;font-family:inherit;">⚧ A</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div id="auth-err" style="font-size:12px;color:'+AC+';margin-bottom:10px;min-height:16px;"></div>'+
+    '<button onclick="registerWithPassword()" style="width:100%;background:'+AC+';border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">'+(lang==='fr'?'Créer mon compte →':'Create my account →')+'</button>'+
+    '<span onclick="st.authStep=\'login\';render()" style="font-size:13px;color:'+MU+';cursor:pointer;">'+(lang==='fr'?'Déjà un compte ? Se connecter':'Already have an account? Sign in')+'</span>';}
+  mode==='forgot'){body=`${inp('forgotEmail','email',lang==='fr'?'ton@email.fr':'your@email.com','sendResetEmail()')}<div id="auth-err" style="font-size:12px;color:${AC};margin-bottom:10px;min-height:16px;"></div><button onclick="sendResetEmail()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">${lang==='fr'?'Envoyer le lien':'Send reset link'}</button><span onclick="st.authStep='login';render()" style="font-size:13px;color:${MU};cursor:pointer;">← Retour</span>`;}
   else if(mode==='sent'){body=`<div style="font-size:56px;margin-bottom:16px;">📬</div><div style="font-size:15px;font-weight:600;margin-bottom:8px;">${lang==='fr'?'Email envoyé !':'Email sent!'}</div><span onclick="st.authStep='login';render()" style="font-size:13px;color:${AC};cursor:pointer;">${lang==='fr'?'← Retour':'← Back'}</span>`;}
   else if(mode==='confirm'){const mail=st._confirmEmail||'';body=`<div style="font-size:56px;margin-bottom:16px;">✉️</div><div style="font-size:15px;font-weight:600;margin-bottom:8px;">Confirme ton email</div><div style="font-size:13px;color:${MU};margin-bottom:6px;">Email envoyé à</div><div style="font-size:14px;font-weight:600;margin-bottom:20px;">${mail}</div><button onclick="st.authStep='login';render()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">Aller à la connexion →</button>`;}
   return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
@@ -642,16 +672,20 @@ async function loginWithPassword(){
 }
 async function registerWithPassword(){
   const pseudo=(document.getElementById('regPseudo')?.value||'').trim();const email=(document.getElementById('regEmail')?.value||'').trim();const pass=(document.getElementById('regPass')?.value||'').trim();
+  const birthYear=parseInt(document.getElementById('regBirthYear')?.value||'0');
+  const gender=window._selectedGender||null;
   if(!pseudo||!email||!pass){showAuthErr('Remplis tous les champs');return;}
   if(pass.length<6){showAuthErr('Mot de passe trop court');return;}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthErr('Email invalide');return;}
+  if(!birthYear||birthYear<1940||birthYear>new Date().getFullYear()-13){showAuthErr('Année de naissance invalide');return;}
+  if(!gender){showAuthErr('Choisis ton genre');return;}
   const btn=document.querySelector('[onclick="registerWithPassword()"]');if(btn){btn.disabled=true;btn.textContent='Création...';}showAuthErr('');
   try{
     const{data:existing}=await supa.from('profiles').select('id').eq('pseudo',pseudo).limit(1);
     if(existing&&existing.length>0){showAuthErr('Ce pseudo est déjà pris ❌');return;}
     const{data,error}=await supa.auth.signUp({email,password:pass,options:{emailRedirectTo:window.location.origin}});
     if(error){showAuthErr(error.message);return;}
-    if(data?.user){await supa.from('profiles').upsert({id:data.user.id,pseudo,avatar:st.avatar||'🎬',lang:st.lang||'fr',email},{onConflict:'id'});st.pseudo=pseudo;save();}
+    if(data?.user){await supa.from('profiles').upsert({id:data.user.id,pseudo,avatar:st.avatar||'🎬',lang:st.lang||'fr',email,birth_year:birthYear,gender},{onConflict:'id'});st.pseudo=pseudo;save();}
     const{error:loginErr}=await supa.auth.signInWithPassword({email,password:pass});
     if(loginErr){st.authStep='confirm';st._confirmEmail=email;render();}
   }catch(e){showAuthErr('Erreur : '+e.message);}
@@ -1226,7 +1260,7 @@ function openMemberProfile(pseudo){st.viewedMember={pseudo};st.screen='member-pr
 let memberProfileData={};
 async function loadMemberProfile(pseudo){
   // Step 1: get profile
-  const{data}=await supa.from('profiles').select('id,pseudo,avatar,bio,fav_genres,fav_films,photo_url').eq('pseudo',pseudo).single();
+  const{data}=await supa.from('profiles').select('id,pseudo,avatar,bio,fav_genres,fav_films,photo_url,birth_year,gender,user_rating,rating_count').eq('pseudo',pseudo).single();
   if(!data) return;
   const userId = data.id;
   // Step 2: get counts with proper IDs
@@ -1483,6 +1517,7 @@ function renderMembresDOM(){
       const friendStatus=getFriendStatus(m.user_id);
       const statuts={jeViens:{emoji:'✅',color:LB},peutEtre:{emoji:'🤔',color:GD},jePeuxPas:{emoji:'❌',color:MU}};
       const statut=statuts[m.statut]||{emoji:'❓',color:MU};
+      const isPastSortie = groupeInfo?.confirmed_date && groupeInfo.confirmed_date < todayStr();
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid ${BD};">
         <div onclick="openMemberProfile('${esc(m.pseudo)}')" style="cursor:pointer;">${avatarEl(m.pseudo,38)}</div>
         <div style="flex:1;min-width:0;cursor:pointer;" onclick="openMemberProfile('${esc(m.pseudo)}')">
@@ -1492,6 +1527,7 @@ function renderMembresDOM(){
         ${!isMe&&m.user_id&&friendStatus==='none'?`<button onclick="sendFriendRequest('${m.user_id}')" style="padding:5px 10px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.3);border-radius:10px;font-size:10px;font-weight:600;color:#4a9eff;cursor:pointer;">+ Ami</button>`:''}
         ${!isMe&&friendStatus==='friend'?`<button onclick="openPrivateChat('${m.user_id}','${esc(m.pseudo)}','${m.avatar||'🎬'}')" style="padding:5px 10px;background:rgba(0,192,48,0.1);border:1px solid rgba(0,192,48,0.3);border-radius:10px;font-size:10px;color:${LB};cursor:pointer;">💬</button>`:''}
         ${!isMe&&friendStatus==='sent'?`<span style="font-size:9px;color:${MU};padding:3px 7px;border:1px solid ${BD};border-radius:8px;">✓ Envoyé</span>`:''}
+        ${isPastSortie&&!isMe?`<button onclick="openRateModal('${m.user_id}','${esc(m.pseudo)}','${st.groupe}')" style="padding:5px 10px;border-radius:8px;background:${S2};border:1px solid ${BD};color:${GD};font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0;">⭐</button>`:''}
       </div>`;
     }).join('');
 }
@@ -1987,6 +2023,12 @@ function sProfile(){
           <div style="flex:1;">
             <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">${esc(st.pseudo)}</div>
             <div style="font-size:11px;color:${MU};margin-top:3px;">@${st.pseudo.toLowerCase()}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
+              ${st.birthYear?`<span style="font-size:12px;color:${TX};background:${S2};padding:3px 9px;border-radius:20px;">${new Date().getFullYear()-st.birthYear} ans</span>`:''}
+              ${st.gender?`<span style="font-size:12px;color:${TX};background:${S2};padding:3px 9px;border-radius:20px;">${st.gender==='femme'?'👩 Femme':st.gender==='homme'?'👨 Homme':'⚧ Autre'}</span>`:''}
+              ${st.ratingCount>0?`<span style="font-size:12px;color:#f0c060;background:${S2};padding:3px 9px;border-radius:20px;">★ ${parseFloat(st.userRating||0).toFixed(1)} <span style="color:${MU};font-size:10px;">(${st.ratingCount})</span></span>`:''}
+              ${!window._profilePhotoCache?`<span onclick="uploadProfilePhoto()" style="font-size:11px;color:${AC};background:rgba(255,63,91,0.12);padding:3px 9px;border-radius:20px;cursor:pointer;">📷 Ajouter une photo</span>`:''}
+            </div>
             <div style="display:flex;gap:14px;margin-top:8px;">
               <div style="text-align:center;cursor:pointer;" onclick="go('friends')"><div style="font-size:16px;font-weight:700;">${myFriends.length}</div><div style="font-size:9px;color:${MU};">Amis</div></div>
               <div style="text-align:center;"><div style="font-size:16px;font-weight:700;">${myUpcoming}</div><div style="font-size:9px;color:${MU};">À venir</div></div>
@@ -2065,6 +2107,19 @@ function sProfile(){
           </div>
         </div>
       </div>
+
+      ${!st.birthYear||!st.gender?`
+      <div style="margin:0 16px 16px;background:rgba(255,63,91,0.1);border:1px solid rgba(255,63,91,0.3);border-radius:16px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">⚠️ Profil incomplet</div>
+        <div style="font-size:12px;color:${MU};margin-bottom:10px;">Ajoute ton âge et ton genre pour inspirer confiance aux autres membres.</div>
+        <button onclick="openEditProfileInfo()" style="padding:8px 16px;background:${AC};border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Compléter mon profil</button>
+      </div>`:''}
+
+      <div style="margin:0 16px 20px;">
+        <div style="font-size:11px;color:${MU};text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🎬 Historique de sorties</div>
+        ${renderSortieHistory()}
+      </div>
+
     </div>
     ${nav('profile')}
   </div>`;}
@@ -2134,6 +2189,12 @@ function sMemberProfile(){
           <div class="serif" style="font-size:clamp(18px,5.6vw,24px);margin-bottom:2px;">${esc(pseudo)}</div>
           <div style="font-size:11px;color:${MU};margin-bottom:8px;">@${pseudo.toLowerCase()}</div>
           ${profile.bio?`<div style="font-size:12px;color:${MU};line-height:1.5;margin-bottom:8px;">${esc(profile.bio)}</div>`:''}
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+            ${profile.birth_year?`<span style="font-size:11px;background:${S2};padding:3px 9px;border-radius:20px;">${new Date().getFullYear()-profile.birth_year} ans</span>`:''}
+            ${profile.gender?`<span style="font-size:11px;background:${S2};padding:3px 9px;border-radius:20px;">${profile.gender==='femme'?'👩 Femme':profile.gender==='homme'?'👨 Homme':'⚧ Autre'}</span>`:''}
+            ${profile.rating_count>0?`<span style="font-size:11px;background:${S2};padding:3px 9px;border-radius:20px;color:#f0c060;">★ ${parseFloat(profile.user_rating||0).toFixed(1)} <span style="color:${MU};">(${profile.rating_count})</span></span>`:''}
+            ${!isMe&&st.userId?`<button onclick="openRateModal('${profile?.id||''}','${pseudo}',st.groupe||'')" style="font-size:11px;background:rgba(255,63,91,0.12);color:${AC};border:none;padding:3px 9px;border-radius:20px;cursor:pointer;font-family:inherit;">⭐ Noter</button>`:''}
+          </div>
           <!-- Stats -->
           <div style="display:flex;gap:16px;margin-bottom:10px;">
             <div style="text-align:center;">
@@ -3107,6 +3168,198 @@ async function confirmQuickSortie(cinId, filmId, heure, date){
   }
 }
 
+function selectGender(g){
+  window._selectedGender=g;
+  ['femme','homme','autre'].forEach(x=>{
+    const btn=document.getElementById('gender-'+x);
+    if(!btn)return;
+    btn.style.background=x===g?AC:S2;
+    btn.style.borderColor=x===g?AC:BD;
+    btn.style.color=x===g?'#fff':MU;
+  });
+}
+
+function openEditProfileInfo(){
+  document.getElementById('edit-profile-modal')?.remove();
+  const modal=document.createElement('div');
+  modal.id='edit-profile-modal';
+  modal.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;';
+  const overlay=document.createElement('div');
+  overlay.style.cssText='flex:1;background:rgba(0,0,0,0.6);';
+  overlay.onclick=()=>modal.remove();
+  const sheet=document.createElement('div');
+  sheet.style.cssText='background:#12121f;border-radius:20px 20px 0 0;padding:24px 20px 40px;';
+  sheet.innerHTML=
+    '<div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 20px;"></div>'+
+    '<div style="font-size:15px;font-weight:700;margin-bottom:20px;">Mon profil</div>'+
+    '<div style="margin-bottom:14px;">'+
+      '<div style="font-size:10px;color:'+MU+';margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Année de naissance</div>'+
+      '<input id="ep-birth" type="number" value="'+(st.birthYear||'')+'" placeholder="Ex: 1995" min="1940" max="'+(new Date().getFullYear()-13)+'" style="width:100%;background:#1a1a2e;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;box-sizing:border-box;">'+
+    '</div>'+
+    '<div style="margin-bottom:20px;">'+
+      '<div style="font-size:10px;color:'+MU+';margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Genre</div>'+
+      '<div style="display:flex;gap:8px;">'+
+        ['femme','homme','autre'].map(function(g){
+          var active=g===st.gender;
+          var label=g==='femme'?'👩 Femme':g==='homme'?'👨 Homme':'⚧ Autre';
+          return '<button onclick="epSelectGender(this,\'' +g+ '\')" style="flex:1;padding:12px 4px;border-radius:12px;border:2px solid '+(active?AC:'#333')+';background:'+(active?'rgba(255,63,91,0.15)':'#1a1a2e')+';color:'+(active?AC:'#999')+';font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">'+label+'</button>';
+        }).join('')+
+      '</div>'+
+    '</div>'+
+    '<button id="ep-save" style="width:100%;padding:13px;background:'+AC+';border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Enregistrer</button>';
+  
+  let epGender = st.gender||null;
+  window.epSelectGender=function(btn,g){
+    epGender=g;
+    sheet.querySelectorAll('div:nth-child(3) button').forEach(b=>{
+      b.style.borderColor='#333';b.style.background='#1a1a2e';b.style.color='#999';
+    });
+    btn.style.borderColor=AC;btn.style.background='rgba(255,63,91,0.15)';btn.style.color=AC;
+  };
+  sheet.querySelector('#ep-save').onclick=async function(){
+    const by=parseInt(sheet.querySelector('#ep-birth').value||'0');
+    if(!by||by<1940||by>new Date().getFullYear()-13){toast('Année invalide','error');return;}
+    if(!epGender){toast('Choisis ton genre','error');return;}
+    const{error}=await supa.from('profiles').update({birth_year:by,gender:epGender}).eq('id',st.userId);
+    if(!error){st.birthYear=by;st.gender=epGender;modal.remove();toast('Profil mis à jour ✓','success');render();}
+    else toast('Erreur: '+error.message,'error');
+  };
+  modal.appendChild(overlay);modal.appendChild(sheet);document.body.appendChild(modal);
+}
+
+function openRateModal(ratedUserId, ratedPseudo, groupeId){
+  document.getElementById('rate-modal')?.remove();
+  let selectedStars=0;
+  const modal=document.createElement('div');
+  modal.id='rate-modal';
+  modal.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;';
+  const overlay=document.createElement('div');
+  overlay.style.cssText='flex:1;background:rgba(0,0,0,0.6);';
+  overlay.onclick=()=>modal.remove();
+  const sheet=document.createElement('div');
+  sheet.style.cssText='background:#12121f;border-radius:20px 20px 0 0;padding:24px 20px 40px;text-align:center;';
+  sheet.innerHTML=
+    '<div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 20px;"></div>'+
+    '<div style="font-size:15px;font-weight:700;margin-bottom:4px;">Comment s\'est passée la sortie ?</div>'+
+    '<div style="font-size:13px;color:'+MU+';margin-bottom:20px;">Note ton expérience avec <b>'+esc(ratedPseudo)+'</b></div>'+
+    '<div id="rate-stars" style="display:flex;justify-content:center;gap:10px;margin-bottom:24px;">'+
+      [1,2,3,4,5].map(n=>`<span onclick="rateStarClick(${n})" style="font-size:38px;cursor:pointer;opacity:0.3;transition:opacity 0.15s;">★</span>`).join('')+
+    '</div>'+
+    '<button id="rate-confirm" disabled style="width:100%;padding:13px;background:'+AC+';border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.4;">Envoyer ma note</button>';
+  
+  window.rateStarClick=function(n){
+    selectedStars=n;
+    sheet.querySelectorAll('#rate-stars span').forEach((s,i)=>{s.style.opacity=i<n?'1':'0.3';});
+    const btn=sheet.querySelector('#rate-confirm');btn.disabled=false;btn.style.opacity='1';
+  };
+  sheet.querySelector('#rate-confirm').onclick=async function(){
+    if(!selectedStars)return;
+    await supa.from('user_ratings').upsert({rater_id:st.userId,rated_id:ratedUserId,groupe_id:groupeId,rating:selectedStars},{onConflict:'rater_id,rated_id,groupe_id'});
+    modal.remove();
+    toast('Note envoyée ✓','success');
+  };
+  modal.appendChild(overlay);modal.appendChild(sheet);document.body.appendChild(modal);
+}
+
+function renderSortieHistory(){
+  const past = mesGroupes.filter(g=>g.confirmed_date&&g.confirmed_date<todayStr())
+    .sort((a,b)=>b.confirmed_date.localeCompare(a.confirmed_date)).slice(0,5);
+  if(past.length===0) return '<div style="text-align:center;padding:20px;color:'+MU+';font-size:13px;">Aucune sortie passée pour l\'instant</div>';
+  return past.map(g=>{
+    const cin=CINEMAS.find(c=>c.id===g.confirmed_cinema);
+    const film=FILMS[g.film_id];
+    const col=CC[cin?.chain]||MU;
+    const poster=posters[g.film_id];
+    const imgEl=poster
+      ? '<img src="'+poster+'" style="width:32px;height:48px;border-radius:6px;object-fit:cover;flex-shrink:0;">'
+      : '<div style="width:32px;height:48px;border-radius:6px;background:'+S2+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">'+(film?.e||'🎬')+'</div>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid '+BD+';">'+
+      imgEl+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(film?.t||g.nom||'Film')+'</div>'+
+        '<div style="font-size:11px;color:'+col+';margin-top:2px;">'+esc(cin?.name||'')+'</div>'+
+        '<div style="font-size:10px;color:'+MU+';">'+formatDate(g.confirmed_date)+(g.confirmed_heure?' · '+g.confirmed_heure:'')+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function sCompleteProfile(){
+  const needsPhoto = !window._profilePhotoCache;
+  const needsAge = !st.birthYear;
+  const needsGender = !st.gender;
+
+  return `<div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:40px 20px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-size:48px;margin-bottom:12px;">🎬</div>
+      <div class="serif" style="font-size:26px;margin-bottom:8px;">Complète ton profil</div>
+      <div style="font-size:13px;color:${MU};line-height:1.6;">Pour inspirer confiance aux autres membres,<br>ton profil doit être complet.</div>
+    </div>
+
+    <!-- Photo -->
+    <div onclick="uploadProfilePhoto()" style="background:${S1};border:2px solid ${needsPhoto?AC:BD};border-radius:18px;padding:18px;margin-bottom:12px;display:flex;align-items:center;gap:14px;cursor:pointer;">
+      <div style="width:56px;height:56px;border-radius:50%;overflow:hidden;background:${S2};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        ${window._profilePhotoCache
+          ? `<img src="${window._profilePhotoCache}" style="width:100%;height:100%;object-fit:cover;">`
+          : `<span style="font-size:24px;">📷</span>`}
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;margin-bottom:3px;">Photo de profil ${needsPhoto?'<span style="color:'+AC+';">*</span>':' <span style="color:#4caf50;">✓</span>'}</div>
+        <div style="font-size:12px;color:${MU};">${needsPhoto?'Appuie pour ajouter une photo':'Photo ajoutée'}</div>
+      </div>
+    </div>
+
+    <!-- Age -->
+    <div style="background:${S1};border:2px solid ${needsAge?AC:BD};border-radius:18px;padding:18px;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">Année de naissance ${needsAge?'<span style="color:'+AC+';">*</span>':' <span style="color:#4caf50;">✓</span>'}</div>
+      <input id="cp-birth" type="number" value="${st.birthYear||''}" placeholder="${new Date().getFullYear()-25}"
+        min="1940" max="${new Date().getFullYear()-13}"
+        style="width:100%;background:${S2};border:1px solid ${BD};border-radius:10px;padding:10px 12px;color:${TX};font-size:15px;font-family:inherit;box-sizing:border-box;"
+        onchange="st.birthYear=parseInt(this.value)||null;">
+    </div>
+
+    <!-- Genre -->
+    <div style="background:${S1};border:2px solid ${needsGender?AC:BD};border-radius:18px;padding:18px;margin-bottom:24px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">Genre ${needsGender?'<span style="color:'+AC+';">*</span>':' <span style="color:#4caf50;">✓</span>'}</div>
+      <div style="display:flex;gap:8px;">
+        ${['femme','homme','autre'].map(g=>`<button onclick="cpSelectGender('${g}')" id="cp-gender-${g}" style="flex:1;padding:12px 4px;border-radius:12px;border:2px solid ${st.gender===g?AC:BD};background:${st.gender===g?'rgba(255,63,91,0.15)':S2};color:${st.gender===g?AC:MU};font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">${g==='femme'?'👩 Femme':g==='homme'?'👨 Homme':'⚧ Autre'}</button>`).join('')}
+      </div>
+    </div>
+
+    <button onclick="saveCompleteProfile()" style="width:100%;padding:16px;background:${AC};border:none;border-radius:16px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">
+      ${needsPhoto||needsAge||needsGender?'Enregistrer et continuer →':'Accéder à CinéLynker 🎬'}
+    </button>
+
+    ${!needsPhoto&&!needsAge&&!needsGender?`
+    <div onclick="st.screen='home';render();init_social();" style="text-align:center;padding:12px;font-size:12px;color:${MU};cursor:pointer;">
+      Tout est complet — entrer dans l'app →
+    </div>`:''}
+  </div>`;
+}
+
+function cpSelectGender(g){
+  st.gender=g;
+  ['femme','homme','autre'].forEach(x=>{
+    const btn=document.getElementById('cp-gender-'+x);
+    if(!btn)return;
+    btn.style.borderColor=x===g?AC:BD;
+    btn.style.background=x===g?'rgba(255,63,91,0.15)':S2;
+    btn.style.color=x===g?AC:MU;
+  });
+}
+
+async function saveCompleteProfile(){
+  const birthEl=document.getElementById('cp-birth');
+  const by=birthEl?parseInt(birthEl.value)||st.birthYear:st.birthYear;
+  if(!by||by<1940||by>new Date().getFullYear()-13){toast('Indique ton année de naissance','error');return;}
+  if(!st.gender){toast('Choisis ton genre','error');return;}
+  st.birthYear=by;
+  const{error}=await supa.from('profiles').update({birth_year:by,gender:st.gender}).eq('id',st.userId);
+  if(error){toast('Erreur: '+error.message,'error');return;}
+  if(!window._profilePhotoCache){toast('Ajoute une photo pour continuer !','error');return;}
+  st.screen='home';render();init_social();
+}
+
 function render(){
   const inner=document.getElementById('inner');
   if(!inner) return;
@@ -3125,6 +3378,7 @@ function render(){
     else if(st.screen==='film')html=sFilm();
     else if(st.screen==='cinemas')html=sCinemas();
     else if(st.screen==='cinema-detail')html=sCinemaDetail();
+    else if(st.screen==='complete-profile')html=sCompleteProfile();
     else if(st.screen==='group')html=sGroup();
     else if(st.screen==='create-sortie')html=sCreateSortie();
     else if(st.screen==='profile')html=sProfile();
