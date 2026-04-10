@@ -83,91 +83,6 @@ function applyScale(){
   const scale=Math.min(window.innerHeight/844,1);
   const r=document.documentElement;
   [['--fs-xs',10],['--fs-sm',11],['--fs-md',13],['--fs-lg',15],['--fs-xl',18],['--fs-2xl',24],['--fs-3xl',28],
-   ['--sp-xs',6],['--sp-sm',10],['--sp-md',14],['--sp-lg',18],['--sp-xl',24],['--btn-h',48],['--nav-h',64],<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
-  <title>CinéLynker — Sorties ciné à Paris</title>
-  <meta name="description" content="Découvre les films en salle à Paris, organise des sorties avec tes amis et rencontre des cinéphiles."/>
-
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="/manifest.json"/>
-
-  <!-- Theme -->
-  <meta name="theme-color" content="#07070f"/>
-  <meta name="background-color" content="#07070f"/>
-  <meta name="color-scheme" content="dark"/>
-
-  <!-- iOS PWA -->
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="CinéLynker"/>
-
-  <!-- Icons -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png"/>
-  <link rel="apple-touch-icon" sizes="96x96" href="/icons/icon-96.png"/>
-  <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96.png"/>
-  <link rel="icon" href="/favicon.ico"/>
-
-  <!-- iOS Splash Screens (generated via generate-icons.html) -->
-  <link rel="apple-touch-startup-image" media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)" href="/splash/splash-1170x2532.png"/>
-  <link rel="apple-touch-startup-image" media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3)" href="/splash/splash-1125x2436.png"/>
-  <link rel="apple-touch-startup-image" media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:2)" href="/splash/splash-828x1792.png"/>
-  <link rel="apple-touch-startup-image" media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2)" href="/splash/splash-750x1334.png"/>
-
-  <!-- Open Graph -->
-  <meta property="og:title" content="CinéLynker"/>
-  <meta property="og:description" content="Le réseau social du cinéma parisien"/>
-  <meta property="og:type" content="website"/>
-  <meta property="og:image" content="/icons/icon-512.png"/>
-  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-    html{height:100%;overflow:hidden;position:fixed;width:100%;}
-    body{margin:0;padding:0;width:100%;height:100%;background:#07070f;font-family:'Outfit',sans-serif;overflow:hidden;position:fixed;-webkit-overflow-scrolling:touch;}
-    html,body{height:100%;height:-webkit-fill-available;}
-    .serif{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;}
-    .phone{width:100%;height:100%;height:100dvh;height:-webkit-fill-available;background:#07070f;display:flex;flex-direction:column;color:#e8e0d4;font-size:13px;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0;}
-    .notch{display:none;}
-    @media(min-width:600px){
-      body{display:flex;align-items:center;justify-content:center;background:#04040a;overflow:auto;position:static;}
-      html{overflow:auto;position:static;}
-      .phone{position:relative;width:390px;height:844px;height:min(844px,95vh);border-radius:46px;border:1.5px solid #252535;box-shadow:0 30px 80px rgba(0,0,0,0.9);top:auto;left:auto;right:auto;bottom:auto;}
-      .notch{display:flex;position:absolute;top:12px;left:50%;transform:translateX(-50%);width:100px;height:28px;background:#07070f;border-radius:28px;z-index:100;align-items:center;justify-content:center;}
-      .notch-bar{width:52px;height:5px;background:#1a1a2e;border-radius:3px;}
-    }
-    #inner{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:max(env(safe-area-inset-top),0px);}
-    @media(min-width:600px){#inner{padding-top:40px;}}
-    .tap{transition:opacity .15s;} .tap:active{opacity:.6;}
-    ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:#252535;border-radius:3px;}
-    :root{--fs-xs:10px;--fs-sm:11px;--fs-md:13px;--fs-lg:15px;--fs-xl:18px;--fs-2xl:24px;--fs-3xl:28px;--sp-xs:6px;--sp-sm:10px;--sp-md:14px;--sp-lg:18px;--sp-xl:24px;--btn-h:48px;--nav-h:64px;--radius:14px;}
-    @media(max-height:680px){:root{--fs-xs:9px;--fs-sm:10px;--fs-md:12px;--fs-lg:14px;--fs-xl:16px;--fs-2xl:20px;--fs-3xl:24px;--sp-xs:4px;--sp-sm:8px;--sp-md:10px;--sp-lg:14px;--sp-xl:18px;--btn-h:42px;--nav-h:56px;--radius:12px;}}
-    @media(min-height:900px){:root{--fs-xs:11px;--fs-sm:12px;--fs-md:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:26px;--fs-3xl:32px;--sp-xs:8px;--sp-sm:12px;--sp-md:16px;--sp-lg:22px;--sp-xl:28px;--btn-h:54px;--nav-h:72px;--radius:16px;}}
-    input,button{font-family:'Outfit',sans-serif;}
-    .row-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 18px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
-    .row-scroll::-webkit-scrollbar{display:none;}
-    .poster-card-lg{flex-shrink:0;width:110px;cursor:pointer;position:relative;}
-    .poster-card-lg .poster-img{width:110px;height:165px;border-radius:10px;overflow:hidden;position:relative;}
-    .poster-card-lg .poster-img img{width:100%;height:100%;object-fit:cover;}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
-    .fade-up{animation:fadeUp 0.3s ease forwards;}
-    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
-    @keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
-    .slide-in{animation:slideIn 0.25s ease forwards;}
-    .notif-badge{position:absolute;top:-4px;right:-6px;min-width:16px;height:16px;border-radius:8px;background:#ff3f5b;border:2px solid #07070f;display:none;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;padding:0 3px;}
-    .hero-film{cursor:pointer;overflow:hidden;}
-    .hero-film img{width:100%;height:100%;object-fit:cover;filter:brightness(0.4);}
-  </style>
-<script>
-function applyScale(){
-  if(window.innerWidth>=600)return;
-  const scale=Math.min(window.innerHeight/844,1);
-  const r=document.documentElement;
-  [['--fs-xs',10],['--fs-sm',11],['--fs-md',13],['--fs-lg',15],['--fs-xl',18],['--fs-2xl',24],['--fs-3xl',28],
    ['--sp-xs',6],['--sp-sm',10],['--sp-md',14],['--sp-lg',18],['--sp-xl',24],['--btn-h',48],['--nav-h',64],
   ].forEach(([k,v])=>r.style.setProperty(k,Math.round(v*scale)+'px'));
 }
@@ -680,7 +595,7 @@ async function init_social(){
   // Ask for push permission after 3 seconds (not immediately on login)
   setTimeout(requestPushPermission, 3000);
 }
-async function loadProfile(userId){const{data}=await supa.from('profiles').select('*').eq('id',userId).single();if(data){st.pseudo=data.pseudo||'';st.avatar=data.avatar||'🎬';st.lang=data.lang||st.lang;if(data.photo_url)window._profilePhotoCache=data.photo_url;if(data.fav_films?.length){try{localStorage.setItem('cm_fav_'+(data.pseudo||''),JSON.stringify(data.fav_films));}catch(e){}}save();return true;}return false;}
+async function loadProfile(userId){const{data}=await supa.from('profiles').select('*').eq('id',userId).single();if(data){st.pseudo=data.pseudo||'';st.avatar=data.avatar||'🎬';st.lang=data.lang||st.lang;if(data.photo_url)window._profilePhotoCache=data.photo_url;st.birthDate=data.birth_date||null;st.gender=data.gender||null;if(data.birth_date){const d=new Date(data.birth_date);const now=new Date();let age=now.getFullYear()-d.getFullYear();if(now<new Date(now.getFullYear(),d.getMonth(),d.getDate()))age--;st.age=age;}else{st.age=null;}if(data.fav_films?.length){try{localStorage.setItem('cm_fav_'+(data.pseudo||''),JSON.stringify(data.fav_films));}catch(e){}}save();return true;}return false;}
 supa.auth.onAuthStateChange((event,session)=>{
   if(event==='INITIAL_SESSION')handleSession(session);
   else if(event==='SIGNED_IN'){_authDone=false;handleSession(session);}
@@ -2091,7 +2006,7 @@ function sProfile(){
             <div class="serif" style="font-size:clamp(18px,5.6vw,24px);">${esc(st.pseudo)}</div>
             <div style="font-size:11px;color:${MU};margin-top:3px;">@${st.pseudo.toLowerCase()}</div>
             <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
-              ${st.birthYear?`<span style="font-size:12px;color:${TX};background:${S2};padding:3px 9px;border-radius:20px;">${new Date().getFullYear()-st.birthYear} ans</span>`:''}
+              ${st.age?`<span style="font-size:12px;color:${TX};background:${S2};padding:3px 9px;border-radius:20px;">${st.age} ans</span>`:''}
               ${st.gender?`<span style="font-size:12px;color:${TX};background:${S2};padding:3px 9px;border-radius:20px;">${st.gender==='femme'?'👩 Femme':st.gender==='homme'?'👨 Homme':'⚧ Autre'}</span>`:''}
               ${st.ratingCount>0?`<span style="font-size:12px;color:#f0c060;background:${S2};padding:3px 9px;border-radius:20px;">★ ${parseFloat(st.userRating||0).toFixed(1)} <span style="color:${MU};font-size:10px;">(${st.ratingCount})</span></span>`:''}
               ${!window._profilePhotoCache?`<span onclick="uploadProfilePhoto()" style="font-size:11px;color:${AC};background:rgba(255,63,91,0.12);padding:3px 9px;border-radius:20px;cursor:pointer;">📷 Ajouter une photo</span>`:''}
@@ -2257,7 +2172,7 @@ function sMemberProfile(){
           <div style="font-size:11px;color:${MU};margin-bottom:8px;">@${pseudo.toLowerCase()}</div>
           ${profile.bio?`<div style="font-size:12px;color:${MU};line-height:1.5;margin-bottom:8px;">${esc(profile.bio)}</div>`:''}
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-            ${profile.birth_year?`<span style="font-size:11px;background:${S2};padding:3px 9px;border-radius:20px;">${new Date().getFullYear()-profile.birth_year} ans</span>`:''}
+            ${profile.birth_date?`<span style="font-size:11px;background:${S2};padding:3px 9px;border-radius:20px;">${(()=>{const d=new Date(profile.birth_date);const n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a;})() } ans</span>`:''}
             ${profile.gender?`<span style="font-size:11px;background:${S2};padding:3px 9px;border-radius:20px;">${profile.gender==='femme'?'👩 Femme':profile.gender==='homme'?'👨 Homme':'⚧ Autre'}</span>`:''}
             ${profile.rating_count>0?`<span style="font-size:11px;background:${S2};padding:3px 9px;border-radius:20px;color:#f0c060;">★ ${parseFloat(profile.user_rating||0).toFixed(1)} <span style="color:${MU};">(${profile.rating_count})</span></span>`:''}
             ${!isMe&&st.userId?`<button onclick="openRateModal('${profile?.id||''}','${pseudo}',st.groupe||'')" style="font-size:11px;background:rgba(255,63,91,0.12);color:${AC};border:none;padding:3px 9px;border-radius:20px;cursor:pointer;font-family:inherit;">⭐ Noter</button>`:''}
@@ -3261,7 +3176,11 @@ function openEditProfileInfo(){
     '<div style="font-size:15px;font-weight:700;margin-bottom:20px;">Mon profil</div>'+
     '<div style="margin-bottom:14px;">'+
       '<div style="font-size:10px;color:'+MU+';margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Année de naissance</div>'+
-      '<input id="ep-birth" type="number" value="'+(st.birthYear||'')+'" placeholder="Ex: 1995" min="1940" max="'+(new Date().getFullYear()-13)+'" style="width:100%;background:#1a1a2e;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;box-sizing:border-box;">'+
+      '<div style="display:flex;gap:8px;">'+
+        '<select id="ep-day" style="flex:1;background:#1a1a2e;border:1px solid #333;border-radius:10px;padding:10px 8px;color:#fff;font-size:14px;font-family:inherit;"><option value="">Jour</option>'+(Array.from({length:31},(_,i)=>'<option value="'+(i+1)+'" '+(st.birthDate&&new Date(st.birthDate).getDate()===i+1?'selected':'')+'>'+( i+1)+'</option>').join(''))+'</select>'+
+        '<select id="ep-month" style="flex:1.5;background:#1a1a2e;border:1px solid #333;border-radius:10px;padding:10px 8px;color:#fff;font-size:14px;font-family:inherit;"><option value="">Mois</option>'+(['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'].map(function(m,i){return '<option value="'+(i+1)+'" '+(st.birthDate&&new Date(st.birthDate).getMonth()===i?'selected':'')+'>'+m+'</option>';}).join(''))+'</select>'+
+        '<select id="ep-year" style="flex:1.5;background:#1a1a2e;border:1px solid #333;border-radius:10px;padding:10px 8px;color:#fff;font-size:14px;font-family:inherit;"><option value="">Année</option>'+(Array.from({length:80},function(_,i){var y=new Date().getFullYear()-13-i;return '<option value="'+y+'" '+(st.birthDate&&new Date(st.birthDate).getFullYear()===y?'selected':'')+'>'+y+'</option>';}).join(''))+'</select>'+
+        '</div>'+
     '</div>'+
     '<div style="margin-bottom:20px;">'+
       '<div style="font-size:10px;color:'+MU+';margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Genre</div>'+
@@ -3284,11 +3203,14 @@ function openEditProfileInfo(){
     btn.style.borderColor=AC;btn.style.background='rgba(255,63,91,0.15)';btn.style.color=AC;
   };
   sheet.querySelector('#ep-save').onclick=async function(){
-    const by=parseInt(sheet.querySelector('#ep-birth').value||'0');
-    if(!by||by<1940||by>new Date().getFullYear()-13){toast('Année invalide','error');return;}
+    const day=parseInt(sheet.querySelector('#ep-day')?.value||'0');
+    const month=parseInt(sheet.querySelector('#ep-month')?.value||'0');
+    const year=parseInt(sheet.querySelector('#ep-year')?.value||'0');
+    if(!day||!month||!year){toast('Date incomplète','error');return;}
     if(!epGender){toast('Choisis ton genre','error');return;}
-    const{error}=await supa.from('profiles').update({birth_year:by,gender:epGender}).eq('id',st.userId);
-    if(!error){st.birthYear=by;st.gender=epGender;modal.remove();toast('Profil mis à jour ✓','success');render();}
+    const bd=year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const{error}=await supa.from('profiles').update({birth_date:bd,gender:epGender}).eq('id',st.userId);
+    if(!error){st.birthDate=bd;const d=new Date(bd);const n=new Date();let age=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))age--;st.age=age;st.gender=epGender;modal.remove();toast('Profil mis à jour ✓','success');render();}
     else toast('Erreur: '+error.message,'error');
   };
   modal.appendChild(overlay);modal.appendChild(sheet);document.body.appendChild(modal);
@@ -3353,7 +3275,7 @@ function renderSortieHistory(){
 
 function sCompleteProfile(){
   const needsPhoto = !window._profilePhotoCache;
-  const needsAge = !st.birthYear;
+  const needsAge = !st.birthDate;
   const needsGender = !st.gender;
 
   return `<div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;padding:40px 20px;">
@@ -3376,13 +3298,23 @@ function sCompleteProfile(){
       </div>
     </div>
 
-    <!-- Age -->
+    <!-- Date de naissance -->
     <div style="background:${S1};border:2px solid ${needsAge?AC:BD};border-radius:18px;padding:18px;margin-bottom:12px;">
-      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">Année de naissance ${needsAge?'<span style="color:'+AC+';">*</span>':' <span style="color:#4caf50;">✓</span>'}</div>
-      <input id="cp-birth" type="number" value="${st.birthYear||''}" placeholder="${new Date().getFullYear()-25}"
-        min="1940" max="${new Date().getFullYear()-13}"
-        style="width:100%;background:${S2};border:1px solid ${BD};border-radius:10px;padding:10px 12px;color:${TX};font-size:15px;font-family:inherit;box-sizing:border-box;"
-        onchange="st.birthYear=parseInt(this.value)||null;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">Date de naissance ${needsAge?'<span style="color:'+AC+';">*</span>':' <span style="color:#4caf50;">✓</span>'}</div>
+      <div style="display:flex;gap:8px;">
+        <select id="cp-day" style="flex:1;background:${S2};border:1px solid ${BD};border-radius:10px;padding:10px 8px;color:${TX};font-size:14px;font-family:inherit;">
+          <option value="">Jour</option>
+          ${Array.from({length:31},(_,i)=>`<option value="${i+1}" ${st.birthDate&&new Date(st.birthDate).getDate()===i+1?'selected':''}>${i+1}</option>`).join('')}
+        </select>
+        <select id="cp-month" style="flex:1.5;background:${S2};border:1px solid ${BD};border-radius:10px;padding:10px 8px;color:${TX};font-size:14px;font-family:inherit;">
+          <option value="">Mois</option>
+          ${['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'].map((m,i)=>`<option value="${i+1}" ${st.birthDate&&new Date(st.birthDate).getMonth()===i?'selected':''}>${m}</option>`).join('')}
+        </select>
+        <select id="cp-year" style="flex:1.5;background:${S2};border:1px solid ${BD};border-radius:10px;padding:10px 8px;color:${TX};font-size:14px;font-family:inherit;">
+          <option value="">Année</option>
+          ${Array.from({length:80},(_,i)=>new Date().getFullYear()-13-i).map(y=>`<option value="${y}" ${st.birthDate&&new Date(st.birthDate).getFullYear()===y?'selected':''}>${y}</option>`).join('')}
+        </select>
+      </div>
     </div>
 
     <!-- Genre -->
@@ -3416,12 +3348,15 @@ function cpSelectGender(g){
 }
 
 async function saveCompleteProfile(){
-  const birthEl=document.getElementById('cp-birth');
-  const by=birthEl?parseInt(birthEl.value)||st.birthYear:st.birthYear;
-  if(!by||by<1940||by>new Date().getFullYear()-13){toast('Indique ton année de naissance','error');return;}
+  const day=parseInt(document.getElementById('cp-day')?.value||'0');
+  const month=parseInt(document.getElementById('cp-month')?.value||'0');
+  const year=parseInt(document.getElementById('cp-year')?.value||'0');
+  if(!day||!month||!year||year<1930||year>new Date().getFullYear()-13){toast('Indique ta date de naissance complète','error');return;}
   if(!st.gender){toast('Choisis ton genre','error');return;}
-  st.birthYear=by;
-  const{error}=await supa.from('profiles').update({birth_year:by,gender:st.gender}).eq('id',st.userId);
+  const birthDate=year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+  st.birthDate=birthDate;
+  const d=new Date(birthDate);const now=new Date();let age=now.getFullYear()-d.getFullYear();if(now<new Date(now.getFullYear(),d.getMonth(),d.getDate()))age--;st.age=age;
+  const{error}=await supa.from('profiles').update({birth_date:birthDate,gender:st.gender}).eq('id',st.userId);
   if(error){toast('Erreur: '+error.message,'error');return;}
   if(!window._profilePhotoCache){
     toast('📷 Ajoute une photo pour finaliser !','error');
