@@ -368,7 +368,7 @@ async function loadSorties(){
 async function loadMembres(){const g=st.groupe||'general';const{data}=await supa.from('groupe_membres').select('*').eq('groupe',g);membresData=data||[];renderMembresDOM();}
 async function loadMessages(){const g=st.groupe||'general';const{data}=await supa.from('messages').select('*').eq('groupe',g).order('created_at',{ascending:true}).limit(100);const ca=document.getElementById('chat-area');if(!ca)return;ca.innerHTML=(data||[]).map(m=>msgHTML(m)).join('');ca.scrollTop=ca.scrollHeight;loadReactions();}
 async function sendMsg(){if(!rateLimit('msg_'+st.userId,5,10000))return;const inp=document.getElementById('msg-input');if(!inp)return;const txt=inp.value.trim();if(!txt)return;inp.value='';const g=st.groupe||'general';await supa.from('messages').insert({groupe:g,pseudo:st.pseudo,texte:txt,reactions:[],user_id:st.userId});}
-async function loadVotes(){const g=st.groupe||'general';const{data}=await supa.from('votes').select('*').eq('groupe',g);votesData={};(data||[]).forEach(v=>{const k=(v.date||'')+' '+v.heure;if(!votesData[k])votesData[k]=[];votesData[k].push(v);if(v.pseudo===st.pseudo)st.voted=k;});renderVotesDOM();}
+async function loadVotes(){const g=st.groupe||'general';const{data}=await supa.from('votes').select('*').eq('groupe',g);votesData={};(data||[]).forEach(v=>{const k=v.heure;if(!votesData[k])votesData[k]=[];votesData[k].push(v);});renderVotesDOM();}
 async function voterCinema(cinemaId){if(!rateLimit('vote_'+st.userId,10,60000))return;st.cinema=cinemaId;render();setTimeout(renderVotesDOM,50);const g=st.groupe||'general';await supa.from('groupe_membres').update({cinema_pref:cinemaId}).eq('groupe',g).eq('user_id',st.userId);await loadMembres();renderVotesDOM();}
 async function voter(heure){const g=st.groupe||'general';const k=st.date+' '+heure;const dejàVoté=(votesData[k]||[]).some(v=>v.pseudo===st.pseudo);await supa.from('votes').delete().eq('groupe',g).eq('user_id',st.userId);if(!dejàVoté){await supa.from('votes').insert({groupe:g,pseudo:st.pseudo,heure,date:st.date,user_id:st.userId});st.voted=k;toast('Vote enregistré pour '+heure+' ✓','success',1800);}else{st.voted=null;toast('Vote retiré','info',1500);}await loadVotes();}
 async function loadGroupeInfo(){if(!st.groupe)return;const{data}=await supa.from('groupes').select('confirmed_cinema,confirmed_heure,confirmed_date').eq('id',st.groupe).single();groupeInfo=data||{};}
@@ -1499,37 +1499,214 @@ function renderMembresDOM(){
 function renderVotesDOM(){
   const el=document.getElementById('votes-area');
   if(!el)return;
-  const film=FILMS[st.film];const filmCinemas=CINEMAS.filter(c=>(SEANCES_ALL[c.id]?.[st.film]?.[st.date||todayStr()]||[]).length>0 || Object.values(SEANCES_ALL[c.id]?.[st.film]||{}).some(h=>h.length>0));
-  if(filmCinemas.length===0){el.innerHTML=`<div style="text-align:center;padding:30px;color:${MU};">${T('aucunFilmDispo')}</div>`;return;}
-  const conf=groupeInfo||{};const isConfirmed=!!conf.confirmed_heure;
-  const confCinema=CINEMAS.find(c=>c.id===conf.confirmed_cinema);
-  const isCreator=mesGroupes.find(g=>g.id===st.groupe)?.createur===st.pseudo;
-  if(isConfirmed&&confCinema){
-    el.innerHTML=`<div style="padding:14px;background:rgba(0,192,48,0.08);border:1px solid rgba(0,192,48,0.25);border-radius:14px;margin-bottom:14px;">
-      <div style="font-size:12px;font-weight:700;color:${LB};margin-bottom:8px;">${T('confirmePlan')}</div>
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">${esc(confCinema.name)}</div>
-      <div style="font-size:14px;color:${GD};font-weight:600;">${conf.confirmed_heure} · ${formatDate(conf.confirmed_date)}</div>
-      <div style="font-size:12px;color:${MU};margin-top:6px;">${countdown(conf.confirmed_date,conf.confirmed_heure)}</div>
-      ${isCreator?`<div onclick="annulerConfirmation()" style="margin-top:10px;padding:8px;text-align:center;border-radius:10px;background:rgba(255,63,91,0.1);border:1px solid rgba(255,63,91,0.3);font-size:12px;color:${AC};cursor:pointer;">${T('annuler')}</div>`:''}
-    </div>`;return;
+  const g=st.groupe;
+  const isCreator=(groupeInfo?.user_id===st.userId)||(groupeInfo?.createur===st.pseudo);
+  const conf=groupeInfo||{};
+  const isConfirmed=!!conf.confirmed_heure;
+
+  // Load options from localStorage (set by creator)
+  const optKey='sondage_'+g;
+  let options=[];
+  try{ options=JSON.parse(localStorage.getItem(optKey)||'[]'); }catch(e){}
+
+  // If séance confirmed → show result
+  if(isConfirmed){
+    const confCin=CINEMAS.find(c=>c.id===conf.confirmed_cinema);
+    const col=CC[confCin?.chain]||MU;
+    el.innerHTML=`
+      <div style="text-align:center;padding:20px 10px;">
+        <div style="font-size:36px;margin-bottom:12px;">🎬</div>
+        <div style="font-size:11px;color:${MU};text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Séance confirmée</div>
+        <div style="font-size:17px;font-weight:700;color:${col};margin-bottom:4px;">${esc(confCin?.name||conf.confirmed_cinema)}</div>
+        <div style="font-size:22px;font-weight:900;color:${AC};margin:8px 0;">${conf.confirmed_heure}</div>
+        <div style="font-size:13px;color:${MU};">${formatDate(conf.confirmed_date)}</div>
+      </div>`;
+    return;
   }
+
+  // Count votes per option
+  const counts={};
+  const myVotes=new Set();
+  const votersByOption={};
+  Object.entries(votesData||{}).forEach(([k,arr])=>{
+    counts[k]=(arr||[]).length;
+    votersByOption[k]=(arr||[]).map(v=>v.pseudo);
+    if((arr||[]).some(v=>v.user_id===st.userId)) myVotes.add(k);
+  });
+
+  // CREATOR VIEW: add options + see votes
+  if(isCreator && options.length===0){
+    el.innerHTML=`
+      <div style="text-align:center;padding:16px 0 20px;">
+        <div style="font-size:32px;margin-bottom:10px;">🗳️</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Propose des créneaux</div>
+        <div style="font-size:12px;color:${MU};margin-bottom:20px;">Choisis 2 à 4 options que les membres voteront</div>
+        <button onclick="openAddOption()" style="padding:12px 24px;background:${AC};border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">+ Ajouter un créneau</button>
+      </div>`;
+    return;
+  }
+
   let html='';
-  for(const c of filmCinemas){
-    const seances=(SEANCES_ALL[c.id]?.[st.film]?.[st.date||todayStr()])||[];const col=CC[c.chain]||MU;
-    html+=`<div style="margin-bottom:16px;">
-      <div style="font-size:11px;font-weight:700;color:${col};margin-bottom:6px;">${esc(c.name)}</div>
-      ${seances.length===0?`<div style="font-size:11px;color:${MU};">${T('aucuneSeanceJour')}</div>`:`<div style="display:flex;flex-wrap:wrap;gap:6px;">${seances.map(h=>{
-        const k=st.date+' '+h;const voters=(votesData[k]||[]);const myVote=st.voted===k;const past=isPast(h);
-        const nb=voters.length;const avatarPills=voters.slice(0,3).map(v=>`<span title="${esc(v.pseudo)}">${v.pseudo[0].toUpperCase()}</span>`).join('');
-        return `<div onclick="${!past&&isCreator?`confirmerPlan('${c.id}','${h}','${st.date}')`:''}" style="padding:6px 10px;border-radius:10px;background:${myVote?'rgba(255,63,91,0.15)':S2};border:1px solid ${myVote?AC:BD};cursor:${past?'default':isCreator?'pointer':'default'};${past?'opacity:0.4;':''}">
-          <div style="font-size:clamp(11px,3.3vw,14px);font-weight:600;color:${myVote?AC:TX};">${h}</div>
-          ${nb>0?`<div style="font-size:8px;color:${MU};margin-top:2px;">${nb} vote${nb>1?'s':''}</div>`:''}
-          ${isCreator&&!past?`<div style="font-size:8px;color:${LB};margin-top:1px;">✓ Confirmer</div>`:''}
-        </div>`;
-      }).join('')}</div>`}
-    </div>`;
+
+  // Options list
+  if(options.length>0){
+    html+=`<div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">Sondage · ${options.length} option${options.length>1?'s':''}</div>`;
+    html+=options.map((opt,i)=>{
+      const [cinId,date,heure]=opt.split('::');
+      const cin=CINEMAS.find(c=>c.id===cinId);
+      const col=CC[cin?.chain]||MU;
+      const k=opt;
+      const nb=counts[k]||0;
+      const voted=myVotes.has(k);
+      const voters=votersByOption[k]||[];
+      const pct=membresData.length>0?Math.round(nb/Math.max(membresData.length,1)*100):0;
+      return `<div style="background:${S1};border:1px solid ${voted?AC:BD};border-radius:16px;padding:14px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:${col};">${esc(cin?.name||cinId)}</div>
+            <div style="font-size:11px;color:${MU};margin-top:2px;">${formatDate(date)} · <span style="color:${TX};font-weight:700;">${heure}</span>${cin?.metro?' · M '+esc(cin.metro):''}</div>
+          </div>
+          ${!isConfirmed?`<button onclick="toggleVote('${opt}')" style="padding:8px 16px;border-radius:10px;border:2px solid ${voted?'#4caf50':BD};background:${voted?'rgba(76,175,80,0.15)':'transparent'};color:${voted?'#4caf50':MU};font-size:18px;cursor:pointer;font-family:inherit;transition:all 0.2s;">${voted?'✅':'⬜'}</button>`:''}
+          ${isCreator?`<button onclick="confirmOption('${opt}')" style="padding:6px 12px;border-radius:10px;background:${AC};border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">Confirmer</button>`:''}
+        </div>
+        <div style="background:rgba(255,255,255,0.05);border-radius:6px;height:4px;margin-bottom:6px;">
+          <div style="background:${voted?'#4caf50':MU};height:4px;border-radius:6px;width:${pct}%;transition:width 0.3s;"></div>
+        </div>
+        <div style="font-size:10px;color:${MU};">${nb} vote${nb>1?'s':''}${voters.length?(' · '+voters.slice(0,3).map(p=>esc(p)).join(', ')+(voters.length>3?' +'+( voters.length-3):'')):'  — sois le premier !'}</div>
+      </div>`;
+    }).join('');
+
+    if(isCreator){
+      if(options.length<4) html+=`<button onclick="openAddOption()" style="width:100%;padding:10px;background:transparent;border:1px dashed ${BD};border-radius:14px;color:${MU};font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px;">+ Ajouter un créneau</button>`;
+      html+=`<button onclick="clearOptions()" style="width:100%;padding:8px;background:transparent;border:none;color:${MU};font-size:11px;cursor:pointer;font-family:inherit;margin-top:8px;">Réinitialiser le sondage</button>`;
+    }
+  } else {
+    html=`<div style="text-align:center;padding:30px;color:${MU};">En attente du créateur…</div>`;
   }
+
   el.innerHTML=html;
+}
+
+function openAddOption(){
+  document.getElementById('add-option-modal')?.remove();
+  const film=FILMS[st.film];
+  // Get all cinemas showing this film
+  const filmCinemas=CINEMAS.filter(c=>Object.values(SEANCES_ALL[c.id]?.[st.film]||{}).some(h=>h.length>0));
+  const today=todayStr();
+  const futureDates=AVAILABLE_DATES.filter(d=>d>=today);
+
+  const modal=document.createElement('div');
+  modal.id='add-option-modal';
+  modal.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;';
+
+  const overlay=document.createElement('div');
+  overlay.style.cssText='flex:1;background:rgba(0,0,0,0.6);';
+  overlay.onclick=()=>modal.remove();
+
+  const sheet=document.createElement('div');
+  sheet.style.cssText='background:#12121f;border-radius:20px 20px 0 0;padding:24px 20px 40px;max-height:85vh;overflow-y:auto;';
+
+  // Build cinema select options
+  const cinOptions=filmCinemas.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  // Build date options
+  const dateOptions=futureDates.slice(0,7).map(d=>`<option value="${d}">${formatDate(d)}</option>`).join('');
+
+  sheet.innerHTML=
+    '<div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 20px;"></div>'+
+    '<div style="font-size:15px;font-weight:700;margin-bottom:20px;">Ajouter un créneau</div>'+
+    '<div style="margin-bottom:14px;">'+
+      '<div style="font-size:11px;color:'+MU+';margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Cinéma</div>'+
+      '<select id="ao-cin" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #333;border-radius:10px;color:#fff;font-size:14px;font-family:inherit;">'+cinOptions+'</select>'+
+    '</div>'+
+    '<div style="margin-bottom:14px;">'+
+      '<div style="font-size:11px;color:'+MU+';margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Date</div>'+
+      '<select id="ao-date" style="width:100%;padding:10px 12px;background:#1a1a2e;border:1px solid #333;border-radius:10px;color:#fff;font-size:14px;font-family:inherit;">'+dateOptions+'</select>'+
+    '</div>'+
+    '<div style="margin-bottom:20px;">'+
+      '<div style="font-size:11px;color:'+MU+';margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Heure</div>'+
+      '<div id="ao-heures" style="display:flex;flex-wrap:wrap;gap:8px;"></div>'+
+    '</div>'+
+    '<button id="ao-confirm" disabled style="width:100%;padding:13px;background:'+AC+';border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;opacity:0.5;">Ajouter ce créneau</button>';
+
+  let selectedHeure=null;
+
+  function updateHeures(){
+    const cinId=sheet.querySelector('#ao-cin').value;
+    const date=sheet.querySelector('#ao-date').value;
+    const heures=(SEANCES_ALL[cinId]?.[st.film]?.[date]||[]).filter(h=>date>today||(date===today&&!isPast(h)));
+    const wrap=sheet.querySelector('#ao-heures');
+    selectedHeure=null;
+    sheet.querySelector('#ao-confirm').disabled=true;
+    sheet.querySelector('#ao-confirm').style.opacity='0.5';
+    wrap.innerHTML=heures.length
+      ? heures.map(h=>`<button onclick="selectHeure(this,'${h}')" style="padding:8px 14px;border-radius:10px;border:1px solid #333;background:#1a1a2e;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">${h}</button>`).join('')
+      : '<div style="color:'+MU+';font-size:12px;">Aucune séance disponible ce jour</div>';
+  }
+
+  window.selectHeure=function(btn,h){
+    selectedHeure=h;
+    sheet.querySelectorAll('#ao-heures button').forEach(b=>{b.style.background='#1a1a2e';b.style.borderColor='#333';b.style.color='#fff';});
+    btn.style.background=AC;btn.style.borderColor=AC;btn.style.color='#fff';
+    sheet.querySelector('#ao-confirm').disabled=false;
+    sheet.querySelector('#ao-confirm').style.opacity='1';
+  };
+
+  sheet.querySelector('#ao-cin').onchange=updateHeures;
+  sheet.querySelector('#ao-date').onchange=updateHeures;
+
+  sheet.querySelector('#ao-confirm').onclick=function(){
+    if(!selectedHeure)return;
+    const cinId=sheet.querySelector('#ao-cin').value;
+    const date=sheet.querySelector('#ao-date').value;
+    const key=cinId+'::'+date+'::'+selectedHeure;
+    const optKey='sondage_'+st.groupe;
+    let opts=[];
+    try{opts=JSON.parse(localStorage.getItem(optKey)||'[]');}catch(e){}
+    if(!opts.includes(key)&&opts.length<4) opts.push(key);
+    localStorage.setItem(optKey,JSON.stringify(opts));
+    modal.remove();
+    renderVotesDOM();
+  };
+
+  modal.appendChild(overlay);
+  modal.appendChild(sheet);
+  document.body.appendChild(modal);
+  updateHeures();
+}
+
+window.clearOptions=function(){
+  localStorage.removeItem('sondage_'+st.groupe);
+  renderVotesDOM();
+};
+
+async function toggleVote(optKey){
+  if(!st.userId)return;
+  const [cinId,date,heure]=optKey.split('::');
+  const g=st.groupe;
+  const alreadyVoted=(votesData[optKey]||[]).some(v=>v.user_id===st.userId);
+  if(alreadyVoted){
+    await supa.from('votes').delete().eq('groupe',g).eq('user_id',st.userId).eq('heure',optKey);
+    if(votesData[optKey]) votesData[optKey]=votesData[optKey].filter(v=>v.user_id!==st.userId);
+  } else {
+    await supa.from('votes').insert({groupe:g,pseudo:st.pseudo,heure:optKey,date,user_id:st.userId});
+    if(!votesData[optKey]) votesData[optKey]=[];
+    votesData[optKey].push({user_id:st.userId,pseudo:st.pseudo});
+  }
+  renderVotesDOM();
+}
+
+async function confirmOption(optKey){
+  const [cinId,date,heure]=optKey.split('::');
+  const {error}=await supa.from('groupes').update({
+    confirmed_cinema:cinId,
+    confirmed_heure:heure,
+    confirmed_date:date
+  }).eq('id',st.groupe);
+  if(!error){
+    if(groupeInfo){groupeInfo.confirmed_cinema=cinId;groupeInfo.confirmed_heure=heure;groupeInfo.confirmed_date=date;}
+    toast('✅ Séance confirmée !','success');
+    renderVotesDOM();
+  }
 }
 
 function setTab(t){st.tab=t;render();if(t==='chat'){setTimeout(()=>{const ca=document.getElementById('chat-area');if(ca)ca.scrollTop=ca.scrollHeight;},80);}else if(t==='membres'){renderMembresDOM();}else if(t==='vote'){renderVotesDOM();}}
@@ -1553,9 +1730,7 @@ function sGroup(){
       </div>
     </div>`;
   }else if(st.tab==='vote'){
-    tc=`<div style="flex:1;overflow-y:auto;padding:12px 14px 20px;">
-      <div style="font-size:9px;color:${MU};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">Choisir la séance</div>
-      ${dayPicker()}
+    tc=`<div style="flex:1;overflow-y:auto;padding:12px 14px 20px;" id="vote-tab-wrap">
       <div id="votes-area"></div>
     </div>`;
   }else if(st.tab==='membres'){
