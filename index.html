@@ -83,6 +83,91 @@ function applyScale(){
   const scale=Math.min(window.innerHeight/844,1);
   const r=document.documentElement;
   [['--fs-xs',10],['--fs-sm',11],['--fs-md',13],['--fs-lg',15],['--fs-xl',18],['--fs-2xl',24],['--fs-3xl',28],
+   ['--sp-xs',6],['--sp-sm',10],['--sp-md',14],['--sp-lg',18],['--sp-xl',24],['--btn-h',48],['--nav-h',64],<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
+  <title>CinéLynker — Sorties ciné à Paris</title>
+  <meta name="description" content="Découvre les films en salle à Paris, organise des sorties avec tes amis et rencontre des cinéphiles."/>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json"/>
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#07070f"/>
+  <meta name="background-color" content="#07070f"/>
+  <meta name="color-scheme" content="dark"/>
+
+  <!-- iOS PWA -->
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="CinéLynker"/>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png"/>
+  <link rel="apple-touch-icon" sizes="96x96" href="/icons/icon-96.png"/>
+  <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96.png"/>
+  <link rel="icon" href="/favicon.ico"/>
+
+  <!-- iOS Splash Screens (generated via generate-icons.html) -->
+  <link rel="apple-touch-startup-image" media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)" href="/splash/splash-1170x2532.png"/>
+  <link rel="apple-touch-startup-image" media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3)" href="/splash/splash-1125x2436.png"/>
+  <link rel="apple-touch-startup-image" media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:2)" href="/splash/splash-828x1792.png"/>
+  <link rel="apple-touch-startup-image" media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2)" href="/splash/splash-750x1334.png"/>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="CinéLynker"/>
+  <meta property="og:description" content="Le réseau social du cinéma parisien"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:image" content="/icons/icon-512.png"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{height:100%;overflow:hidden;position:fixed;width:100%;}
+    body{margin:0;padding:0;width:100%;height:100%;background:#07070f;font-family:'Outfit',sans-serif;overflow:hidden;position:fixed;-webkit-overflow-scrolling:touch;}
+    html,body{height:100%;height:-webkit-fill-available;}
+    .serif{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;}
+    .phone{width:100%;height:100%;height:100dvh;height:-webkit-fill-available;background:#07070f;display:flex;flex-direction:column;color:#e8e0d4;font-size:13px;overflow:hidden;position:fixed;top:0;left:0;right:0;bottom:0;}
+    .notch{display:none;}
+    @media(min-width:600px){
+      body{display:flex;align-items:center;justify-content:center;background:#04040a;overflow:auto;position:static;}
+      html{overflow:auto;position:static;}
+      .phone{position:relative;width:390px;height:844px;height:min(844px,95vh);border-radius:46px;border:1.5px solid #252535;box-shadow:0 30px 80px rgba(0,0,0,0.9);top:auto;left:auto;right:auto;bottom:auto;}
+      .notch{display:flex;position:absolute;top:12px;left:50%;transform:translateX(-50%);width:100px;height:28px;background:#07070f;border-radius:28px;z-index:100;align-items:center;justify-content:center;}
+      .notch-bar{width:52px;height:5px;background:#1a1a2e;border-radius:3px;}
+    }
+    #inner{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-top:max(env(safe-area-inset-top),0px);}
+    @media(min-width:600px){#inner{padding-top:40px;}}
+    .tap{transition:opacity .15s;} .tap:active{opacity:.6;}
+    ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:#252535;border-radius:3px;}
+    :root{--fs-xs:10px;--fs-sm:11px;--fs-md:13px;--fs-lg:15px;--fs-xl:18px;--fs-2xl:24px;--fs-3xl:28px;--sp-xs:6px;--sp-sm:10px;--sp-md:14px;--sp-lg:18px;--sp-xl:24px;--btn-h:48px;--nav-h:64px;--radius:14px;}
+    @media(max-height:680px){:root{--fs-xs:9px;--fs-sm:10px;--fs-md:12px;--fs-lg:14px;--fs-xl:16px;--fs-2xl:20px;--fs-3xl:24px;--sp-xs:4px;--sp-sm:8px;--sp-md:10px;--sp-lg:14px;--sp-xl:18px;--btn-h:42px;--nav-h:56px;--radius:12px;}}
+    @media(min-height:900px){:root{--fs-xs:11px;--fs-sm:12px;--fs-md:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:26px;--fs-3xl:32px;--sp-xs:8px;--sp-sm:12px;--sp-md:16px;--sp-lg:22px;--sp-xl:28px;--btn-h:54px;--nav-h:72px;--radius:16px;}}
+    input,button{font-family:'Outfit',sans-serif;}
+    .row-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 18px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+    .row-scroll::-webkit-scrollbar{display:none;}
+    .poster-card-lg{flex-shrink:0;width:110px;cursor:pointer;position:relative;}
+    .poster-card-lg .poster-img{width:110px;height:165px;border-radius:10px;overflow:hidden;position:relative;}
+    .poster-card-lg .poster-img img{width:100%;height:100%;object-fit:cover;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    .fade-up{animation:fadeUp 0.3s ease forwards;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+    @keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+    .slide-in{animation:slideIn 0.25s ease forwards;}
+    .notif-badge{position:absolute;top:-4px;right:-6px;min-width:16px;height:16px;border-radius:8px;background:#ff3f5b;border:2px solid #07070f;display:none;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;padding:0 3px;}
+    .hero-film{cursor:pointer;overflow:hidden;}
+    .hero-film img{width:100%;height:100%;object-fit:cover;filter:brightness(0.4);}
+  </style>
+<script>
+function applyScale(){
+  if(window.innerWidth>=600)return;
+  const scale=Math.min(window.innerHeight/844,1);
+  const r=document.documentElement;
+  [['--fs-xs',10],['--fs-sm',11],['--fs-md',13],['--fs-lg',15],['--fs-xl',18],['--fs-2xl',24],['--fs-3xl',28],
    ['--sp-xs',6],['--sp-sm',10],['--sp-md',14],['--sp-lg',18],['--sp-xl',24],['--btn-h',48],['--nav-h',64],
   ].forEach(([k,v])=>r.style.setProperty(k,Math.round(v*scale)+'px'));
 }
@@ -3236,14 +3321,7 @@ function openRateModal(ratedUserId, ratedPseudo, groupeId){
   };
   sheet.querySelector('#rate-confirm').onclick=async function(){
     if(!selectedStars)return;
-    const gid = groupeId && groupeId !== 'undefined' ? groupeId : null;
-    // Check if already rated
-    const {data:existing} = await supa.from('user_ratings').select('id').eq('rater_id',st.userId).eq('rated_id',ratedUserId).maybeSingle();
-    if(existing){
-      await supa.from('user_ratings').update({rating:selectedStars}).eq('id',existing.id);
-    } else {
-      await supa.from('user_ratings').insert({rater_id:st.userId,rated_id:ratedUserId,groupe_id:gid,rating:selectedStars});
-    }
+    await supa.from('user_ratings').upsert({rater_id:st.userId,rated_id:ratedUserId,rating:selectedStars},{onConflict:'rater_id,rated_id'});
     modal.remove();
     toast('Note envoyée ✓','success');
   };
