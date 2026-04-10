@@ -3236,7 +3236,14 @@ function openRateModal(ratedUserId, ratedPseudo, groupeId){
   };
   sheet.querySelector('#rate-confirm').onclick=async function(){
     if(!selectedStars)return;
-    await supa.from('user_ratings').upsert({rater_id:st.userId,rated_id:ratedUserId,groupe_id:groupeId,rating:selectedStars},{onConflict:'rater_id,rated_id,groupe_id'});
+    const gid = groupeId && groupeId !== 'undefined' ? groupeId : null;
+    // Check if already rated
+    const {data:existing} = await supa.from('user_ratings').select('id').eq('rater_id',st.userId).eq('rated_id',ratedUserId).maybeSingle();
+    if(existing){
+      await supa.from('user_ratings').update({rating:selectedStars}).eq('id',existing.id);
+    } else {
+      await supa.from('user_ratings').insert({rater_id:st.userId,rated_id:ratedUserId,groupe_id:gid,rating:selectedStars});
+    }
     modal.remove();
     toast('Note envoyée ✓','success');
   };
