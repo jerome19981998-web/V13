@@ -627,24 +627,10 @@ function sAuth(){
       inp('regPass','password',lang==='fr'?'Mot de passe (min 6 caractères)':'Password (min 6 chars)','registerWithPassword()')+
       '<span onclick="togglePwd(\'regPass\')" style="position:absolute;right:14px;top:14px;cursor:pointer;font-size:17px;opacity:.5;">👁</span>'+
     '</div>'+
-    '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
-      '<div style="flex:1;">'+
-        '<div style="font-size:10px;color:'+MU+';margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">'+(lang==='fr'?'Année de naissance':'Birth year')+' *</div>'+
-        '<input id="regBirthYear" type="number" placeholder="'+(new Date().getFullYear()-25)+'" min="1940" max="'+(new Date().getFullYear()-13)+'" style="width:100%;background:'+S2+';border:1px solid '+BD+';border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);color:'+TX+';outline:none;box-sizing:border-box;">'+
-      '</div>'+
-      '<div style="flex:1.2;">'+
-        '<div style="font-size:10px;color:'+MU+';margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">'+(lang==='fr'?'Genre':'Gender')+' *</div>'+
-        '<div style="display:flex;gap:4px;">'+
-          '<button id="gender-femme" onclick="selectGender(\'femme\')" style="flex:1;padding:10px 2px;border-radius:10px;border:1px solid '+BD+';background:'+S2+';color:'+MU+';font-size:11px;cursor:pointer;font-family:inherit;">👩 F</button>'+
-          '<button id="gender-homme" onclick="selectGender(\'homme\')" style="flex:1;padding:10px 2px;border-radius:10px;border:1px solid '+BD+';background:'+S2+';color:'+MU+';font-size:11px;cursor:pointer;font-family:inherit;">👨 H</button>'+
-          '<button id="gender-autre" onclick="selectGender(\'autre\')" style="flex:1;padding:10px 2px;border-radius:10px;border:1px solid '+BD+';background:'+S2+';color:'+MU+';font-size:11px;cursor:pointer;font-family:inherit;">⚧ A</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>'+
     '<div id="auth-err" style="font-size:12px;color:'+AC+';margin-bottom:10px;min-height:16px;"></div>'+
     '<button onclick="registerWithPassword()" style="width:100%;background:'+AC+';border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">'+(lang==='fr'?'Créer mon compte →':'Create my account →')+'</button>'+
     '<span onclick="st.authStep=\'login\';render()" style="font-size:13px;color:'+MU+';cursor:pointer;">'+(lang==='fr'?'Déjà un compte ? Se connecter':'Already have an account? Sign in')+'</span>';}
-  mode==='forgot'){body=`${inp('forgotEmail','email',lang==='fr'?'ton@email.fr':'your@email.com','sendResetEmail()')}<div id="auth-err" style="font-size:12px;color:${AC};margin-bottom:10px;min-height:16px;"></div><button onclick="sendResetEmail()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">${lang==='fr'?'Envoyer le lien':'Send reset link'}</button><span onclick="st.authStep='login';render()" style="font-size:13px;color:${MU};cursor:pointer;">← Retour</span>`;}
+    else if(mode==='forgot'){body=`${inp('forgotEmail','email',lang==='fr'?'ton@email.fr':'your@email.com','sendResetEmail()')}<div id="auth-err" style="font-size:12px;color:${AC};margin-bottom:10px;min-height:16px;"></div><button onclick="sendResetEmail()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:var(--radius);padding:var(--sp-md);font-size:var(--fs-md);font-weight:600;cursor:pointer;margin-bottom:14px;">${lang==='fr'?'Envoyer le lien':'Send reset link'}</button><span onclick="st.authStep='login';render()" style="font-size:13px;color:${MU};cursor:pointer;">← Retour</span>`;}
   else if(mode==='sent'){body=`<div style="font-size:56px;margin-bottom:16px;">📬</div><div style="font-size:15px;font-weight:600;margin-bottom:8px;">${lang==='fr'?'Email envoyé !':'Email sent!'}</div><span onclick="st.authStep='login';render()" style="font-size:13px;color:${AC};cursor:pointer;">${lang==='fr'?'← Retour':'← Back'}</span>`;}
   else if(mode==='confirm'){const mail=st._confirmEmail||'';body=`<div style="font-size:56px;margin-bottom:16px;">✉️</div><div style="font-size:15px;font-weight:600;margin-bottom:8px;">Confirme ton email</div><div style="font-size:13px;color:${MU};margin-bottom:6px;">Email envoyé à</div><div style="font-size:14px;font-weight:600;margin-bottom:20px;">${mail}</div><button onclick="st.authStep='login';render()" style="width:100%;background:${AC};border:none;color:#fff;border-radius:14px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;">Aller à la connexion →</button>`;}
   return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;position:relative;">
@@ -672,20 +658,16 @@ async function loginWithPassword(){
 }
 async function registerWithPassword(){
   const pseudo=(document.getElementById('regPseudo')?.value||'').trim();const email=(document.getElementById('regEmail')?.value||'').trim();const pass=(document.getElementById('regPass')?.value||'').trim();
-  const birthYear=parseInt(document.getElementById('regBirthYear')?.value||'0');
-  const gender=window._selectedGender||null;
   if(!pseudo||!email||!pass){showAuthErr('Remplis tous les champs');return;}
   if(pass.length<6){showAuthErr('Mot de passe trop court');return;}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthErr('Email invalide');return;}
-  if(!birthYear||birthYear<1940||birthYear>new Date().getFullYear()-13){showAuthErr('Année de naissance invalide');return;}
-  if(!gender){showAuthErr('Choisis ton genre');return;}
   const btn=document.querySelector('[onclick="registerWithPassword()"]');if(btn){btn.disabled=true;btn.textContent='Création...';}showAuthErr('');
   try{
     const{data:existing}=await supa.from('profiles').select('id').eq('pseudo',pseudo).limit(1);
     if(existing&&existing.length>0){showAuthErr('Ce pseudo est déjà pris ❌');return;}
     const{data,error}=await supa.auth.signUp({email,password:pass,options:{emailRedirectTo:window.location.origin}});
     if(error){showAuthErr(error.message);return;}
-    if(data?.user){await supa.from('profiles').upsert({id:data.user.id,pseudo,avatar:st.avatar||'🎬',lang:st.lang||'fr',email,birth_year:birthYear,gender},{onConflict:'id'});st.pseudo=pseudo;save();}
+    if(data?.user){await supa.from('profiles').upsert({id:data.user.id,pseudo,avatar:st.avatar||'🎬',lang:st.lang||'fr',email},{onConflict:'id'});st.pseudo=pseudo;save();}
     const{error:loginErr}=await supa.auth.signInWithPassword({email,password:pass});
     if(loginErr){st.authStep='confirm';st._confirmEmail=email;render();}
   }catch(e){showAuthErr('Erreur : '+e.message);}
@@ -3356,7 +3338,13 @@ async function saveCompleteProfile(){
   st.birthYear=by;
   const{error}=await supa.from('profiles').update({birth_year:by,gender:st.gender}).eq('id',st.userId);
   if(error){toast('Erreur: '+error.message,'error');return;}
-  if(!window._profilePhotoCache){toast('Ajoute une photo pour continuer !','error');return;}
+  if(!window._profilePhotoCache){
+    toast('📷 Ajoute une photo pour finaliser !','error');
+    // Scroll to top so user sees the photo button
+    const wrap=document.querySelector('[style*="overflow-y:auto"]');
+    if(wrap) wrap.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
   st.screen='home';render();init_social();
 }
 
